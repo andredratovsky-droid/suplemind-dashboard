@@ -1,0 +1,48 @@
+name: Suplemind — Atualizar Dados
+
+on:
+  schedule:
+    - cron: '0 11 * * *'
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  collect-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repositório
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Executar coleta de dados
+        env:
+          BLING_CLIENT_ID: ${{ secrets.BLING_CLIENT_ID }}
+          BLING_CLIENT_SECRET: ${{ secrets.BLING_CLIENT_SECRET }}
+          BLING_REFRESH_TOKEN: ${{ secrets.BLING_REFRESH_TOKEN }}
+        run: node collect.js
+
+      - name: Atualizar refresh token nos Secrets
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if [ -f .bling_refresh_token ]; then
+            NEW_TOKEN=$(cat .bling_refresh_token)
+            gh secret set BLING_REFRESH_TOKEN --body "$NEW_TOKEN"
+            echo "Refresh token atualizado"
+          fi
+
+      - name: Commit e push dos dados atualizados
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Suplemind Bot"
+          git add data/
+          git diff --staged --quiet || git commit -m "Dados atualizados $(date -u '+%d/%m/%Y %H:%M') UTC"
+          git push
