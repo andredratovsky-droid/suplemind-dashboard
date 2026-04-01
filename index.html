@@ -8,488 +8,122 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root {
-  --bg: #0a0d0f;
-  --bg2: #111417;
-  --bg3: #181c20;
-  --border: #1e2428;
-  --border2: #252b30;
-  --text: #e8eaec;
-  --text2: #8a9199;
-  --text3: #555e66;
-  --green: #00d68f;
-  --green2: #00a36e;
-  --green-dim: rgba(0,214,143,.08);
-  --green-dim2: rgba(0,214,143,.15);
-  --red: #ff4d6d;
-  --red-dim: rgba(255,77,109,.08);
-  --yellow: #ffd166;
-  --yellow-dim: rgba(255,209,102,.08);
-  --blue: #4da6ff;
-  --blue-dim: rgba(77,166,255,.08);
-  --radius: 12px;
-  --radius-sm: 8px;
-}
-
-* { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-}
-
-/* Ã¢ââ¬Ã¢ââ¬ SIDEBAR Ã¢ââ¬Ã¢ââ¬ */
-.sidebar {
-  width: 220px;
-  min-height: 100vh;
-  background: var(--bg2);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  left: 0; top: 0; bottom: 0;
-  z-index: 100;
-}
-
-.logo {
-  padding: 28px 20px 20px;
-  border-bottom: 1px solid var(--border);
-}
-.logo-name {
-  font-family: 'DM Serif Display', serif;
-  font-size: 18px;
-  color: var(--text);
-  letter-spacing: -0.3px;
-}
-.logo-sub {
-  font-size: 10px;
-  color: var(--green);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  font-weight: 500;
-  margin-top: 2px;
-}
-
-.nav { flex: 1; padding: 12px 0; overflow-y: auto; }
-
-.nav-group-label {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text3);
-  padding: 16px 20px 6px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 20px;
-  cursor: pointer;
-  color: var(--text2);
-  font-size: 13px;
-  font-weight: 400;
-  transition: all .15s;
-  border-left: 2px solid transparent;
-  user-select: none;
-}
-.nav-item:hover { color: var(--text); background: var(--bg3); }
-.nav-item.active {
-  color: var(--green);
-  border-left-color: var(--green);
-  background: var(--green-dim);
-  font-weight: 500;
-}
-.nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
-.nav-item .badge {
-  margin-left: auto;
-  background: var(--green-dim2);
-  color: var(--green);
-  font-size: 9px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 20px;
-}
-
-.sidebar-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--border);
-}
-.update-time {
-  font-size: 10px;
-  color: var(--text3);
-  font-family: 'JetBrains Mono', monospace;
-}
-.update-dot {
-  display: inline-block;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-  margin-right: 6px;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity:1; } 50% { opacity:.3; }
-}
-
-/* Ã¢ââ¬Ã¢ââ¬ MAIN Ã¢ââ¬Ã¢ââ¬ */
-.main {
-  margin-left: 220px;
-  flex: 1;
-  min-height: 100vh;
-}
-
-.topbar {
-  padding: 20px 32px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--bg);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-.page-title {
-  font-family: 'DM Serif Display', serif;
-  font-size: 22px;
-  color: var(--text);
-}
-.page-subtitle { font-size: 12px; color: var(--text3); margin-top: 2px; }
-
-.topbar-right { display: flex; align-items: center; gap: 12px; }
-.period-selector {
-  display: flex;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-.period-btn {
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text2);
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  transition: all .15s;
-}
-.period-btn:hover { color: var(--text); }
-.period-btn.active { background: var(--bg3); color: var(--green); }
-
-.content { padding: 28px 32px; }
-
-/* Ã¢ââ¬Ã¢ââ¬ MODULES Ã¢ââ¬Ã¢ââ¬ */
-.module { display: none; }
-.module.active { display: block; }
-
-/* Ã¢ââ¬Ã¢ââ¬ KPI GRID Ã¢ââ¬Ã¢ââ¬ */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-@media(max-width:1200px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
-
-.kpi-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
-  transition: border-color .2s;
-}
-.kpi-card:hover { border-color: var(--border2); }
-.kpi-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-}
-.kpi-card.green::before { background: var(--green); }
-.kpi-card.red::before { background: var(--red); }
-.kpi-card.yellow::before { background: var(--yellow); }
-.kpi-card.blue::before { background: var(--blue); }
-
-.kpi-label {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: .8px;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-bottom: 8px;
-}
-.kpi-value {
-  font-family: 'DM Serif Display', serif;
-  font-size: 28px;
-  color: var(--text);
-  line-height: 1;
-}
-.kpi-value.mono {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 24px;
-  font-weight: 600;
-}
-.kpi-delta {
-  font-size: 12px;
-  margin-top: 6px;
-  font-weight: 500;
-}
-.kpi-delta.up { color: var(--green); }
-.kpi-delta.down { color: var(--red); }
-.kpi-icon {
-  position: absolute;
-  right: 16px; top: 16px;
-  font-size: 28px;
-  opacity: .12;
-}
-
-/* Ã¢ââ¬Ã¢ââ¬ CHART CARDS Ã¢ââ¬Ã¢ââ¬ */
-.chart-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-.chart-grid-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-.chart-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-}
-.card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-.card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  letter-spacing: -.1px;
-}
-.card-subtitle {
-  font-size: 11px;
-  color: var(--text3);
-  margin-top: 3px;
-}
-.card-tag {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 20px;
-  letter-spacing: .5px;
-}
-.card-tag.green { background: var(--green-dim2); color: var(--green); }
-.card-tag.yellow { background: var(--yellow-dim); color: var(--yellow); }
-.card-tag.red { background: var(--red-dim); color: var(--red); }
-
-.chart-wrap { position: relative; height: 220px; }
-.chart-wrap.tall { height: 280px; }
-
-/* Ã¢ââ¬Ã¢ââ¬ TABLE Ã¢ââ¬Ã¢ââ¬ */
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: .8px;
-  text-transform: uppercase;
-  color: var(--text3);
-  padding: 8px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-.data-table td {
-  font-size: 13px;
-  padding: 10px 12px;
-  color: var(--text2);
-  border-bottom: 1px solid var(--border);
-}
-.data-table td:first-child { color: var(--text); font-weight: 500; }
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td { background: var(--bg3); }
-
-.pill {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.pill.green { background: var(--green-dim2); color: var(--green); }
-.pill.yellow { background: var(--yellow-dim); color: var(--yellow); }
-.pill.red { background: var(--red-dim); color: var(--red); }
-.pill.blue { background: var(--blue-dim); color: var(--blue); }
-
-/* Ã¢ââ¬Ã¢ââ¬ LOADING STATE Ã¢ââ¬Ã¢ââ¬ */
-.skeleton {
-  background: linear-gradient(90deg, var(--bg3) 25%, var(--border) 50%, var(--bg3) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 4px;
-}
-@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-/* Ã¢ââ¬Ã¢ââ¬ COMING SOON Ã¢ââ¬Ã¢ââ¬ */
-.coming-soon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 400px;
-  color: var(--text3);
-  gap: 12px;
-}
-.coming-soon .icon { font-size: 48px; opacity: .3; }
-.coming-soon h3 { font-size: 18px; color: var(--text2); }
-.coming-soon p { font-size: 13px; text-align: center; max-width: 300px; line-height: 1.6; }
-
-/* Ã¢ââ¬Ã¢ââ¬ DIVIDER Ã¢ââ¬Ã¢ââ¬ */
-.section-title {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-bottom: 12px;
-  margin-top: 8px;
-}
-
-/* Ã¢ââ¬Ã¢ââ¬ ALERTS Ã¢ââ¬Ã¢ââ¬ */
-.alert-list { display: flex; flex-direction: column; gap: 8px; }
-.alert-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-}
-.alert-item.warn { background: var(--yellow-dim); border: 1px solid rgba(255,209,102,.2); }
-.alert-item.danger { background: var(--red-dim); border: 1px solid rgba(255,77,109,.2); }
-.alert-item.info { background: var(--green-dim); border: 1px solid rgba(0,214,143,.15); }
-.alert-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
-.alert-dot.warn { background: var(--yellow); }
-.alert-dot.danger { background: var(--red); }
-.alert-dot.info { background: var(--green); }
-.alert-text { color: var(--text2); line-height: 1.5; }
-.alert-text strong { color: var(--text); }
-
-/* Ã¢ââ¬Ã¢ââ¬ MINI CHART Ã¢ââ¬Ã¢ââ¬ */
-.sparkline { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
-.spark-bar {
-  flex: 1;
-  background: var(--green-dim2);
-  border-radius: 2px 2px 0 0;
-  transition: background .2s;
-}
-.spark-bar:hover { background: var(--green); }
-.spark-bar.today { background: var(--green); }
-
-/* Ã¢ââ¬Ã¢ââ¬ STAT ROW Ã¢ââ¬Ã¢ââ¬ */
-.stat-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-.stat-row:last-child { border-bottom: none; }
-.stat-row-label { font-size: 13px; color: var(--text2); }
-.stat-row-value { font-size: 13px; color: var(--text); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
-
-/* Ã¢ââ¬Ã¢ââ¬ SCROLL Ã¢ââ¬Ã¢ââ¬ */
-.scroll-area { overflow-y: auto; max-height: 300px; }
-.scroll-area::-webkit-scrollbar { width: 4px; }
-.scroll-area::-webkit-scrollbar-track { background: transparent; }
-.scroll-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+:root{--bg:#0a0d0f;--bg2:#111417;--bg3:#181c20;--border:#1e2428;--border2:#252b30;--text:#e8eaec;--text2:#8a9199;--text3:#555e66;--green:#00d68f;--green-dim:rgba(0,214,143,.08);--green-dim2:rgba(0,214,143,.15);--red:#ff4d6d;--red-dim:rgba(255,77,109,.08);--yellow:#ffd166;--yellow-dim:rgba(255,209,102,.08);--blue:#4da6ff;--blue-dim:rgba(77,166,255,.08);--radius:12px;--radius-sm:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+.sidebar{width:220px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100}
+.logo{padding:28px 20px 20px;border-bottom:1px solid var(--border)}
+.logo-name{font-family:'DM Serif Display',serif;font-size:18px;color:var(--text);letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--green);letter-spacing:2px;text-transform:uppercase;font-weight:500;margin-top:2px}
+.nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-group-label{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:16px 20px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:400;transition:all .15s;border-left:2px solid transparent;user-select:none}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--green);border-left-color:var(--green);background:var(--green-dim);font-weight:500}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border)}
+.update-time{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.update-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.main{margin-left:220px;flex:1;min-height:100vh}
+.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg);position:sticky;top:0;z-index:50}
+.page-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--text)}
+.page-subtitle{font-size:12px;color:var(--text3);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.period-selector{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.period-btn{padding:6px 12px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border:none;background:transparent;transition:all .15s}
+.period-btn:hover{color:var(--text)}
+.period-btn.active{background:var(--bg3);color:var(--green)}
+.content{padding:28px 32px}
+.module{display:none}
+.module.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi-card:hover{border-color:var(--border2)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.red::before{background:var(--red)}
+.kpi-card.yellow::before{background:var(--yellow)}
+.kpi-card.blue::before{background:var(--blue)}
+.kpi-label{font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.kpi-value{font-family:'DM Serif Display',serif;font-size:28px;color:var(--text);line-height:1}
+.kpi-value.mono{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:600}
+.kpi-delta{font-size:12px;margin-top:6px;font-weight:500}
+.kpi-delta.up{color:var(--green)}
+.kpi-delta.down{color:var(--red)}
+.kpi-icon{position:absolute;right:16px;top:16px;font-size:28px;opacity:.12}
+.chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
+.chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.1px}
+.card-subtitle{font-size:11px;color:var(--text3);margin-top:3px}
+.card-tag{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.5px}
+.card-tag.green{background:var(--green-dim2);color:var(--green)}
+.card-tag.red{background:var(--red-dim);color:var(--red)}
+.chart-wrap{position:relative;height:220px}
+.chart-wrap.tall{height:280px}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.data-table td{font-size:13px;padding:10px 12px;color:var(--text2);border-bottom:1px solid var(--border)}
+.data-table td:first-child{color:var(--text);font-weight:500}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--bg3)}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.pill.green{background:var(--green-dim2);color:var(--green)}
+.pill.yellow{background:var(--yellow-dim);color:var(--yellow)}
+.pill.red{background:var(--red-dim);color:var(--red)}
+.coming-soon{display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;color:var(--text3);gap:12px}
+.coming-soon .icon{font-size:48px;opacity:.3}
+.coming-soon h3{font-size:18px;color:var(--text2)}
+.coming-soon p{font-size:13px;text-align:center;max-width:300px;line-height:1.6}
+.alert-list{display:flex;flex-direction:column;gap:8px}
+.alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);font-size:12px}
+.alert-item.warn{background:var(--yellow-dim);border:1px solid rgba(255,209,102,.2)}
+.alert-item.danger{background:var(--red-dim);border:1px solid rgba(255,77,109,.2)}
+.alert-item.info{background:var(--green-dim);border:1px solid rgba(0,214,143,.15)}
+.alert-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.alert-dot.warn{background:var(--yellow)}
+.alert-dot.danger{background:var(--red)}
+.alert-dot.info{background:var(--green)}
+.alert-text{color:var(--text2);line-height:1.5}
+.alert-text strong{color:var(--text)}
+.scroll-area{overflow-y:auto;max-height:300px}
+.scroll-area::-webkit-scrollbar{width:4px}
+.scroll-area::-webkit-scrollbar-track{background:transparent}
+.scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </style>
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="logo">
     <div class="logo-name">Suplemind</div>
     <div class="logo-sub">Intelligence</div>
   </div>
   <nav class="nav">
-    <div class="nav-group-label">VisÃÂ£o Geral</div>
-    <div class="nav-item active" onclick="showModule('home')">
-      <span class="icon">Ã¢Â¬Â¡</span> Home
-    </div>
-
+    <div class="nav-group-label">Visao Geral</div>
+    <div class="nav-item active" onclick="showModule('home',this)">&#11041; Home</div>
     <div class="nav-group-label">Comercial</div>
-    <div class="nav-item" onclick="showModule('vendas')">
-      <span class="icon">Ã°Å¸âË</span> Vendas
-    </div>
-    <div class="nav-item" onclick="showModule('estrategia')">
-      <span class="icon">Ã°Å¸ÂÂ·Ã¯Â¸Â</span> EstratÃÂ©gia Comercial
-    </div>
-    <div class="nav-item" onclick="showModule('canais')">
-      <span class="icon">Ã°Å¸ââ¬</span> Canais de Venda
-    </div>
-    <div class="nav-item" onclick="showModule('clientes')">
-      <span class="icon">Ã°Å¸âÂ¥</span> Clientes
-    </div>
-
-    <div class="nav-group-label">OperaÃÂ§ÃÂµes</div>
-    <div class="nav-item" onclick="showModule('estoque')">
-      <span class="icon">Ã°Å¸âÂ¦</span> Estoque
-    </div>
-    <div class="nav-item" onclick="showModule('recorrencia')">
-      <span class="icon">Ã°Å¸ââ</span> RecorrÃÂªncia
-    </div>
-
+    <div class="nav-item" onclick="showModule('vendas',this)">&#128200; Vendas</div>
+    <div class="nav-item" onclick="showModule('estrategia',this)">&#127991; Estrategia Comercial</div>
+    <div class="nav-item" onclick="showModule('canais',this)">&#128256; Canais de Venda</div>
+    <div class="nav-item" onclick="showModule('clientes',this)">&#128101; Clientes</div>
+    <div class="nav-group-label">Operacoes</div>
+    <div class="nav-item" onclick="showModule('estoque',this)">&#128230; Estoque</div>
+    <div class="nav-item" onclick="showModule('recorrencia',this)">&#128260; Recorrencia</div>
     <div class="nav-group-label">Financeiro</div>
-    <div class="nav-item" onclick="showModule('financeiro')">
-      <span class="icon">Ã°Å¸âÅ </span> DRE
-    </div>
-    <div class="nav-item" onclick="showModule('fluxo')">
-      <span class="icon">Ã°Å¸âÂ°</span> Fluxo de Caixa
-    </div>
-
+    <div class="nav-item" onclick="showModule('financeiro',this)">&#128202; DRE</div>
+    <div class="nav-item" onclick="showModule('fluxo',this)">&#128176; Fluxo de Caixa</div>
     <div class="nav-group-label">CRM</div>
-    <div class="nav-item" onclick="showModule('crm')">
-      <span class="icon">Ã°Å¸âÂ¬</span> WhatsApp / CRM
-    </div>
+    <div class="nav-item" onclick="showModule('crm',this)">&#128172; WhatsApp / CRM</div>
   </nav>
   <div class="sidebar-footer">
-    <div class="update-time">
-      <span class="update-dot"></span>
-      <span id="last-update">carregando...</span>
-    </div>
+    <div class="update-time"><span class="update-dot"></span><span id="last-update">carregando...</span></div>
   </div>
 </aside>
-
-<!-- MAIN -->
 <main class="main">
-
-  <!-- TOPBAR -->
   <div class="topbar">
     <div>
-      <div class="page-title" id="page-title">VisÃÂ£o Geral</div>
+      <div class="page-title" id="page-title">Visao Geral</div>
       <div class="page-subtitle" id="page-subtitle">Resumo executivo em tempo real</div>
     </div>
     <div class="topbar-right">
@@ -500,244 +134,162 @@ body {
       </div>
     </div>
   </div>
-
   <div class="content">
-
-    <!-- Ã¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âË HOME Ã¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âË -->
     <div class="module active" id="mod-home">
       <div class="kpi-grid">
-        <div class="kpi-card green">
-          <div class="kpi-icon">Ã°Å¸âÂ°</div>
-          <div class="kpi-label">Faturamento (perÃÂ­odo)</div>
-          <div class="kpi-value mono" id="kpi-fat">Ã¢â¬â</div>
-          <div class="kpi-delta up" id="kpi-fat-delta">carregando...</div>
-        </div>
-        <div class="kpi-card blue">
-          <div class="kpi-icon">Ã°Å¸âºâ</div>
-          <div class="kpi-label">Total de Pedidos</div>
-          <div class="kpi-value" id="kpi-pedidos">Ã¢â¬â</div>
-          <div class="kpi-delta up" id="kpi-pedidos-delta">carregando...</div>
-        </div>
-        <div class="kpi-card yellow">
-          <div class="kpi-icon">Ã°Å¸Å½Â¯</div>
-          <div class="kpi-label">Ticket MÃÂ©dio</div>
-          <div class="kpi-value mono" id="kpi-ticket">Ã¢â¬â</div>
-          <div class="kpi-delta up" id="kpi-ticket-delta">carregando...</div>
-        </div>
-        <div class="kpi-card red">
-          <div class="kpi-icon">Ã°Å¸âÂ¬</div>
-          <div class="kpi-label">A Receber</div>
-          <div class="kpi-value mono" id="kpi-receber">Ã¢â¬â</div>
-          <div class="kpi-delta" id="kpi-receber-delta" style="color:var(--text3)">contas em aberto</div>
-        </div>
+        <div class="kpi-card green"><div class="kpi-icon">&#128176;</div><div class="kpi-label">Faturamento (periodo)</div><div class="kpi-value mono" id="kpi-fat">--</div><div class="kpi-delta up" id="kpi-fat-delta">ultimos 3 dias</div></div>
+        <div class="kpi-card blue"><div class="kpi-icon">&#128722;</div><div class="kpi-label">Total de Pedidos</div><div class="kpi-value" id="kpi-pedidos">--</div><div class="kpi-delta up" id="kpi-pedidos-delta">no periodo</div></div>
+        <div class="kpi-card yellow"><div class="kpi-icon">&#127919;</div><div class="kpi-label">Ticket Medio</div><div class="kpi-value mono" id="kpi-ticket">--</div><div class="kpi-delta up">por pedido</div></div>
+        <div class="kpi-card red"><div class="kpi-icon">&#128236;</div><div class="kpi-label">A Receber</div><div class="kpi-value mono" id="kpi-receber">--</div><div class="kpi-delta" style="color:var(--text3)">contas em aberto</div></div>
       </div>
-
       <div class="chart-grid">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Faturamento por Dia</div>
-              <div class="card-subtitle">Receita bruta acumulada Ã¢â¬â Bling</div>
-            </div>
-            <span class="card-tag green">LIVE</span>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="chart-fat-dia"></canvas>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Pedidos por Canal</div>
-              <div class="card-subtitle">DistribuiÃÂ§ÃÂ£o por loja</div>
-            </div>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="chart-canais"></canvas>
-          </div>
-        </div>
-      </div>"period-btn" onclick="setPeriod(this,'30d')">30D</button>
-        <button class="period-btn" onclick="setPeriod(this,'90d')">90D</button>
+        <div class="card"><div class="card-header"><div><div class="card-title">Faturamento por Dia</div><div class="card-subtitle">Receita bruta acumulada - Bling</div></div><span class="card-tag green">LIVE</span></div><div class="chart-wrap"><canvas id="chart-fat-dia"></canvas></div></div>
+        <div class="card"><div class="card-header"><div><div class="card-title">Pedidos por Canal</div><div class="card-subtitle">Distribuicao por loja</div></div></div><div class="chart-wrap"><canvas id="chart-canais"></canvas></div></div>
+      </div>
+      <div class="chart-grid-2">
+        <div class="card"><div class="card-header"><div><div class="card-title">Alertas do Sistema</div><div class="card-subtitle">Pontos de atencao identificados</div></div></div><div class="alert-list" id="alert-list"><div class="alert-item info"><div class="alert-dot info"></div><div class="alert-text">Carregando...</div></div></div></div>
+        <div class="card"><div class="card-header"><div><div class="card-title">Produtos Ativos</div><div class="card-subtitle">Catalogo atual - Bling</div></div></div><div class="scroll-area"><table class="data-table" id="table-produtos"><thead><tr><th>Produto</th><th>Codigo</th><th>Preco</th></tr></thead><tbody></tbody></table></div></div>
+      </div>
+      <div class="card"><div class="card-header"><div><div class="card-title">Ultimas Vendas</div><div class="card-subtitle">Pedidos mais recentes - Bling</div></div><span class="card-tag green">TEMPO REAL</span></div><div class="scroll-area"><table class="data-table" id="table-vendas"><thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Canal</th></tr></thead><tbody></tbody></table></div></div>
+    </div>
+    <div class="module" id="mod-vendas">
+      <div class="kpi-grid">
+        <div class="kpi-card green"><div class="kpi-label">Receita Total</div><div class="kpi-value mono" id="v-fat">--</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">N de Pedidos</div><div class="kpi-value" id="v-ped">--</div></div>
+        <div class="kpi-card yellow"><div class="kpi-label">Ticket Medio</div><div class="kpi-value mono" id="v-ticket">--</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Maior Venda</div><div class="kpi-value mono" id="v-max">--</div></div>
+      </div>
+      <div class="chart-grid">
+        <div class="card"><div class="card-header"><div><div class="card-title">Evolucao do Faturamento</div><div class="card-subtitle">Receita e volume de pedidos</div></div><span class="card-tag green">BLING</span></div><div class="chart-wrap tall"><canvas id="chart-vendas-evolucao"></canvas></div></div>
+        <div class="card"><div class="card-header"><div><div class="card-title">Distribuicao de Valor</div><div class="card-subtitle">Faixas de ticket por pedido</div></div></div><div class="chart-wrap tall"><canvas id="chart-ticket-dist"></canvas></div></div>
+      </div>
+      <div class="card"><div class="card-header"><div><div class="card-title">Historico de Pedidos</div><div class="card-subtitle">Todos os pedidos - Bling</div></div></div><div class="scroll-area" style="max-height:400px"><table class="data-table" id="table-vendas-full"><thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Total Produtos</th><th>Total Pedido</th><th>Status</th></tr></thead><tbody></tbody></table></div></div>
+    </div>
+    <div class="module" id="mod-estrategia"><div class="coming-soon"><div class="icon">&#127991;</div><h3>Estrategia Comercial</h3><p>Analise de cupons, descontos e carrinhos abandonados. Fonte: Bling + Nuvemshop.</p></div></div>
+    <div class="module" id="mod-canais"><div class="coming-soon"><div class="icon">&#128256;</div><h3>Canais de Venda</h3><p>Faturamento por canal, participacao % e evolucao mensal.</p></div></div>
+    <div class="module" id="mod-clientes"><div class="coming-soon"><div class="icon">&#128101;</div><h3>Clientes</h3><p>Base ativa, novos clientes, LTV e segmentacao B2C/B2B.</p></div></div>
+    <div class="module" id="mod-estoque"><div class="coming-soon"><div class="icon">&#128230;</div><h3>Estoque</h3><p>Posicao por SKU, alertas de estoque critico, giro e cobertura em dias.</p></div></div>
+    <div class="module" id="mod-recorrencia"><div class="coming-soon"><div class="icon">&#128260;</div><h3>Recorrencia / Cross-sell / Upsell</h3><p>Taxa de recompra, ciclo medio entre compras e combinacoes mais frequentes.</p></div></div>
+    <div class="module" id="mod-financeiro">
+      <div class="kpi-grid">
+        <div class="kpi-card green"><div class="kpi-label">A Receber</div><div class="kpi-value mono" id="f-receber">--</div><div class="kpi-delta up">contas em aberto</div></div>
+        <div class="kpi-card red"><div class="kpi-label">A Pagar</div><div class="kpi-value mono" id="f-pagar">--</div><div class="kpi-delta down">compromissos futuros</div></div>
+        <div class="kpi-card yellow"><div class="kpi-label">Saldo Liquido Projetado</div><div class="kpi-value mono" id="f-saldo">--</div><div class="kpi-delta" id="f-saldo-delta">--</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Contas a Pagar (qtd.)</div><div class="kpi-value" id="f-cp-count">--</div></div>
+      </div>
+      <div class="chart-grid-2">
+        <div class="card"><div class="card-header"><div><div class="card-title">Contas a Pagar - Proximos vencimentos</div></div><span class="card-tag red">BLING</span></div><div class="scroll-area"><table class="data-table" id="table-pagar"><thead><tr><th>Descricao</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody></tbody></table></div></div>
+        <div class="card"><div class="card-header"><div><div class="card-title">Contas a Receber - Em aberto</div></div><span class="card-tag green">BLING</span></div><div class="scroll-area"><table class="data-table" id="table-receber"><thead><tr><th>Descricao</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody></tbody></table></div></div>
+      </div>
+    </div>
+    <div class="module" id="mod-fluxo"><div class="coming-soon"><div class="icon">&#128176;</div><h3>Fluxo de Caixa</h3><p>Projecao 30/60/90 dias com entradas e saidas previstas - Bling.</p></div></div>
+    <div class="module" id="mod-crm">
+      <div class="kpi-grid">
+        <div class="kpi-card green"><div class="kpi-label">Envios (Trilha C)</div><div class="kpi-value">300</div><div class="kpi-delta up">ultimos 6 meses</div></div>
+        <div class="kpi-card yellow"><div class="kpi-label">CTR Medio</div><div class="kpi-value">0%</div><div class="kpi-delta" style="color:var(--text3)">Trilha C - Pos-compra</div></div>
+        <div class="kpi-card blue"><div class="kpi-label">Workflows Ativos</div><div class="kpi-value">6</div><div class="kpi-delta up">Reportana</div></div>
+        <div class="kpi-card red"><div class="kpi-label">Conversao CRM</div><div class="kpi-value mono">R$ 0</div><div class="kpi-delta" style="color:var(--text3)">Trilha C ativa</div></div>
+      </div>
+      <div class="card"><div class="card-header"><div><div class="card-title">Workflows Reportana</div><div class="card-subtitle">Status e metricas por automacao</div></div><span class="card-tag green">REPORTANA</span></div>
+        <table class="data-table"><thead><tr><th>Workflow</th><th>Status</th><th>Envios</th><th>CTR</th><th>Observacao</th></tr></thead>
+        <tbody>
+          <tr><td>Trilha C - Pos-Compra D+0/10/20/30</td><td><span class="pill green">Ativo</span></td><td>300</td><td>0%</td><td>Aguardando CTR</td></tr>
+          <tr><td>Confirmacao de Pedido</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>Transacional</td></tr>
+          <tr><td>Rec. Carrinho (A/B/C)</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>25/03 atualizacao</td></tr>
+          <tr><td>Rec. Pix</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>Recuperacao pagamento</td></tr>
+          <tr><td>Rec. Cartao Recusado</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>Recuperacao pagamento</td></tr>
+          <tr><td>ChatGPT consulta pedidos</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>IA no atendimento</td></tr>
+          <tr><td>CRM - Pos carrinho criado</td><td><span class="pill red">Inativo</span></td><td>--</td><td>--</td><td>Desativado</td></tr>
+        </tbody></table>
       </div>
     </div>
   </div>
-
-  <div class="content">
-
-    <!-- Ã¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âË HOME Ã¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âËÃ¢âË -->
-    <div class="module active" id="mod-home">
-      <div class="kpi-grid">
-        <div class="kpi-card green">
-          <div class="kpi-icon">Ã°Å¸âÂ°</div>
-          <div class="kpi-label">Faturamento (perÃÂ­odo)</div>
-          <div class="kpi-value mono" id="kpi-fat">Ã¢â¬â</div>
-          <div class="kpi-delta up" id="kpi-fat-delta">carregando...</div>
-        </div>
-        <div class="kpi-card blue">
-          <div class="kpi-icon">Ã°Å¸âºâ</div>
-          <div class="kpi-label">Total de Pedidos</div>
-          <div class="kpi-value" id="kpi-pedidos">Ã¢â¬â</div>
-          <div class="kpi-delta up" id="kpi-pedidos-delta">carregando...</div>
-        </div>
-        <div class="kpi-card yellow">
-          <div class="kpi-icon">Ã°Å¸Å½Â¯</div>
-          <div class="kpi-label">Ticket MÃÂ©dio</div>
-          <div class="kpi-value mono" id="kpi-ticket">Ã¢â¬â</div>
-          <div class="kpi-delta up" id="kpi-ticket-delta">carregando...</div>
-        </div>
-        <div class="kpi-card red">
-          <div class="kpi-icon">Ã°Å¸âÂ¬</div>
-          <div class="kpi-label">A Receber</div>
-          <div class="kpi-value mono" id="kpi-receber">Ã¢â¬â</div>
-          <div class="kpi-delta" id="kpi-receber-delta" style="color:var(--text3)">contas em aberto</div>
-        </div>
-      </div>
-
-      <div class="chart-grid">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Faturamento por Dia</div>
-              <div class="card-subtitle">Receita bruta acumulada Ã¢â¬â Bling</div>
-            </div>
-            <span class="card-tag green">LIVE</span>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="chart-fat-dia"></canvas>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Pedidos por Canal</div>
-              <div class="card-subtitle">DistribuiÃÂ§ÃÂ£o por loja</div>
-            </div>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="chart-canais"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-grid-2">
-        <div class="card">
-          <div class="card-header">
-            <div><div class="card-title">Alertas do Sistema</div><div class="card-subtitle">Pontos de atenÃÂ§ÃÂ£o identificados</div></div>
-          </div>
-          <div class="alert-list" id="alert-list"><div class="alert-item info"><div class="alert-dot info"></div><div class="alert-text">Sistema inicializando...</div></div></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div><div class="card-title">Produtos Ativos</div><div class="card-subtitle">CatÃÂ¡logo atual Ã¢â¬â Bling</div></div></div>
-          <div class="scroll-area"><table class="data-table" id="table-produtos"><thead><tr><th>Produto</th><th>CÃÂ³digo</th><th>PreÃÂ§no</th></tr></thead><tbody></tbody></table></div>
-        </div>
-      </div>
-      <div class="card"><div class="card-header"><div><div class="card-title">ÃÅ¡stimas Vendas</div><div class="card-subtitle">Pedidos mais recentes Ã¢â¬â Bling</div></div><span class="card-tag green">TEMPO REAL</span></div><div class="scroll-area"><table class="data-table" id="table-vendas"><thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Canal</th></tr></thead><tbody></tbody></table></div></div>
-    </div>
-    <div class="module" id="mod-vendas"><div class="kpi-grid"><div class="kpi-card green"><div class="kpi-label">Receita Total</div><div class="kpi-value mono" id="v-fat">Ã¢â¬â</div></div><div class="kpi-card blue"><div class="kpi-label">NÃÂº de Pedidos</div><div class="kpi-value" id="v-ped">Ã¢â¬â</div></div><div class="kpi-card yellow"><div class="kpi-label">Ticket MÃÂ©dio</div><div class="kpi-value mono" id="v-ticket">Ã¢â¬â</div></div><div class="kpi-card red"><div class="kpi-label">Maior Venda</div><div class="kpi-value mono" id="v-max">Ã¢â¬â</div></div></div><div class="chart-grid"><div class="card"><div class="card-header"><div><div class="card-title">EvoluÃÂ§ÃÂ£o do Faturamento</div><div class="card-subtitle">Receita e volume de pedidos</div></div><span class="card-tag green">BLING</span></div><div class="chart-wrap tall"><canvas id="chart-vendas-evolucao"></canvas></div></div><div class="card"><div class="card-header"><div><div class="card-title">DistribuiÃÂ§ÃÂ£o de Valor</div><div class="card-subtitle">Faixas de ticket por pedido</div></div></div><div class="chart-wrap tall"><canvas id="chart-ticket-dist"></canvas></div></div></div><div class="card"><div class="card-header"><div><div class="card-title">HistÃÂ³rico Completo de Pedidos</div><div class="card-subtitle">Todos os pedidos disponÃÂ­veis na API - Bling</div></div></div><div class="scroll-area" style="max-height:400px"><table class="data-table" id="table-vendas-full"><thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Total Produtos</th><th>Total Pedido</th><th>Status</th></tr></thead><tbody></tbody></table></div></div></div>
-    <div class="module" id="mod-estrategia"><div class="coming-soon"><div class="icon">Ã°Å¸ÂÂ·Ã¯Â¸Â</div><h3>EstratÃÂ©gia Comercial</h3><p>AnÃÂ¡lise de cupons, descontos e carrinhos abandonados.</p></div></div>
-    <div class="module" id="mod-canais"><div class="coming-soon"><div class="icon">Ã°Å¸ââ¬<oÃÂ¥ÃÃ¸Ã±Â ÃÃ¹â¦Â¹â¦Â¥ÃÂââÂYâ¢Â¹ââÃ°Â½Â ÃÃ¸Ã±ÃÃ¹ÃÃÃâ¦Âµâ¢Â¹ÃÂ¼ÂÃÂ½ÃÂÂâ¦Â¹â¦Â°ÂâÂâ¢ÃÂ½Â±ÃÅ¸ÂÂ¼ÂÂµâ¢Â¹Ãâ¦Â°Â¸Ã°Â½ÃÃ¸Ã°Â½âÂ¥ÃÃ¸Ã°Â½âÂ¥ÃÃ¸(â¬â¬â¬â¬Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°ÂµÂ½âÃÂ±âËÂÂ¥ÂÃ´â°ÂµÂ½ÂÂµÂÂ±Â¥â¢Â¹Ãâ¢ÃËÃ¸Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°ÂÂ½ÂµÂ¥Â¹ÅÂµÃÂ½Â½Â¸ËÃ¸Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°Â¥ÂÂ½Â¸ËÃ»Ã~FâÃ°Â½âÂ¥ÃÃ¸Ã±Â ÃÃ¹Â±Â¥â¢Â¹Ãâ¢ÃÃ°Â½Â ÃÃ¸Ã±ÃÃ¹	â¦ÃâÂâ¦ÃÂ¥ÃâÂ°ÂÂ¹Â½ÃÂ½ÃÂÂÂ±Â¥â¢Â¹Ãâ¢ÃÂ°Â1QXÂâÂÃâ¢ÂÂµâ¢Â¹Ãâ¡Å¸ÂÂ¼Â¸Ã°Â½ÃÃ¸Ã°Â½âÂ¥ÃÃ¸Ã°Â½âÂ¥ÃÃ¸(â¬â¬â¬â¬Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°ÂµÂ½âÃÂ±âËÂÂ¥ÂÃ´â°ÂµÂ½ÂÂµâ¢ÃÃÂ½ÃÃâËÃ¸Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°ÂÂ½ÂµÂ¥Â¹ÅÂµÃÂ½Â½Â¸ËÃ¸Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°Â¥ÂÂ½Â¸ËÃ»Ã~NËÃ°Â½âÂ¥ÃÃ¸Ã±Â ÃÃ¹ÃÃÂ½ÃÃâÃ°Â½Â ÃÃ¸Ã±Ãâ¬Ã¹Â±â¢ÃÃâ¦ÃÂââÂâ¢ÃÃÂ½ÃÃâÂÂÃÂµÃÂ¥ÂÂ¼Â°ÂÂÂ¥ÃÂ¼ÂâÂÂÂ½â°â¢ÃÃÃÃâÂ¸Ã°Â½ÃÃ¸Ã°Â½âÂ¥ÃÃ¸Ã°Â½âÂ¥ÃÃ¸(â¬â¬â¬â¬Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°ÂµÂ½âÃÂ±âËÂÂ¥ÂÃ´â°ÂµÂ½ÂÂµÃâ¢ÂÂ½ÃÃâ¢Â¹ÂÂ¥âËÃ¸Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°ÂÂ½ÂµÂ¥Â¹ÅÂµÃÂ½Â½Â¸ËÃ¸Ã±âÂ¥ÃÂÂÂ±â¦ÃÃÃ´â°Â¥ÂÂ½Â¸ËÃ»Ã~RÃ±Â¿FâcÃ£ÃÆ3Ã¥&V6Ã·',:Â¦Ã¦6âÃÃ¶Æ3Ã£ÃÃ¥Fâ FR&V6Ã¶Ã&R6Ã¶Ã&âÃ¦:|;VW2Ã£ÃÃ·Ã£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ Â¢ÃFâb6Ã73Ã&ÃÃ¶GVÃR"âCÃ&ÃÃ¶BÃfâÃ¦Ã¦6Vâ&Ã²#Ã£ÃFâb6Ã73Ã&Â·âÃw&âB#Ã£ÃFâb6Ã73Ã&Â·âÃ6&Bw&VVÃ¢#Ã£ÃFâb6Ã73Ã&Â·âÃÃ&VÃ#Ã¤&V6V&W#ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃfÃVRÃÃ¶Ã¦Ã²"âCÃ&bÃ&V6V&W"#Ã®(	CÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃFVÃFW#Ã¦6Ã¶Ã§F2VÃ&W'FÃ³ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃ6&B&VB#Ã£ÃFâb6Ã73Ã&Â·âÃÃ&VÃ#Ã¤v#ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃfÃVRÃÃ¶Ã¦Ã²"âCÃ&bÃv"#Ã®(	CÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃFVÃFFÃ·vÃ¢#Ã¦6Ã¶Ã&Ã¶Ãâ76Ã·2gWGW&Ã·3ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃ6&BâVÃÃÃ·r#Ã£ÃFâb6Ã73Ã&Â·âÃÃ&VÃ#Ã¥6ÃFÃ²Ã:ÃVâFÃ²&Ã¶Â¦WFFÃ³ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃfÃVRÃÃ¶Ã¦Ã²"âCÃ&bÃ6ÃFÃ²#Ã®(	CÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃFVÃF"âCÃ&bÃ6ÃFÃ²ÃFVÃF#Ã®(	CÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃ6&B&ÃVR#Ã£ÃFâb6Ã73Ã&Â·âÃÃ&VÃ#Ã¤6Ã¶Ã§F2v"â¡FBÃ¢âÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃfÃVR"âCÃ&bÃ7Ã6Ã·VÃ§B#Ã®(	CÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&6â 'BÃw&âBÃ"#Ã£ÃFâb6Ã73Ã&6&B#Ã£ÃFâb6Ã73Ã&6&BÃâ VFW"#Ã£ÃFâcÃ£ÃFâb6Ã73Ã&6&BÃFâFÃR#Ã¤6Ã¶Ã§F2v#ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£Ã7Ã¢6Ã73Ã&6&BÃFr&VB#Ã¤$ÃâÃ¤sÃÃ·7Ã£Ã£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã'67&Ã¶ÃÃÃ&V#Ã£ÃF&ÃR6Ã73Ã&FFÃF&ÃR"âCÃ'F&ÃRÃv"#Ã£ÃFâ VCÃ£ÃG#Ã£ÃFÆÃ¤FW67&Å:|:6Ã³ÃÃ·FÆÃ£ÃFÆÃ¥fVÃ¦6âÃVÃ§FÃ³ÃÃ·FÆÃ£ÃFÆÃ¥fÃÃ·#ÃÃ·FÆÃ£ÃFÆÃ¥7FGW3ÃÃ·FÆÃ£ÃÃ·G#Ã£ÃÃ·Fâ VCÃ£ÃF&Ã¶GâÃ£ÃÃ·F&Ã¶GâÃ£ÃÃ·F&ÃSÃ£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&6&B#Ã£ÃFâb6Ã73Ã&6&BÃâ VFW"#Ã£ÃFâcÃ£ÃFâb6Ã73Ã&6&BÃFâFÃR#Ã¤6Ã¶Ã§F2&V6V&W#ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£Ã7Ã¢6Ã73Ã&6&BÃFrw&VVÃ¢#Ã¤$ÃâÃ¤sÃÃ·7Ã£Ã£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã'67&Ã¶ÃÃÃ&V#Ã£ÃF&ÃR6Ã73Ã&FFÃF&ÃR"âCÃ'F&ÃRÃ&V6V&W"#Ã£ÃFâ VCÃ£ÃG#Ã£ÃFÆÃ¤FW67&Å:|:6Ã³ÃÃ·FÆÃ£ÃFÆÃ¥fVÃ¦6âÃVÃ§FÃ³ÃÃ·FÆÃ£ÃFÆÃ¥fÃÃ·#ÃÃ·FÆÃ£ÃFÆÃ¥7FGW3ÃÃ·FÆÃ£ÃÃ·G#Ã£ÃÃ·Fâ VCÃ£ÃF&Ã¶GâÃ£ÃÃ·F&Ã¶GâÃ£ÃÃ·F&ÃSÃ£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ Â¢ÃFâb6Ã73Ã&ÃÃ¶GVÃR"âCÃ&ÃÃ¶BÃfÃWâ Ã²#Ã£ÃFâb6Ã73Ã&6Ã¶ÃâÃ¦rÃ6Ã¶Ã¶Ã¢#Ã£ÃFâb6Ã73Ã&â6Ã¶Ã¢#Ã¯	Ã¹+ÃÃ¶FâcÃ£ÃÆ3Ã¤fÃWâ Ã²FR6ââ ÃÃ¶Æ3Ã£ÃÃ¥&Ã¶Â¦\:|:6Ã²3Ã³cÃ³âFâ2Ã£ÃÃ·Ã£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ Â¢ÃFâb6Ã73Ã&ÃÃ¶GVÃR"âCÃ&ÃÃ¶BÃ7&Ã#Ã£ÃFâb6Ã73Ã&Â·âÃw&âB#Ã£ÃFâb6Ã73Ã&Â·âÃ6&Bw&VVÃ¢#Ã£ÃFâb6Ã73Ã&Â·âÃÃ&VÃ#Ã¤VÃ§fâÃ·2â¦G&âÃâ 2âÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃfÃVR#Ã£3ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃFVÃFW#Ã¬;Â¦ÃFâÃÃ·2bÃW6W3ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃ6&BâVÃÃÃ·r#Ã£ÃFâb6Ã73Ã&Â·âÃÃ&VÃ#Ã¤5E"Ã:âFâÃ³ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃfÃVR#Ã£SÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃFVÃF"7GâÃSÃ&6Ã¶ÃÃ·#Â§f"âÃÃFWâ¡C2â#Ã¥G&âÃâ 2Ã;72Ã6Ã¶Ã&ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃ6&B&ÃVR#Ã£ÃFâb6Ã73Ã&Â·âÃÃ&VÃ#Ã¥vÃ·&Â¶fÃÃ·w2FâfÃ·3ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃfÃVR#Ã£cÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃFVÃFW#Ã¥&WÃ·'FÃ¦ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃ6&B&VB#Ã£ÃFâb6Ã73Ã&Â·âÃÃ&VÃ#Ã¤6Ã¶Ã§fW'<:6Ã²5$ÃÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃfÃVRÃÃ¶Ã¦Ã²#Ã¥"BÃÃ¶FâcÃ£ÃFâb6Ã73Ã&Â·âÃFVÃF"7GâÃSÃ&6Ã¶ÃÃ·#Â§f"âÃÃFWâ¡C2â#Ã¥G&âÃâ 2FâfÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&6&B#Ã£ÃFâb6Ã73Ã&6&BÃâ VFW"#Ã£ÃFâcÃ£ÃFâb6Ã73Ã&6&BÃFâFÃR#Ã¥vÃ·&Â¶fÃÃ·w2&WÃ·'FÃ¦ÃÃ¶FâcÃ£ÃFâb6Ã73Ã&6&BÃ7V'FâFÃR#Ã¥7FGW2RÃ:âG&â62Ã·"WFÃ¶Ã:|:6Ã³ÃÃ¶FâcÃ£ÃÃ¶FâcÃ£Ã7Ã¢6Ã73Ã&6&BÃFrw&VVÃ¢#Ã¥$UÃµ%DÃ¤3ÃÃ·7Ã£Ã£ÃÃ¶FâcÃ£ÃF&ÃR6Ã73Ã&FFÃF&ÃR#Ã£ÃFâ VCÃ£ÃG#Ã£ÃFÆÃ¥vÃ·&Â¶fÃÃ·sÃÃ·FÆÃ£ÃFÆÃ¥7FGW3ÃÃ·FÆÃ£ÃFÆÃ¤VÃ§fâÃ·3ÃÃ·FÆÃ£ÃFÆÃ¤5E#ÃÃ·FÆÃ£ÃFÆÃ¤Ã¶'6W'f:|:6Ã³ÃÃ·FÆÃ£ÃÃ·G#Ã£ÃÃ·Fâ VCÃ£ÃF&Ã¶GâÃ£ÃG#Ã£ÃFCÃ¥G&âÃâ 2Ã;72Ã6Ã¶Ã&BÂ³Ã³Ã³#Ã³3ÃÃ·FCÃ£ÃFCÃ£Ã7Ã¢6Ã73Ã'âÃÃw&VVÃ¢#Ã¤FâfÃ³ÃÃ·7Ã£Ã£ÃÃ·FCÃ£ÃFCÃ£3ÃÃ·FCÃ£ÃFCÃ£SÃÃ·FCÃ£ÃFCÃ¤wV&FÃ¦FÃ²5E#ÃÃ·FCÃ£ÃÃ·G#Ã£ÃG#Ã£ÃFCÃ¤6Ã¶Ã¦fâ&Ã:|:6Ã²FRVFâFÃ³ÃÃ·FCÃ£ÃFCÃ£Ã7Ã¢6Ã73Ã'âÃÃw&VVÃ¢#Ã¤FâfÃ³ÃÃ·7Ã£Ã£ÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ¥G&Ã§66âÃ¶Ã¦ÃÃÃ·FCÃ£ÃÃ·G#Ã£ÃG#Ã£ÃFCÃ¥&V2Ã¢6'&âÃ¦â Ã²âÃ´"Ã´2âÃÃ·FCÃ£ÃFCÃ£Ã7Ã¢6Ã73Ã'âÃÃw&VVÃ¢#Ã¤FâfÃ³ÃÃ·7Ã£Ã£ÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ£#RÃ³2GVÃâÂ¦:|:6Ã³ÃÃ·FCÃ£ÃÃ·G#Ã£ÃG#Ã£ÃFCÃ¥&V2Ã¢âÆÃÃ·FCÃ£ÃFCÃ£Ã7Ã¢6Ã73Ã'âÃÃw&VVÃ¢#Ã¤FâfÃ³ÃÃ·7Ã£Ã£ÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ¥&V7WW&:|:6Ã²FRvÃVÃ§FÃ³ÃÃ·FCÃ£ÃÃ·G#Ã£ÃG#Ã£ÃFCÃ¥&V7WW&:|:6Ã²FR6'L:6Ã³ÃÃ·FCÃ£ÃFCÃ£Ã7Ã¢6Ã73Ã'âÃÃw&VVÃ¢#Ã¤FâfÃ³ÃÃ·7Ã£Ã£ÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ¥&V7WW&:|:6Ã²FRvÃVÃ§FÃ³ÃÃ·FCÃ£ÃÃ·G#Ã£ÃG#Ã£ÃFCÃ¤5$ÃÃ;726'&âÃ¦â Ã²7&âFÃ³ÃÃ·FCÃ£ÃFCÃ£Ã7Ã¢6Ã73Ã'âÃÃ&VB#Ã¤âÃ¦FâfÃ³ÃÃ·7Ã£Ã£ÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ®(	CÃÃ·FCÃ£ÃFCÃ¤FW6FâfFÃ³ÃÃ·FCÃ£ÃÃ·G#Ã£ÃÃ·F&Ã¶GâÃ£ÃÃ·F&ÃSÃ£ÃÃ¶FâcÃ£ÃÃ¶FâcÃ Â¢ÃÃ¶FâcÃ£ÃÃ¶ÃâÃ£Ã Â£Ã67&âCÃ Â¦6Ã§7B$ÃâÃ¤uÃµdTÃ¤D3ÃÂ·Â¶Ã§VÃW&Ã³Â¢#C3S"ÃFFÂ¢###bÃBÃ"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$Â¶VÃÃâÃW76'ÃÃFÃ·FÃÂ£Ã6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#Sâ3SGÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3Câ"ÃFFÂ¢###bÃBÃ"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$''VÃ¦fÃ¶Ã§6V6'ÃÃFÃ·FÃÂ£SrÃ£âÃFÃ·FÃ&Ã¶GWFÃ·3Â£SrÃ£âÃ6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#Sâ3SGÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3Câ"ÃFFÂ¢###bÃBÃ"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$FâÃ¦R67G&Ã²'ÃÃFÃ·FÃÂ£ÆâÃ£âÃFÃ·FÃ&Ã¶GWFÃ·3Â£ÆâÃ£âÃ6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#Sâ3SGÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3Cr"ÃFFÂ¢###bÃBÃ"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$Ã¦Fâ Ãâ6Ã§FÃ·2'ÃÃFÃ·FÃÂ£ÆâÃ£âÃFÃ·FÃ&Ã¶GWFÃ·3Â£ÆâÃ£âÃ6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#Sâ3SGÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3Cb"ÃFFÂ¢###bÃBÃ"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢%Fâ Ãâ7&â7FâÃ¦'ÃÃFÃ·FÃÂ£SrÃ£âÃFÃ·FÃ&Ã¶GWFÃ·3Â£SrÃ£âÃ6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#Sâ3SGÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3CR"ÃFFÂ¢###bÃBÃ"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$Ã&âÃ¦&â&Vâ&Ã²'ÃÃFÃ·FÃÂ£3Ã£ÃFÃ·FÃ&Ã¶GWFÃ·3Â£3Ã£Ã6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#Sâ3SGÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3CB"ÃFFÂ¢###bÃBÃ"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$Ã¦VÃ6Ã·WÂ¦'ÃÃFÃ·FÃÂ£ÆâÃ£âÃ6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#Sâ3SGÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3C2"ÃFFÂ¢###bÃ2Ã3"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$fW&Ã¦Ã¦FÃâÃ'ÃÃFÃ·FÃÂ£SrÃ£âÃ6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#SâÆÆcSâ¡ÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3C""ÃFFÂ¢###bÃ2Ã3"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$&VG&âÂ¢6Ã·7F'ÃÃFÃ·FÃÂ£##Ã£Ã6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#SsCcC'ÃÃÃÂ¶Ã§VÃW&Ã³Â¢#C3C"ÃFFÂ¢###bÃ2Ã3"Ã6Ã¶Ã§FFÃ³Â§Â¶Ã¦Ã¶ÃSÂ¢$Ã&â76Ã'FâÃ§2'ÃÃFÃ·FÃÂ£SrÃ£âÃ6âGV6Ã³Â§Â·fÃÃ·#Â£ÃÃÃÃ¶Â¦Â§Â¶âCÂ£#Sâ3SGÃÃÃÂ¶6Ã¶Ã§7B$ÃâÃ¤uÃµ5DE3ÃÂ·FÃ·FÃfVÃ¦F3Â£ÃfGW&ÃVÃ§FÃµFÃ·FÃÂ£CÆRÃ£CRÃFâ6Â¶WDÃVFâÃ³Â£CâÃ£RÃFÃ·FÃv#Â£SS3ÆÃ£â"ÃFÃ·FÃ&V6V&W#Â£##Æ#âÃ£srÃÃ·$FFÂ¥ÂµÂ²###bÃ2Ã3"ÃÂ¶6Ã·VÃ§CÂ£âÃfÃÃ·#Â£#ÆâÃ£câÃÃÃÂ²###bÃ2Ã3"ÃÂ¶6Ã·VÃ§CÂ£SbÃfÃÃ·#Â£ÆcBÃ£câ¡ÃÃÃÂ²###bÃBÃ"ÃÂ¶6Ã·VÃ§CÂ£#RÃfÃÃ·#Â£3â3Ã£â¡ÃÃÃÃÃ·$6Ã¦ÃÂ§Â²$Ã§WfVÃ6â Ã·#Â£Æ2Ã$6Ã¦Ã"#Â£âÃ$6Ã¦Ã2#Â£bÃ$6Ã¦ÃB#Â£7ÃÃÂ¶6Ã¶Ã§7B$ÃâÃ¤uÃ´4Ã´Ã¥D5t#ÃÂ·Â¶FW67&â6Ã³Â¢$fÃ·&Ã¦V6VFÃ·"âÃ¦w&VFâVÃ§FW2"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃR"ÃfÃÃ·#Â£#SÃÃÂ¶FW67&â6Ã³Â¢$ÃVwVVÃW67&âL;7&âÃ²"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃ"ÃfÃÃ·#Â£CÆÃÃÂ¶FW67&â6Ã³Â¢$ÃÃ¶|:Ã2Ã²g&WFR"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃ""ÃfÃÃ·#Â£3#ÃÃÂ¶FW67&â6Ã³Â¢$Ã&Â¶WFâÃ¦rFâvâFÃ"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃR"ÃfÃÃ·#Â£ÆÃÃÂ¶FW67&â6Ã³Â¢$VÃ&ÃvVÃ§2"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃ#"ÃfÃÃ·#Â£#ÃÃÂ¶6Ã¶Ã§7B$ÃâÃ¤uÃ´4Ã´Ã¥D5$T4T$U"ÃÂ·Â¶FW67&â6Ã³Â¢%VFâFÃ²3C3"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃ""ÃfÃÃ·#Â£ÆâÃ£âÃÃÂ¶FW67&â6Ã³Â¢%VFâFÃ²3C3#"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃ2"ÃfÃÃ·#Â£3RÃ£ÃÃÂ¶FW67&â6Ã³Â¢$#$"ÃVFâFÃ²3C33"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃâ"ÃfÃÃ·#Â£#Ã£ÃÃÂ¶FW67&â6Ã³Â¢%VFâFÃ²3C3C"ÃfVÃ¦6âÃVÃ§FÃ³Â¢###bÃBÃ"ÃfÃÃ·#Â£SrÃ£âÃÃÂ¶6Ã¶Ã§7B$ÃâÃ¤uÃµ$Ã´EUDÃµ2ÃÂ·Â¶Ã¦Ã¶ÃSÂ¢$7&VFâÃ¦wVÃÃâÃÃ:|:2fW&FR"Ã6Ã¶FâvÃ³Â¢$4rÃÃb"Ã&V6Ã³Â£SrÃ£âÃÃÂ¶Ã¦Ã¶ÃSÂ¢$7&VFâÃ¦wVÃÃâÃg&Ã&Ã¶W6"Ã6Ã¶FâvÃ³Â¢$4rÃe""Ã&V6Ã³Â£SrÃ£âÃÃÂ¶Ã¦Ã¶ÃSÂ¢$7&VFâÃ¦;2"Ã6Ã¶FâvÃ³Â¢$5"ÃÃ²"Ã&V6Ã³Â£#âÃ£âÃÃÂ¶Ã¦Ã¶ÃSÂ¢$fÃ¶7W2b6Ã&WÂ¦"Ã6Ã¶FâvÃ³Â¢$d2Ãâ"Ã&V6Ã³Â£ÆâÃ£âÃÃÂ¶Ã¦Ã¶ÃSÂ¢$fâ&W"7FâfR"Ã6Ã¶FâvÃ³Â¢$dÃ"Ã&V6Ã³Â£SrÃ£âÃÃÂ¶Ã¦Ã¶ÃSÂ¢$vÃ¶Ã¶B6ÃVW"Ã6Ã¶FâvÃ³Â¢$u2Ã4â"Ã&V6Ã³Â£ÆâÃ£âÃÃÂ¶Ã¦Ã¶ÃSÂ¢$ÃF6â ÃGFR"Ã6Ã¶FâvÃ³Â¢$ÃÃÃ"Ã&V6Ã³Â£#âÃ£âÃÃÂ¶6Ã¶Ã§7BfÃCÃcÃÃ¢u"BrÂ´Ã§VÃ&W"â¡bâÃ§FÃ´ÃÃ¶6ÃU7G&âÃ¦râwBÃ%"rÃÂ¶ÃâÃ¦âÃVÃg&7FâÃ¶Ã¤FâvâG3Â£"ÃÃâ âÃVÃg&7FâÃ¶Ã¤FâvâG3Â£'ÃâÂ¶6Ã¶Ã§7BfÃDFFSÃCÃÃ§Â¶6Ã¶Ã§7EÂ·âÃÃÃFâ¢ÃÃâ¡7G&âÃ¦râ BâÃÃrrâÃ§7V'7G&âÃ¦rÆÃâÃ§7ÃâBârÃrâÂ·&WGW&Ã¢FâÂµÃrÃµÃrÂ¶ÃÂµÃrÃµÃrÂ·âÃÂ¶6Ã¶Ã§7B4ÃBÃ´Ã¤ÃU3ÃIÆWÃ1Ã´Ã¤ÃÃ ÃÃÃÃÃÃÃÃ¨Â9ÃÃâ¢ÂµÃÂ¡Â½ÃÅÂ°ÃÃÃÃ¤Ã Ã ÃÃÃ Ã¨Â5â¢ÃÂâ¦âÂ¼Â1Â¥ÃÃâÅÂ°ÃÃÃÃÃÃÃÃÃÃ¨ÂÃÂ½Â¥Ãâ¢ÃÂ¼ÅÂ°â¬ÃÃÃÃÃÃ¤ÃÃ ÃÃ¨Â=ÃÃÃÂ½ÃÂÃ´Ã­ÂÂ½Â¹ÃÃÂMQQUM}95LÃµÃ\Ã¢Ã4vvÃ²rÃVÃÃ¶&W'FÃ³Â¢tVÃ&W'FÃ²wÃÂ¶6Ã¶Ã§7B5DEU5Ã´4Ã53ÃIsâ¹4ÃÆeeT%â¦Ã_aberto:'yellow'};Chart.defaults.color='#555e66';Chart.defaults.borderColor='#1e2428';Chart.defaults.font.family="'DM Sans',sans-serif";Chart.defaults.font.size=11;let charts={};function init(){document.getElementById('last-update').textContent=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});renderHome();renderVendas();renderFinanceiro()}function renderHome(){document.getElementById('kpi-fat').textContent=fmt(BLING_STATS.faturamentoTotal);document.getElementById('kpi-fat-delta').textContent='Ã¢â â ÃÂºltimos 3 dias';document.getElementById('kpi-pedidos').textContent=BLING_STATS.totalVendas;document.getElementById('kpi-pedidos-delta').textContent='Ã¢â â 100 pedidos no perÃÂ­odo';document.getElementById('kpi-ticket').textContent=fmt(BLING_STATS.ticketMedio);document.getElementById('kpi-ticket-delta').textContent='Ã¢â â por pedido';document.getElementById('kpi-receber').textContent=fmt(BLING_STATS.totalAReceber);const dias=BLING_STATS.porData;const labels=dias.map(([d])=>fmtDate(d));const valores=dias.map(([,v])=>v.valor);const counts=dias.map(([,v])=>v.count);if(charts['fat-dia'])charts['fat-dia'].destroy();charts['fat-dia']=new Chart(document.getElementById('chart-fat-dia'),{type:'bar',data:{labels,datasets:[{label:'Faturamento(R$)',data:valores,backgroundColor:'rgba(0,214,143,0.3)',borderColor:'#00d68f',borderWidth:2,borderRadius:6);yAxisID:'y},{label:'Pedidos',data:counts,type:'line',borderColor:'#4da6ff',backgroundColor:'rgba(77,166,255,0.1)',tension:0.4,pointRadius:4,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{grid:{color:'#1e2428'},ticks:{callback:v=>'R$'+Number(v/1000).toFixed(0)+'k'}},y1:{position:'right',grid:{drawOnChartArea:false}},x:{grid:{display:false}}}}});const canaisLabels=Object.keys(BLING_STATS.porCanal);const canaisData=Object.values(BLING_STATS.porCanal);if(charts['canais'])charts['canais'].destroy();charts['canais']=new Chart(document.getElementById('chart-canais'),{type:'doughnut',data:{labels:canaisLabels,datasets:[{data:canaisData,backgroundColor:['#00d68f','#4da6ff','#ffd166','#ff4d6d'],borderColor:'#111417',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position8'bottom'}},cutout:'65%'}});const alerts=[];if(BLING_STATS.totalAPagar>BLING_STATS.totalAReceber*10)alerts.push({type:'danger',text:' <strong>ATENÃâ¡AO:</strong> Contas a pagar muito acima do que a receber.'});alerts.push({type:'info',text:'<strong>PerÃÂ­odo analisado:</strong> 100 pedidos mais recentes da API Bling.'});alerts.push({type:'warn',text:'<strong>Estoque:</strong> Endpoint nÃÂ£o retornou dados - verificar permissÃÂµes API.'});document.getElementById('alert-list').innerHTML=alerts.map(a=>`<div class="alert-item ${a.type}"><div class="alert-dot ${a.type}"></div><div class="alert-text">${a.text}</div></div>`).join('');document.querySelector('#table-produtos tbody').innerHTML=BLING_PRODUTOS.map(p=>`<tr><td>${p.nome}</td><td><span style="font-family:monospace;font-size:11px;color:var(--text3)">${p.codigo}</span></td><td>${fmt(p.preco)}</td></tr>`).join('');document.querySelector('#table-vendas tbody').innerHTML=BLING_VENDAS.map(v=>`<tr><td>#${v.numero}</td><td>${fmtDate(v.data)}</td><td>${v.contato?.nome||'-'}</td><td>${v.total>0?fmt(v.total):'-'}</td><td><span class="pill ${STATUS_CLASS[v.situacao?.valor]||'yellow'}">${STATUS_NAMES[v.situacao?.valor]||'Pend.'}</span></td><td><span style="font-size:11px;color:var(--text3)">${CANAL_NAMES[v.loja?.id]||'-'}</span></td></tr>`).join('')}function renderVendas(){document.getElementById('v-fat').textContent=fmt(BLING_STATS.faturamentoTotal);document.getElementById('v-ped').textContent=BLING_STATS.totalVendas;document.getElementById('v-ticket').textContent=fmt(BLING_STATS.ticketMedio);document.getElementById('v-max').textContent=fmt(310);document.querySelector('#table-vendas-full tbody').innerHTML=BLING_VENDAS.map(v=>`<tr><td>#${v.numero}</td><td>${fmtDate(v.data)}</td><td>${v.contato?.nome||'-'}</td><td>${v.total>0?fmt(v.totalProdutos):'-'}</td><td>${v.total>0?fmt(v.total):'-'}</td><td><span class="pill green">${STATUS_NAMES[v.situacao?.valor]||'-'}</span></td></tr>`).join('')}function renderFinanceiro(){document.getElementById('f-receber').textContent=fmt(BLING_STATS.totalAReceber);document.getElementById('f-pagar').textContent=fmt(BLING_STATS.totalAPagar);const saldo=BLING_STATS.totalAReceber-BLING_STATS.totalAPagar;document.getElementById('f-saldo').textContent=fmt(saldo);const delta=document.getElementById('f-saldo-delta');if(saldo<0)delta.textContent='Ã¢âÂ¼ Negativo';else delta.textContent='Ã¢âÂ° Positivo';document.getElementById('f-cp-count').textContent=BLING_CONTASPAGAR.length;document.querySelector('#table-pagar tbody').innerHTML=BLING_CONTASPADGR.map(c=>`<tr><td>${c.descricao}</td><td>${fmtDate(c.vencimento)}</td><td>${fmt(c.valor)}</td><td><span class="pill yellow">Em aberto</span></td></tr>`).join('');document.querySelector('#table-receber tbody').innerHTML=BLING_CONTASRECEBER.map(c=>`<tr><td>${c.descricao}</td><td>${fmtDate(c.vencimento)}</td><td>${fmt(c.valor)}</td><td><span class="pill green">A receber</span></td></tr>`).join('')}const MODULE_META={home:{title:'VisÃÂ£o Geral',sub:'Resumo executivo em tempo real'},vendas:{title:'Vendas',sub:'Faturamento, pedidos e ticket mÃÂ©dio - Bling'},estrategia:{title:'EstratÃÂ©gia Comercial',sub:'Cupons, descontos e carrinhos abandonados'},canais:{title:'Canais de Venda', sub:'DistribuiÃÂ§ÃÂ£o por canal'},clientes:{title:'Clientes',sub:'Base ativa, LTV e segmentaÃÂ§ÃÂ£o'},estoque:{title:'Estoque',sub:'Posicao, giro e alertas'},recorrencia:{title:'RecorrÃÂªncia', sub:'Recompra e churn'},financeiro:{title:'Financeiro / DRE',sub:'Contas a pagar, receber e saldo projetado'},fluxo:{title:'Fluxo de Caixa',sub:'ProjeÃÂ§ÃÂ£o 30/60/90 dias'},crm:{title:'CRM/WhatsApp',sub:'AutomaÃÂ§ÃÂµes e mÃÂ©tricas Reportana'}};function showModule(id){document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById(`mod-${id}`).classList.add('active');event.currentTarget.classList.add('active');const meta=MODULE_META[id]||{};document.getElementById('page-title').textContent=meta.title||id;document.getElementById('page-subtitle').textContent=meta.sub||''}function setPeriod(btn,period){document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}document.addEventListener('DOMContentLoaded',init);
-</script>
-</body>
-</html>
 </main>
-
 <script>
-const BLING_VENDAS_SAMPLE=[{numero:"4350",data:"2026-04-01",contato:{nome:"Kelly Lessa do Prado Innocente"},total:0,totalProdutos:0,situacao:{valor:1},loja:{id:205193054}},{numero:"4349",data:"2026-04-01",contato:{nome:"Bruna Fonseca"},total:157.9,totalProdutos:157.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4348",data:"2026-04-01",contato:{nome:"Daiane Aparecida Castro"},total:189.9,totalProdutos:189.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4347",data:"2026-04-01",contato:{nome:"Nathalia Santos"},total:189.9,totalProdutos:189.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4346",data:"2026-04-01",contato:{nome:"Thalia Cristina"},total:157.9,totalProdutos:157.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4345",data:"2026-04-01",contato:{nome:"Marina Ribeiro"},total:310.0,totalProdutos:310.0,situacao:{valor:1},loja:{id:205193054}},{numero:"4344",data:"2026-04-01",contato:{nome:"Ana Paula Souza"},total:189.9,totalProdutos:189.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4343",data:"2026-03-31",contato:{nome:"Fernanda Lima"},total:157.9,totalProdutos:157.9,situacao:{valor:1},loja:{id:205988658}},{numero:"4342",data:"2026-03-31",contato:{nome:"Beatriz Costa"},total:220.0,totalProdutos:220.0,situacao:{valor:1},loja:{id:205741642}},{numero:"4341",data:"2026-03-31",contato:{nome:"Larissa Martins"},total:157.9,totalProdutos:157.9,situacao:{valor:1},loja:{id:205193054}}];
-const BLING_STATS={totalVendas:100,faturamentoTotal:14815.45,ticketMedio:148.15,totalAPagar:553810.92,totalAReceber:22829.77,porData:[["2026-03-30",{count:19,valor:2819.69}],["2026-03-31",{count:56,valor:8064.68}],["2026-04-01",{count:25,valor:3931.08}]],porCanal:{"Nuvemshop":83,"Canal B":8,"Canal C":6,"Canal D":3}};
-const BLING_CONTASPAGAR=[{descricao:"Fornecedor Ingredientes",vencimento:"2026-04-05",valor:12500},{descricao:"Aluguel Escritório",vencimento:"2026-04-10",valor:4800},{descricao:"Logística / Frete",vencimento:"2026-04-12",valor:3200},{descricao:"Marketing Digital",vencimento:"2026-04-15",valor:8000},{descricao:"Embalagens",vencimento:"2026-04-20",valor:2100}];
-const BLING_CONTASRECEBER=[{descricao:"Pedido #4310 — Nuvemshop",vencimento:"2026-04-02",valor:189.9},{descricao:"Pedido #4320 — Nuvemshop",vencimento:"2026-04-03",valor:315.0},{descricao:"B2B — Pedido #4330",vencimento:"2026-04-08",valor:1200.0},{descricao:"Pedido #4340 — Nuvemshop",vencimento:"2026-04-10",valor:157.9}];
-const BLING_PRODUTOS=[{nome:"Creatina Gummy — Maçã Verde",codigo:"CG-MV",preco:157.9},{nome:"Creatina Gummy — Framboesa",codigo:"CG-FR",preco:157.9},{nome:"Creatina Pó",codigo:"CR-PO",preco:129.9},{nome:"Focus & Clareza",codigo:"FC-AH",preco:189.9},{nome:"Fiber Active",codigo:"FA-01",preco:157.9},{nome:"Good Sleep — Chocolate",codigo:"GS-CH",preco:189.9},{nome:"Matcha Latte",codigo:"ML-01",preco:129.9},{nome:"Meia Suplemind",codigo:"ME-01",preco:35.0},{nome:"Copo Brinde Suplemind",codigo:"CO-01",preco:49.9}];
-const fmt=v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtDate=d=>{if(!d)return'—';const[y,m,day]=String(d).substring(0,10).split('-');return day+'/'+m+'/'+y};
-const CANAL_NAMES={205193054:"Nuvemshop",205988658:"Mercado Livre",205741642:"B2B / Direto",206009082:"Outros"};
-const STATUS_NAMES={1:"Pago",0:"Em aberto","em_aberto":"Em aberto","pago":"Pago"};
-const STATUS_CLASS={1:"green","pago":"green",0:"yellow","em_aberto":"yellow"};
+var VENDAS=[{numero:"4350",data:"2026-04-01",contato:{nome:"Kelly Lessa do Prado Innocente"},total:0,totalProdutos:0,situacao:{valor:1},loja:{id:205193054}},{numero:"4349",data:"2026-04-01",contato:{nome:"Bruna Fonseca"},total:157.9,totalProdutos:157.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4348",data:"2026-04-01",contato:{nome:"Daiane Aparecida Castro"},total:189.9,totalProdutos:189.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4347",data:"2026-04-01",contato:{nome:"Nathalia Santos"},total:189.9,totalProdutos:189.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4346",data:"2026-04-01",contato:{nome:"Thalia Cristina"},total:157.9,totalProdutos:157.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4345",data:"2026-04-01",contato:{nome:"Marina Ribeiro"},total:310.0,totalProdutos:310.0,situacao:{valor:1},loja:{id:205193054}},{numero:"4344",data:"2026-04-01",contato:{nome:"Ana Paula Souza"},total:189.9,totalProdutos:189.9,situacao:{valor:1},loja:{id:205193054}},{numero:"4343",data:"2026-03-31",contato:{nome:"Fernanda Lima"},total:157.9,totalProdutos:157.9,situacao:{valor:1},loja:{id:205988658}},{numero:"4342",data:"2026-03-31",contato:{nome:"Beatriz Costa"},total:220.0,totalProdutos:220.0,situacao:{valor:1},loja:{id:205741642}},{numero:"4341",data:"2026-03-31",contato:{nome:"Larissa Martins"},total:157.9,totalProdutos:157.9,situacao:{valor:1},loja:{id:205193054}}];
+var STATS={totalVendas:100,faturamento:14815.45,ticket:148.15,aPagar:553810.92,aReceber:22829.77,porData:[["2026-03-30",{count:19,valor:2819.69}],["2026-03-31",{count:56,valor:8064.68}],["2026-04-01",{count:25,valor:3931.08}]],porCanal:{"Nuvemshop":83,"Canal B":8,"Canal C":6,"Canal D":3}};
+var CP=[{desc:"Fornecedor Ingredientes",venc:"2026-04-05",valor:12500},{desc:"Aluguel Escritorio",venc:"2026-04-10",valor:4800},{desc:"Logistica / Frete",venc:"2026-04-12",valor:3200},{desc:"Marketing Digital",venc:"2026-04-15",valor:8000},{desc:"Embalagens",venc:"2026-04-20",valor:2100}];
+var CR=[{desc:"Pedido #4310 - Nuvemshop",venc:"2026-04-02",valor:189.9},{desc:"Pedido #4320 - Nuvemshop",venc:"2026-04-03",valor:315.0},{desc:"B2B - Pedido #4330",venc:"2026-04-08",valor:1200.0},{desc:"Pedido #4340 - Nuvemshop",venc:"2026-04-10",valor:157.9}];
+var PRODUTOS=[{nome:"Creatina Gummy - Maca Verde",cod:"CG-MV",preco:157.9},{nome:"Creatina Gummy - Framboesa",cod:"CG-FR",preco:157.9},{nome:"Creatina Po",cod:"CR-PO",preco:129.9},{nome:"Focus & Clareza",cod:"FC-AH",preco:189.9},{nome:"Fiber Active",cod:"FA-01",preco:157.9},{nome:"Good Sleep",cod:"GS-CH",preco:189.9},{nome:"Matcha Latte",cod:"ML-01",preco:129.9},{nome:"Meia Suplemind",cod:"ME-01",preco:35.0},{nome:"Copo Brinde",cod:"CO-01",preco:49.9}];
+function fmt(v){return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtDate(d){if(!d)return '--';var p=String(d).substring(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+var CANAIS={205193054:"Nuvemshop",205988658:"Mercado Livre",205741642:"B2B/Direto",206009082:"Outros"};
+var SNOMES={1:"Pago",0:"Em aberto",em_aberto:"Em aberto",pago:"Pago"};
+var SCLASS={1:'green',pago:'green',0:'yellow',em_aberto:'yellow'};
 Chart.defaults.color='#555e66';Chart.defaults.borderColor='#1e2428';Chart.defaults.font.family="'DM Sans',sans-serif";Chart.defaults.font.size=11;
-let charts={};
-
+var charts={};
 function initDashboard(){
   document.getElementById('last-update').textContent=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
   renderHome();renderVendas();renderFinanceiro();
 }
-
 function renderHome(){
-  document.getElementById('kpi-fat').textContent=fmt(BLING_STATS.faturamentoTotal);
-  document.getElementById('kpi-fat-delta').textContent='↑ últimos 3 dias';
-  document.getElementById('kpi-pedidos').textContent=BLING_STATS.totalVendas;
-  document.getElementById('kpi-pedidos-delta').textContent='↑ 100 pedidos no período';
-  document.getElementById('kpi-ticket').textContent=fmt(BLING_STATS.ticketMedio);
-  document.getElementById('kpi-ticket-delta').textContent='↑ por pedido';
-  document.getElementById('kpi-receber').textContent=fmt(BLING_STATS.totalAReceber);
-  const dias=BLING_STATS.porData;
-  const labels=dias.map(([d])=>fmtDate(d));
-  const valores=dias.map(([,v])=>v.valor);
-  const counts=dias.map(([,v])=>v.count);
-  if(charts['fat-dia'])charts['fat-dia'].destroy();
-  charts['fat-dia']=new Chart(document.getElementById('chart-fat-dia'),{type:'bar',data:{labels,datasets:[{label:'Faturamento (R$)',data:valores,backgroundColor:'rgba(0,214,143,0.3)',borderColor:'#00d68f',borderWidth:2,borderRadius:6,yAxisID:'y'},{label:'Pedidos',data:counts,type:'line',borderColor:'#4da6ff',backgroundColor:'rgba(77,166,255,0.1)',tension:0.4,pointRadius:4,pointBackgroundColor:'#4da6ff',yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top'}},scales:{y:{grid:{color:'#1e2428'},ticks:{callback:v=>'R$'+Number(v/1000).toFixed(0)+'k'}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#4da6ff'}},x:{grid:{display:false}}}}});
-  const canaisLabels=Object.keys(BLING_STATS.porCanal);
-  const canaisData=Object.values(BLING_STATS.porCanal);
-  if(charts['canais'])charts['canais'].destroy();
-  charts['canais']=new Chart(document.getElementById('chart-canais'),{type:'doughnut',data:{labels:canaisLabels,datasets:[{data:canaisData,backgroundColor:['#00d68f','#4da6ff','#ffd166','#ff4d6d'],borderColor:'#111417',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:11}}}},cutout:'65%'}});
-  const alerts=[];
-  if(BLING_STATS.totalAPagar>BLING_STATS.totalAReceber*3)alerts.push({type:'danger',text:'<strong>Atenção:</strong> Contas a pagar muito acima do que a receber. Verificar com financeiro.'});
-  alerts.push({type:'info',text:'<strong>Período analisado:</strong> 100 pedidos mais recentes via API Bling.'});
-  alerts.push({type:'warn',text:'<strong>Estoque:</strong> Endpoint não retornou dados via API v3 — verificar permissões.'});
-  alerts.push({type:'info',text:'<strong>Nuvemshop:</strong> 549 carrinhos identificados com chance de conversão.'});
-  document.getElementById('alert-list').innerHTML=alerts.map(a=>'<div class="alert-item '+a.type+'"><div class="alert-dot '+a.type+'"></div><div class="alert-text">'+a.text+'</div></div>').join('');
-  document.querySelector('#table-produtos tbody').innerHTML=BLING_PRODUTOS.map(p=>'<tr><td>'+p.nome+'</td><td><span style="font-family:monospace;font-size:11px;color:var(--text3)">'+p.codigo+'</span></td><td>'+fmt(p.preco)+'</td></tr>').join('');
-  document.querySelector('#table-vendas tbody').innerHTML=BLING_VENDAS_SAMPLE.map(v=>'<tr><td>#'+v.numero+'</td><td>'+fmtDate(v.data)+'</td><td>'+(v.contato&&v.contato.nome?v.contato.nome:'—')+'</td><td>'+(v.total>0?fmt(v.total):'<span style="color:var(--text3)">—</span>')+'</td><td><span class="pill '+(STATUS_CLASS[v.situacao&&v.situacao.valor]||'yellow')+'">'+(STATUS_NAMES[v.situacao&&v.situacao.valor]||'Pend.')+'</span></td><td><span style="font-size:11px;color:var(--text3)">'+(CANAL_NAMES[v.loja&&v.loja.id]||'—')+'</span></td></tr>').join('');
+  document.getElementById('kpi-fat').textContent=fmt(STATS.faturamento);
+  document.getElementById('kpi-fat-delta').textContent='ultimos 3 dias';
+  document.getElementById('kpi-pedidos').textContent=STATS.totalVendas;
+  document.getElementById('kpi-pedidos-delta').textContent='100 pedidos no periodo';
+  document.getElementById('kpi-ticket').textContent=fmt(STATS.ticket);
+  document.getElementById('kpi-receber').textContent=fmt(STATS.aReceber);
+  var dias=STATS.porData;
+  var labels=dias.map(function(d){return fmtDate(d[0])});
+  var valores=dias.map(function(d){return d[1].valor});
+  var counts=dias.map(function(d){return d[1].count});
+  if(charts['fd'])charts['fd'].destroy();
+  charts['fd']=new Chart(document.getElementById('chart-fat-dia'),{type:'bar',data:{labels:labels,datasets:[{label:'Faturamento (R$)',data:valores,backgroundColor:'rgba(0,214,143,0.3)',borderColor:'#00d68f',borderWidth:2,borderRadius:6,yAxisID:'y'},{label:'Pedidos',data:counts,type:'line',borderColor:'#4da6ff',backgroundColor:'rgba(77,166,255,0.1)',tension:0.4,pointRadius:4,pointBackgroundColor:'#4da6ff',yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top'}},scales:{y:{grid:{color:'#1e2428'},ticks:{callback:function(v){return 'R$'+Number(v/1000).toFixed(0)+'k'}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#4da6ff'}},x:{grid:{display:false}}}}});
+  if(charts['ca'])charts['ca'].destroy();
+  charts['ca']=new Chart(document.getElementById('chart-canais'),{type:'doughnut',data:{labels:Object.keys(STATS.porCanal),datasets:[{data:Object.values(STATS.porCanal),backgroundColor:['#00d68f','#4da6ff','#ffd166','#ff4d6d'],borderColor:'#111417',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:11}}}},cutout:'65%'}});
+  var al=[];
+  if(STATS.aPagar>STATS.aReceber*3)al.push({type:'danger',text:'<strong>Atencao:</strong> Contas a pagar ('+fmt(STATS.aPagar)+') muito acima do que a receber.'});
+  al.push({type:'info',text:'<strong>Periodo analisado:</strong> 100 pedidos mais recentes via API Bling.'});
+  al.push({type:'warn',text:'<strong>Estoque:</strong> Endpoint nao retornou dados - verificar permissoes API v3.'});
+  al.push({type:'info',text:'<strong>Nuvemshop:</strong> 549 carrinhos identificados com chance de conversao.'});
+  document.getElementById('alert-list').innerHTML=al.map(function(a){return '<div class="alert-item '+a.type+'"><div class="alert-dot '+a.type+'"></div><div class="alert-text">'+a.text+'</div></div>'}).join('');
+  document.querySelector('#table-produtos tbody').innerHTML=PRODUTOS.map(function(p){return '<tr><td>'+p.nome+'</td><td><span style="font-family:monospace;font-size:11px;color:var(--text3)">'+p.cod+'</span></td><td>'+fmt(p.preco)+'</td></tr>'}).join('');
+  document.querySelector('#table-vendas tbody').innerHTML=VENDAS.map(function(v){var sc=SCLASS[v.situacao&&v.situacao.valor]||'yellow';var sn=SNOMES[v.situacao&&v.situacao.valor]||'Pend.';var cn=CANAIS[v.loja&&v.loja.id]||'--';return '<tr><td>#'+v.numero+'</td><td>'+fmtDate(v.data)+'</td><td>'+(v.contato&&v.contato.nome?v.contato.nome:'--')+'</td><td>'+(v.total>0?fmt(v.total):'--')+'</td><td><span class="pill '+sc+'">'+sn+'</span></td><td><span style="font-size:11px;color:var(--text3)">'+cn+'</span></td></tr>'}).join('');
 }
-
 function renderVendas(){
-  document.getElementById('v-fat').textContent=fmt(BLING_STATS.faturamentoTotal);
-  document.getElementById('v-ped').textContent=BLING_STATS.totalVendas;
-  document.getElementById('v-ticket').textContent=fmt(BLING_STATS.ticketMedio);
+  document.getElementById('v-fat').textContent=fmt(STATS.faturamento);
+  document.getElementById('v-ped').textContent=STATS.totalVendas;
+  document.getElementById('v-ticket').textContent=fmt(STATS.ticket);
   document.getElementById('v-max').textContent=fmt(310);
-  const dias=BLING_STATS.porData;
-  const labels=dias.map(([d])=>fmtDate(d));
-  const valores=dias.map(([,v])=>v.valor);
-  const counts=dias.map(([,v])=>v.count);
-  setTimeout(()=>{
-    if(charts['vendas-ev'])charts['vendas-ev'].destroy();
-    charts['vendas-ev']=new Chart(document.getElementById('chart-vendas-evolucao'),{type:'bar',data:{labels,datasets:[{label:'Receita (R$)',data:valores,backgroundColor:'rgba(0,214,143,0.25)',borderColor:'#00d68f',borderWidth:2,borderRadius:6,yAxisID:'y'},{label:'Pedidos',data:counts,type:'line',borderColor:'#ffd166',backgroundColor:'rgba(255,209,102,0.1)',tension:.4,pointRadius:4,pointBackgroundColor:'#ffd166',yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top'}},scales:{y:{grid:{color:'#1e2428'},ticks:{callback:v=>'R$'+Number(v/1000).toFixed(0)+'k'}},y1:{position:'right',grid:{drawOnChartArea:false}},x:{grid:{display:false}}}}});
-    const faixas={'< R$100':0,'R$100-150':0,'R$150-200':0,'R$200-300':0,'> R$300':0};
-    BLING_VENDAS_SAMPLE.forEach(v=>{if(!v.total)return;if(v.total<100)faixas['< R$100']++;else if(v.total<150)faixas['R$100-150']++;else if(v.total<200)faixas['R$150-200']++;else if(v.total<300)faixas['R$200-300']++;else faixas['> R$300']++;});
-    if(charts['ticket-dist'])charts['ticket-dist'].destroy();
-    charts['ticket-dist']=new Chart(document.getElementById('chart-ticket-dist'),{type:'bar',data:{labels:Object.keys(faixas),datasets:[{data:Object.values(faixas),backgroundColor:['#1e2428','rgba(0,214,143,0.4)','#00d68f','rgba(0,214,143,0.4)','rgba(0,214,143,0.15)'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'#1e2428'}},x:{grid:{display:false}}}}});
+  var dias=STATS.porData;
+  var labels=dias.map(function(d){return fmtDate(d[0])});
+  var valores=dias.map(function(d){return d[1].valor});
+  var counts=dias.map(function(d){return d[1].count});
+  setTimeout(function(){
+    if(charts['ve'])charts['ve'].destroy();
+    charts['ve']=new Chart(document.getElementById('chart-vendas-evolucao'),{type:'bar',data:{labels:labels,datasets:[{label:'Receita (R$)',data:valores,backgroundColor:'rgba(0,214,143,0.25)',borderColor:'#00d68f',borderWidth:2,borderRadius:6,yAxisID:'y'},{label:'Pedidos',data:counts,type:'line',borderColor:'#ffd166',backgroundColor:'rgba(255,209,102,0.1)',tension:.4,pointRadius:4,pointBackgroundColor:'#ffd166',yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top'}},scales:{y:{grid:{color:'#1e2428'},ticks:{callback:function(v){return 'R$'+Number(v/1000).toFixed(0)+'k'}}},y1:{position:'right',grid:{drawOnChartArea:false}},x:{grid:{display:false}}}}});
+    var fx={'< R$100':0,'R$100-150':0,'R$150-200':0,'R$200-300':0,'> R$300':0};
+    VENDAS.forEach(function(v){if(!v.total)return;if(v.total<100)fx['< R$100']++;else if(v.total<150)fx['R$100-150']++;else if(v.total<200)fx['R$150-200']++;else if(v.total<300)fx['R$200-300']++;else fx['> R$300']++;});
+    if(charts['td'])charts['td'].destroy();
+    charts['td']=new Chart(document.getElementById('chart-ticket-dist'),{type:'bar',data:{labels:Object.keys(fx),datasets:[{data:Object.values(fx),backgroundColor:['#1e2428','rgba(0,214,143,0.4)','#00d68f','rgba(0,214,143,0.4)','rgba(0,214,143,0.15)'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'#1e2428'}},x:{grid:{display:false}}}}});
   },50);
-  document.querySelector('#table-vendas-full tbody').innerHTML=BLING_VENDAS_SAMPLE.map(v=>'<tr><td>#'+v.numero+'</td><td>'+fmtDate(v.data)+'</td><td>'+(v.contato&&v.contato.nome?v.contato.nome:'—')+'</td><td>'+(v.totalProdutos>0?fmt(v.totalProdutos):'—')+'</td><td>'+(v.total>0?fmt(v.total):'—')+'</td><td><span class="pill '+(STATUS_CLASS[v.situacao&&v.situacao.valor]||'yellow')+'">'+(STATUS_NAMES[v.situacao&&v.situacao.valor]||'—')+'</span></td></tr>').join('');
+  document.querySelector('#table-vendas-full tbody').innerHTML=VENDAS.map(function(v){var sc=SCLASS[v.situacao&&v.situacao.valor]||'yellow';var sn=SNOMES[v.situacao&&v.situacao.valor]||'--';return '<tr><td>#'+v.numero+'</td><td>'+fmtDate(v.data)+'</td><td>'+(v.contato&&v.contato.nome?v.contato.nome:'--')+'</td><td>'+(v.totalProdutos>0?fmt(v.totalProdutos):'--')+'</td><td>'+(v.total>0?fmt(v.total):'--')+'</td><td><span class="pill '+sc+'">'+sn+'</span></td></tr>'}).join('');
 }
-
 function renderFinanceiro(){
-  document.getElementById('f-receber').textContent=fmt(BLING_STATS.totalAReceber);
-  document.getElementById('f-pagar').textContent=fmt(BLING_STATS.totalAPagar);
-  const saldo=BLING_STATS.totalAReceber-BLING_STATS.totalAPagar;
-  document.getElementById('f-saldo').textContent=fmt(saldo);
-  const delta=document.getElementById('f-saldo-delta');
-  if(saldo<0){delta.textContent='▼ Negativo — atenção';delta.className='kpi-delta down';}
-  else{delta.textContent='▲ Positivo';delta.className='kpi-delta up';}
-  document.getElementById('f-cp-count').textContent=BLING_CONTASPAGAR.length;
-  document.querySelector('#table-pagar tbody').innerHTML=BLING_CONTASPAGAR.map(c=>'<tr><td>'+c.descricao+'</td><td>'+fmtDate(c.vencimento)+'</td><td>'+fmt(c.valor)+'</td><td><span class="pill yellow">Em aberto</span></td></tr>').join('');
-  document.querySelector('#table-receber tbody').innerHTML=BLING_CONTASRECEBER.map(c=>'<tr><td>'+c.descricao+'</td><td>'+fmtDate(c.vencimento)+'</td><td>'+fmt(c.valor)+'</td><td><span class="pill green">A receber</span></td></tr>').join('');
+  document.getElementById('f-receber').textContent=fmt(STATS.aReceber);
+  document.getElementById('f-pagar').textContent=fmt(STATS.aPagar);
+  var s=STATS.aReceber-STATS.aPagar;
+  document.getElementById('f-saldo').textContent=fmt(s);
+  var d=document.getElementById('f-saldo-delta');
+  if(s<0){d.textContent='Negativo - atencao';d.className='kpi-delta down';}else{d.textContent='Positivo';d.className='kpi-delta up';}
+  document.getElementById('f-cp-count').textContent=CP.length;
+  document.querySelector('#table-pagar tbody').innerHTML=CP.map(function(c){return '<tr><td>'+c.desc+'</td><td>'+fmtDate(c.venc)+'</td><td>'+fmt(c.valor)+'</td><td><span class="pill yellow">Em aberto</span></td></tr>'}).join('');
+  document.querySelector('#table-receber tbody').innerHTML=CR.map(function(c){return '<tr><td>'+c.desc+'</td><td>'+fmtDate(c.venc)+'</td><td>'+fmt(c.valor)+'</td><td><span class="pill green">A receber</span></td></tr>'}).join('');
 }
-
-const MODULE_META={home:{title:'Visão Geral',sub:'Resumo executivo em tempo real'},vendas:{title:'Vendas',sub:'Faturamento, pedidos e ticket médio — Bling'},estrategia:{title:'Estratégia Comercial',sub:'Cupons, descontos e carrinhos abandonados'},canais:{title:'Canais de Venda',sub:'Distribuição por canal de origem'},clientes:{title:'Clientes',sub:'Base ativa, LTV e segmentação B2C/B2B'},estoque:{title:'Estoque',sub:'Posição, giro e alertas'},recorrencia:{title:'Recorrência & Cross-sell',sub:'Recompra, churn e combinações de produtos'},financeiro:{title:'Financeiro / DRE',sub:'Contas a pagar, receber e saldo projetado — Bling'},fluxo:{title:'Fluxo de Caixa',sub:'Projeção 30/60/90 dias — Bling'},crm:{title:'CRM / WhatsApp',sub:'Automações e métricas de engajamento — Reportana'}};
-
-function showModule(id){
-  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('mod-'+id).classList.add('active');
-  event.currentTarget.classList.add('active');
-  const meta=MODULE_META[id]||{};
+var MODULE_META={home:{title:'Visao Geral',sub:'Resumo executivo em tempo real'},vendas:{title:'Vendas',sub:'Faturamento, pedidos e ticket medio - Bling'},estrategia:{title:'Estrategia Comercial',sub:'Cupons, descontos e carrinhos abandonados'},canais:{title:'Canais de Venda',sub:'Distribuicao por canal de origem'},clientes:{title:'Clientes',sub:'Base ativa, LTV e segmentacao B2C/B2B'},estoque:{title:'Estoque',sub:'Posicao, giro e alertas'},recorrencia:{title:'Recorrencia e Cross-sell',sub:'Recompra, churn e combinacoes de produtos'},financeiro:{title:'Financeiro / DRE',sub:'Contas a pagar, receber e saldo projetado - Bling'},fluxo:{title:'Fluxo de Caixa',sub:'Projecao 30/60/90 dias - Bling'},crm:{title:'CRM / WhatsApp',sub:'Automacoes e metricas - Reportana'}};
+function showModule(id,el){
+  document.querySelectorAll('.module').forEach(function(m){m.classList.remove('active')});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+  var mod=document.getElementById('mod-'+id);
+  if(mod)mod.classList.add('active');
+  if(el)el.classList.add('active');
+  var meta=MODULE_META[id]||{};
   document.getElementById('page-title').textContent=meta.title||id;
   document.getElementById('page-subtitle').textContent=meta.sub||'';
+  if(id==='vendas')renderVendas();
+  if(id==='financeiro')renderFinanceiro();
 }
-
-function setPeriod(btn,period){
-  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
+function setPeriod(btn,p){document.querySelectorAll('.period-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');}
 document.addEventListener('DOMContentLoaded',initDashboard);
 </script>
 </body>
