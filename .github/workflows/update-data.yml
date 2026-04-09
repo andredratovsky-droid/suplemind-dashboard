@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      secrets: write   # necessário para atualizar Secrets via gh cli
 
     steps:
       - name: Checkout repositório
