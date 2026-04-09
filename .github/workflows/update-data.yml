@@ -2,15 +2,18 @@ name: Suplemind — Atualizar Dados
 
 on:
   schedule:
+    # 8h BRT = 11h UTC
     - cron: '0 11 * * *'
+    # 20h BRT = 23h UTC
     - cron: '0 23 * * *'
-  workflow_dispatch:
+  workflow_dispatch:  # permite rodar manualmente
 
 jobs:
   collect-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      secrets: write   # necessário para atualizar Secrets via gh cli
 
     steps:
       - name: Checkout repositório
@@ -21,28 +24,59 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Validar Secrets obrigatórios
+        run: |
+          if [ -z "${{ secrets.BLING_CLIENT_ID }}" ]; then
+            echo "❌ BLING_CLIENT_ID não definido nos Secrets"
+            exit 1
+          fi
+          if [ -z "${{ secrets.BLING_CLIENT_SECRET }}" ]; then
+            echo "❌ BLING_CLIENT_SECRET não definido nos Secrets"
+            exit 1
+          fi
+          if [ -z "${{ secrets.BLING_REFRESH_TOKEN }}" ]; then
+            echo "❌ BLING_REFRESH_TOKEN não definido nos Secrets"
+            exit 1
+          fi
+          echo "✅ Todos os Secrets estão presentes"
+
       - name: Executar coleta de dados
         env:
           BLING_CLIENT_ID: ${{ secrets.BLING_CLIENT_ID }}
           BLING_CLIENT_SECRET: ${{ secrets.BLING_CLIENT_SECRET }}
           BLING_REFRESH_TOKEN: ${{ secrets.BLING_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: node collect.js
 
       - name: Atualizar refresh token nos Secrets
-        if: success()
+        # Roda sempre — mesmo se a coleta parcialmente falhou — para manter o token válido
+        if: always() && hashFiles('.bling_refresh_token') != ''
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           if [ -f .bling_refresh_token ]; then
             NEW_TOKEN=$(cat .bling_refresh_token)
-            gh secret set BLING_REFRESH_TOKEN --body "$NEW_TOKEN"
-            echo "Refresh token atualizado"
+            if [ -n "$NEW_TOKEN" ]; then
+              gh secret set BLING_REFRESH_TOKEN --body "$NEW_TOKEN" --repo "${{ github.repository }}"
+              echo "✅ Refresh token atualizado nos Secrets"
+            else
+              echo "⚠️  Arquivo .bling_refresh_token está vazio — mantendo token atual"
+            fi
+          else
+            echo "⚠️  Arquivo .bling_refresh_token não encontrado — token não atualizado"
           fi
 
       - name: Commit e push dos dados atualizados
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "Suplemind Bot"
+          # Remover arquivo temporário do token antes do commit
+          rm -f .bling_refresh_token
           git add data/
-          git diff --staged --quiet || git commit -m "Dados atualizados $(date -u '+%d/%m/%Y %H:%M') UTC"
-          git push
+          if git diff --staged --quiet; then
+            echo "ℹ️  Nenhuma alteração nos dados — commit não necessário"
+          else
+            git commit -m "📊 Dados atualizados — $(date -u '+%d/%m/%Y %H:%M') UTC"
+            git push
+            echo "✅ Dados publicados no GitHub Pages"
+          fi
