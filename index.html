@@ -5,380 +5,429 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Suplemind Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0a0d0f;--bg2:#111417;--bg3:#181c20;--border:#1e2428;--border2:#252b30;--text:#e8eaec;--text2:#8a9199;--text3:#555e66;--green:#00d68f;--green-dim:rgba(0,214,143,.08);--green-dim2:rgba(0,214,143,.15);--red:#ff4d6d;--red-dim:rgba(255,77,109,.08);--yellow:#ffd166;--yellow-dim:rgba(255,209,102,.08);--blue:#4da6ff;--blue-dim:rgba(77,166,255,.08);--radius:12px;--radius-sm:8px}
+:root{
+  --bg:#080b0d;--bg2:#0e1215;--bg3:#141a1e;--bg4:#1a2228;
+  --border:#1e2830;--border2:#243040;
+  --text:#f0f2f4;--text2:#8fa0ae;--text3:#4a5a66;
+  --green:#00e5a0;--green2:#00b87a;--green-dim:rgba(0,229,160,.07);
+  --red:#ff4560;--red-dim:rgba(255,69,96,.08);
+  --amber:#ffb340;--amber-dim:rgba(255,179,64,.08);
+  --blue:#3d9aff;--blue-dim:rgba(61,154,255,.08);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,.08);
+  --r:10px;--r2:6px;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
-.sidebar{width:220px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;overflow-y:auto}
-.logo{padding:24px 20px 18px;border-bottom:1px solid var(--border)}
-.logo-name{font-family:'DM Serif Display',serif;font-size:18px;color:var(--text)}
-.logo-sub{font-size:10px;color:var(--green);letter-spacing:2px;text-transform:uppercase;font-weight:500;margin-top:2px}
-.nav{flex:1;padding:10px 0}
-.nav-group{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:14px 20px 5px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;border-left:2px solid transparent;user-select:none}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
+.sidebar{width:230px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:200}
+.logo{padding:22px 20px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:var(--text)}
+.logo-mark span{color:var(--green)}
+.logo-sub{font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-top:3px;font-family:'DM Mono',monospace}
+.nav{flex:1;padding:8px 0;overflow-y:auto}
+.nav-section{font-size:9px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--text3);padding:14px 18px 5px;font-family:'DM Mono',monospace}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 18px;cursor:pointer;color:var(--text2);font-size:12.5px;font-weight:500;transition:all .15s;border-left:2px solid transparent;user-select:none}
 .nav-item:hover{color:var(--text);background:var(--bg3)}
-.nav-item.active{color:var(--green);border-left-color:var(--green);background:var(--green-dim);font-weight:500}
-.nav-item .ico{font-size:14px;width:18px;text-align:center}
-.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border)}
-.update-time{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
-.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.main{margin-left:220px;flex:1;min-height:100vh}
-.topbar{padding:18px 30px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg);position:sticky;top:0;z-index:50}
-.page-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--text)}
-.page-sub{font-size:12px;color:var(--text3);margin-top:2px}
-.period-sel{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
-.pb{padding:6px 14px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border:none;background:transparent;transition:all .15s;font-family:'DM Sans',sans-serif}
-.pb:hover{color:var(--text)}.pb.active{background:var(--bg3);color:var(--green)}
-.content{padding:26px 30px}.module{display:none}.module.active{display:block}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
-.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
-.kpi:hover{border-color:var(--border2)}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.kpi.green::before{background:var(--green)}.kpi.red::before{background:var(--red)}.kpi.yellow::before{background:var(--yellow)}.kpi.blue::before{background:var(--blue)}
-.kpi-ico{position:absolute;right:14px;top:14px;font-size:26px;opacity:.1}
-.kpi-lbl{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
-.kpi-val{font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);line-height:1}
-.kpi-val.mono{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600}
-.kpi-delta{font-size:11px;margin-top:5px;font-weight:500}.kpi-delta.up{color:var(--green)}.kpi-delta.down{color:var(--red)}.kpi-delta.neu{color:var(--text3)}
-.grid2{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:20px}
-.grid-eq{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:20px}
-.card:last-child{margin-bottom:0}.card.no-mb{margin-bottom:0}
-.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
-.card-title{font-size:13px;font-weight:600;color:var(--text)}.card-sub{font-size:11px;color:var(--text3);margin-top:2px}
-.tag{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.4px;white-space:nowrap}
-.tag.green{background:var(--green-dim2);color:var(--green)}.tag.red{background:var(--red-dim);color:var(--red)}.tag.yellow{background:var(--yellow-dim);color:var(--yellow)}.tag.blue{background:var(--blue-dim);color:var(--blue)}
-.chart-wrap{position:relative;height:210px}.chart-wrap.tall{height:260px}.chart-wrap.sm{height:160px}
+.nav-item.active{color:var(--green);border-left-color:var(--green);background:var(--green-dim)}
+.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.sidebar-footer{padding:12px 18px;border-top:1px solid var(--border)}
+.last-update{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;line-height:1.5}
+.status-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);margin-right:5px;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.main{margin-left:230px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(8,11,13,.92);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.page-info .page-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text)}
+.page-info .page-sub{font-size:11px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.period-btns{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.pbtn{padding:6px 14px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;border:none;background:transparent;transition:all .15s;font-family:'DM Mono',monospace;letter-spacing:.5px}
+.pbtn:hover{color:var(--text)}
+.pbtn.active{background:var(--bg4);color:var(--green)}
+.refresh-btn{padding:6px 12px;font-size:11px;font-weight:500;color:var(--text3);cursor:pointer;border:1px solid var(--border);background:var(--bg3);border-radius:var(--r2);transition:all .2s}
+.refresh-btn:hover{color:var(--text);border-color:var(--border2)}
+.content{padding:24px 28px;flex:1}
+.module{display:none}
+.module.active{display:block}
+.kpi-row{display:grid;gap:12px;margin-bottom:20px}
+.kpi-row.cols4{grid-template-columns:repeat(4,1fr)}
+.kpi-row.cols3{grid-template-columns:repeat(3,1fr)}
+.kpi-row.cols2{grid-template-columns:repeat(2,1fr)}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s,transform .15s}
+.kpi:hover{border-color:var(--border2);transform:translateY(-1px)}
+.kpi-accent{position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r) var(--r) 0 0}
+.kpi.g .kpi-accent{background:linear-gradient(90deg,var(--green2),var(--green))}
+.kpi.r .kpi-accent{background:linear-gradient(90deg,#c73050,var(--red))}
+.kpi.a .kpi-accent{background:linear-gradient(90deg,#c87a00,var(--amber))}
+.kpi.b .kpi-accent{background:linear-gradient(90deg,#1a6cd4,var(--blue))}
+.kpi.p .kpi-accent{background:linear-gradient(90deg,#6d4fc9,var(--purple))}
+.kpi-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);opacity:.06;font-size:32px}
+.kpi-label{font-size:9.5px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:9px;font-family:'DM Mono',monospace}
+.kpi-value{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-.5px}
+.kpi-value.mono{font-family:'DM Mono',monospace;font-size:20px;font-weight:500}
+.kpi-meta{font-size:11px;margin-top:5px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.kpi-meta .up{color:var(--green)}
+.kpi-meta .dn{color:var(--red)}
+.kpi-meta .ne{color:var(--text3)}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:16px}
+.grid-eq{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px}
+.card:last-child,.card.no-mb{margin-bottom:0}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.card-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text)}
+.card-sub{font-size:10.5px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace}
+.badge{font-size:9px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.5px;font-family:'DM Mono',monospace;white-space:nowrap}
+.badge.g{background:rgba(0,229,160,.12);color:var(--green);border:1px solid rgba(0,229,160,.2)}
+.badge.r{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,69,96,.2)}
+.badge.a{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,179,64,.2)}
+.badge.b{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(61,154,255,.2)}
+.chart-box{position:relative}
+.chart-box.h200{height:200px}
+.chart-box.h240{height:240px}
+.chart-box.h280{height:280px}
+.chart-box.h320{height:320px}
+.chart-box.h220{height:220px}
+.tscroll{overflow-y:auto;max-height:300px}
+.tscroll::-webkit-scrollbar{width:3px}
+.tscroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 table{width:100%;border-collapse:collapse}
-th{font-size:10px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;color:var(--text3);padding:7px 11px;text-align:left;border-bottom:1px solid var(--border)}
-td{font-size:12px;padding:9px 11px;color:var(--text2);border-bottom:1px solid var(--border)}
+th{font-size:9.5px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;white-space:nowrap}
+td{font-size:12px;padding:8px 10px;color:var(--text2);border-bottom:1px solid rgba(30,40,48,.6);vertical-align:middle}
 td:first-child{color:var(--text);font-weight:500}
-tr:last-child td{border-bottom:none}.tr:hover td{background:var(--bg3)}
-.pill{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
-.pill.green{background:var(--green-dim2);color:var(--green)}.pill.yellow{background:var(--yellow-dim);color:var(--yellow)}.pill.red{background:var(--red-dim);color:var(--red)}.pill.blue{background:var(--blue-dim);color:var(--blue)}
-.scroll{overflow-y:auto;max-height:280px}.scroll::-webkit-scrollbar{width:3px}.scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-.alert-list{display:flex;flex-direction:column;gap:7px}
-.alert{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:var(--radius-sm);font-size:12px}
-.alert.info{background:var(--green-dim);border:1px solid rgba(0,214,143,.15)}
-.alert.warn{background:var(--yellow-dim);border:1px solid rgba(255,209,102,.2)}
-.alert.danger{background:var(--red-dim);border:1px solid rgba(255,77,109,.2)}
-.adot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:3px}
-.adot.info{background:var(--green)}.adot.warn{background:var(--yellow)}.adot.danger{background:var(--red)}
-.atext{color:var(--text2);line-height:1.5}.atext strong{color:var(--text)}
-.stat-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
-.stat-row:last-child{border-bottom:none}.stat-lbl{font-size:13px;color:var(--text2)}.stat-val{font-size:13px;color:var(--text);font-weight:600;font-family:'JetBrains Mono',monospace}
-.progress-bar{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px}.progress-fill{height:100%;border-radius:3px}
-.section-lbl{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;margin-top:4px}
-.inline-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(20,26,30,.5)}
+.pill{display:inline-block;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:600;font-family:'DM Mono',monospace}
+.pill.g{background:rgba(0,229,160,.12);color:var(--green)}
+.pill.a{background:var(--amber-dim);color:var(--amber)}
+.pill.r{background:var(--red-dim);color:var(--red)}
+.pill.b{background:var(--blue-dim);color:var(--blue)}
+.pill.p{background:var(--purple-dim);color:var(--purple)}
+.alert-stack{display:flex;flex-direction:column;gap:6px}
+.alert{display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border-radius:var(--r2);font-size:12px;line-height:1.5}
+.alert.info{background:var(--green-dim);border:1px solid rgba(0,229,160,.12)}
+.alert.warn{background:var(--amber-dim);border:1px solid rgba(255,179,64,.15)}
+.alert.danger{background:var(--red-dim);border:1px solid rgba(255,69,96,.15)}
+.adot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.adot.info{background:var(--green)}
+.adot.warn{background:var(--amber)}
+.adot.danger{background:var(--red)}
+.atext{color:var(--text2)}
+.atext strong{color:var(--text)}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:12px;transition:opacity .4s}
+#loading.done{opacity:0;pointer-events:none}
+.load-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text)}
+.load-logo span{color:var(--green)}
+.load-bar{width:160px;height:2px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.load-fill{height:100%;background:var(--green);border-radius:2px;animation:loadprog 1.2s ease forwards}
+@keyframes loadprog{0%{width:0}100%{width:100%}}
+.load-text{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
 </style>
 </head>
 <body>
 
+<div id="loading">
+  <div class="load-logo">Suple<span>mind</span></div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+  <div class="load-text" id="load-msg">carregando dados...</div>
+</div>
+
 <aside class="sidebar">
-  <div class="logo"><div class="logo-name">Suplemind</div><div class="logo-sub">Intelligence</div></div>
+  <div class="logo">
+    <div class="logo-mark">Suple<span>mind</span></div>
+    <div class="logo-sub">Intelligence</div>
+  </div>
   <nav class="nav">
-    <div class="nav-group">Visao Geral</div>
-    <div class="nav-item active" onclick="go('home',this)"><span class="ico">&#9673;</span> Home</div>
-    <div class="nav-group">Comercial</div>
-    <div class="nav-item" onclick="go('vendas',this)"><span class="ico">&#128200;</span> Vendas</div>
-    <div class="nav-item" onclick="go('estrategia',this)"><span class="ico">&#127919;</span> Estrategia Comercial</div>
-    <div class="nav-item" onclick="go('canais',this)"><span class="ico">&#128256;</span> Canais de Venda</div>
-    <div class="nav-item" onclick="go('clientes',this)"><span class="ico">&#128101;</span> Clientes</div>
-    <div class="nav-group">Operacoes</div>
-    <div class="nav-item" onclick="go('estoque',this)"><span class="ico">&#128230;</span> Estoque</div>
-    <div class="nav-item" onclick="go('recorrencia',this)"><span class="ico">&#128260;</span> Recorrencia</div>
-    <div class="nav-group">Financeiro</div>
-    <div class="nav-item" onclick="go('financeiro',this)"><span class="ico">&#128202;</span> DRE / Financeiro</div>
-    <div class="nav-item" onclick="go('fluxo',this)"><span class="ico">&#128176;</span> Fluxo de Caixa</div>
-    <div class="nav-group">CRM</div>
-    <div class="nav-item" onclick="go('crm',this)"><span class="ico">&#128172;</span> WhatsApp / CRM</div>
+    <div class="nav-section">Visão Geral</div>
+    <div class="nav-item active" onclick="go('home',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+    </div>
+    <div class="nav-section">Comercial</div>
+    <div class="nav-item" onclick="go('vendas',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Vendas
+    </div>
+    <div class="nav-item" onclick="go('canais',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Canais de Venda
+    </div>
+    <div class="nav-item" onclick="go('produtos',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>Produtos
+    </div>
+    <div class="nav-item" onclick="go('clientes',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Clientes
+    </div>
+    <div class="nav-section">Operações</div>
+    <div class="nav-item" onclick="go('recorrencia',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Recorrência
+    </div>
+    <div class="nav-section">Financeiro</div>
+    <div class="nav-item" onclick="go('financeiro',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Financeiro / DRE
+    </div>
+    <div class="nav-item" onclick="go('fluxo',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Fluxo de Caixa
+    </div>
+    <div class="nav-section">CRM</div>
+    <div class="nav-item" onclick="go('crm',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>WhatsApp / CRM
+    </div>
   </nav>
-  <div class="sidebar-footer"><div class="update-time"><span class="dot"></span><span id="ts">--</span></div></div>
+  <div class="sidebar-footer">
+    <div class="last-update"><span class="status-dot"></span><span id="ts-label">--</span></div>
+    <div class="last-update" style="margin-top:3px;padding-left:11px" id="period-label">--</div>
+  </div>
 </aside>
 
 <main class="main">
   <div class="topbar">
-    <div><div class="page-title" id="ptitle">Visao Geral</div><div class="page-sub" id="psub">Resumo executivo em tempo real</div></div>
-    <div class="period-sel">
-      <button class="pb active" onclick="setPeriod(this,'7d')">7D</button>
-      <button class="pb" onclick="setPeriod(this,'30d')">30D</button>
-      <button class="pb" onclick="setPeriod(this,'90d')">90D</button>
+    <div class="page-info">
+      <div class="page-title" id="ptitle">Home</div>
+      <div class="page-sub" id="psub">Resumo executivo</div>
+    </div>
+    <div class="topbar-right">
+      <div class="period-btns">
+        <button class="pbtn active" onclick="setPeriod(7,this)">7D</button>
+        <button class="pbtn" onclick="setPeriod(30,this)">30D</button>
+        <button class="pbtn" onclick="setPeriod(90,this)">90D</button>
+        <button class="pbtn" onclick="setPeriod(0,this)">TUDO</button>
+      </div>
+      <button class="refresh-btn" onclick="loadData()">↻ Atualizar</button>
     </div>
   </div>
+
   <div class="content">
 
+    <!-- HOME -->
     <div class="module active" id="mod-home">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-ico">&#128176;</div><div class="kpi-lbl">Faturamento (periodo)</div><div class="kpi-val mono" id="h-fat">--</div><div class="kpi-delta up" id="h-fat-d">--</div></div>
-        <div class="kpi blue"><div class="kpi-ico">&#128722;</div><div class="kpi-lbl">Total de Pedidos</div><div class="kpi-val" id="h-ped">--</div><div class="kpi-delta up" id="h-ped-d">--</div></div>
-        <div class="kpi yellow"><div class="kpi-ico">&#127919;</div><div class="kpi-lbl">Ticket Medio</div><div class="kpi-val mono" id="h-ticket">--</div><div class="kpi-delta up">por pedido</div></div>
-        <div class="kpi red"><div class="kpi-ico">&#128236;</div><div class="kpi-lbl">A Receber (aberto)</div><div class="kpi-val mono" id="h-rec">--</div><div class="kpi-delta neu">contas em aberto</div></div>
+      <div class="kpi-row cols4">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-icon">↑</div>
+          <div class="kpi-label">Faturamento</div><div class="kpi-value mono" id="h-fat">--</div>
+          <div class="kpi-meta"><span id="h-fat-m" class="ne">--</span></div></div>
+        <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-icon">#</div>
+          <div class="kpi-label">Pedidos</div><div class="kpi-value" id="h-ped">--</div>
+          <div class="kpi-meta"><span id="h-ped-m" class="ne">--</span></div></div>
+        <div class="kpi a"><div class="kpi-accent"></div><div class="kpi-icon">⌀</div>
+          <div class="kpi-label">Ticket Médio</div><div class="kpi-value mono" id="h-ticket">--</div>
+          <div class="kpi-meta"><span class="ne">por pedido pago</span></div></div>
+        <div class="kpi p"><div class="kpi-accent"></div><div class="kpi-icon">$</div>
+          <div class="kpi-label">A Receber</div><div class="kpi-value mono" id="h-arec">--</div>
+          <div class="kpi-meta"><span class="ne">em aberto</span></div></div>
       </div>
       <div class="grid2">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Faturamento por Dia</div><div class="card-sub">Receita bruta + volume de pedidos - Bling</div></div><span class="tag green">LIVE</span></div><div class="chart-wrap"><canvas id="ch-fat-dia"></canvas></div></div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Pedidos por Canal</div><div class="card-sub">Distribuicao percentual</div></div></div><div class="chart-wrap"><canvas id="ch-canais"></canvas></div></div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Faturamento por Dia</div><div class="card-sub">receita diária + volume de pedidos</div></div><span class="badge g">LIVE</span></div>
+          <div class="chart-box h240"><canvas id="ch-home-fat"></canvas></div>
+        </div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Distribuição por Canal</div><div class="card-sub">% de pedidos no período</div></div></div>
+          <div class="chart-box h240"><canvas id="ch-home-canal"></canvas></div>
+        </div>
       </div>
-      <div class="grid-eq">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Alertas do Sistema</div></div></div><div class="alert-list" id="alertas"></div></div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Produtos Ativos</div><div class="card-sub">Catalogo atual - Bling</div></div></div><div class="scroll"><table><thead><tr><th>Produto</th><th>Cod.</th><th>Preco</th></tr></thead><tbody id="tb-produtos"></tbody></table></div></div>
+      <div class="grid-eq" style="margin-top:16px">
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Evolução Mensal</div><div class="card-sub">últimos 12 meses — faturamento</div></div></div>
+          <div class="chart-box h200"><canvas id="ch-home-mensal"></canvas></div>
+        </div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Alertas & Insights</div></div></div>
+          <div class="alert-stack" id="home-alerts"></div>
+        </div>
       </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Ultimas Vendas</div></div><span class="tag green">TEMPO REAL</span></div><div class="scroll"><table><thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Canal</th></tr></thead><tbody id="tb-vendas"></tbody></table></div></div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><div><div class="card-title">Vendas Recentes</div><div class="card-sub">últimos pedidos — Bling API</div></div><span class="badge g">TEMPO REAL</span></div>
+        <div class="tscroll"><table>
+          <thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Total</th><th>Status</th><th>Canal</th></tr></thead>
+          <tbody id="tb-home-vendas"></tbody>
+        </table></div>
+      </div>
     </div>
 
+    <!-- VENDAS -->
     <div class="module" id="mod-vendas">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-lbl">Receita Total</div><div class="kpi-val mono" id="v-fat">--</div><div class="kpi-delta up" id="v-fat-d">--</div></div>
-        <div class="kpi blue"><div class="kpi-lbl">Pedidos</div><div class="kpi-val" id="v-ped">--</div><div class="kpi-delta up" id="v-ped-d">--</div></div>
-        <div class="kpi yellow"><div class="kpi-lbl">Ticket Medio</div><div class="kpi-val mono" id="v-ticket">--</div><div class="kpi-delta up">por pedido</div></div>
-        <div class="kpi red"><div class="kpi-lbl">Maior Venda</div><div class="kpi-val mono" id="v-max">--</div><div class="kpi-delta neu">no periodo</div></div>
+      <div class="kpi-row cols4">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Receita</div><div class="kpi-value mono" id="v-fat">--</div><div class="kpi-meta"><span id="v-fat-m" class="ne">--</span></div></div>
+        <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Pedidos</div><div class="kpi-value" id="v-ped">--</div><div class="kpi-meta"><span id="v-ped-m" class="ne">--</span></div></div>
+        <div class="kpi a"><div class="kpi-accent"></div><div class="kpi-label">Ticket Médio</div><div class="kpi-value mono" id="v-ticket">--</div><div class="kpi-meta"><span class="ne">por pedido pago</span></div></div>
+        <div class="kpi r"><div class="kpi-accent"></div><div class="kpi-label">Maior Venda</div><div class="kpi-value mono" id="v-max">--</div><div class="kpi-meta"><span class="ne">no período</span></div></div>
       </div>
       <div class="grid2">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Evolucao do Faturamento</div><div class="card-sub">Receita diaria e volume de pedidos</div></div><span class="tag green">BLING</span></div><div class="chart-wrap tall"><canvas id="ch-vev"></canvas></div></div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Distribuicao de Ticket</div><div class="card-sub">Faixas de valor por pedido</div></div></div><div class="chart-wrap tall"><canvas id="ch-tdist"></canvas></div></div>
-      </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Historico de Pedidos</div><div class="card-sub">Todos os pedidos disponiveis - Bling API</div></div></div><div class="scroll" style="max-height:340px"><table><thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Produtos</th><th>Total</th><th>Status</th><th>Canal</th></tr></thead><tbody id="tb-hist"></tbody></table></div></div>
-    </div>
-
-    <div class="module" id="mod-estrategia">
-      <div class="kpi-grid">
-        <div class="kpi yellow"><div class="kpi-ico">&#127991;</div><div class="kpi-lbl">Cupons Ativos</div><div class="kpi-val">3</div><div class="kpi-delta neu">estimado</div></div>
-        <div class="kpi red"><div class="kpi-ico">&#128722;</div><div class="kpi-lbl">Carrinhos Abandon.</div><div class="kpi-val">549</div><div class="kpi-delta down">Nuvemshop</div></div>
-        <div class="kpi green"><div class="kpi-ico">&#128200;</div><div class="kpi-lbl">Taxa de Conversao</div><div class="kpi-val">~2,3%</div><div class="kpi-delta neu">e-commerce</div></div>
-        <div class="kpi blue"><div class="kpi-ico">&#128178;</div><div class="kpi-lbl">Desconto Medio</div><div class="kpi-val">--</div><div class="kpi-delta neu">aguard. dados API</div></div>
-      </div>
-      <div class="grid-eq">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Carrinhos Abandonados</div><div class="card-sub">Oportunidade de recuperacao - Nuvemshop</div></div><span class="tag yellow">NUVEMSHOP</span></div>
-          <div class="alert-list">
-            <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>549 carrinhos</strong> identificados. Potencial R$ 25.000-40.000/mes com taxa de recuperacao de 5-8%.</div></div>
-            <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Trilha de recuperacao ativa:</strong> Flows A/B/C no Reportana em D+1, D+3 e D+7.</div></div>
-            <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Recomendacao:</strong> Testar frete gratis no flow C (D+7) para pedidos acima de R$ 150.</div></div>
-          </div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Evolução de Vendas</div><div class="card-sub">faturamento e volume diários</div></div><span class="badge g">BLING</span></div>
+          <div class="chart-box h280"><canvas id="ch-v-evol"></canvas></div>
         </div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Cupons e Descontos</div></div></div>
-          <table><thead><tr><th>Cupom</th><th>Desconto</th><th>Status</th><th>Uso</th></tr></thead><tbody>
-            <tr><td>BEMVINDA10</td><td>10%</td><td><span class="pill green">Ativo</span></td><td>1a compra</td></tr>
-            <tr><td>VOLTA15</td><td>15%</td><td><span class="pill green">Ativo</span></td><td>reativacao</td></tr>
-            <tr><td>KITS20</td><td>20%</td><td><span class="pill yellow">Pausado</span></td><td>combos</td></tr>
-          </tbody></table>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Distribuição de Ticket</div><div class="card-sub">faixas de valor por pedido</div></div></div>
+          <div class="chart-box h280"><canvas id="ch-v-ticket"></canvas></div>
         </div>
       </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Insights de Estrategia</div></div></div>
-        <div class="alert-list">
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Oportunidade upsell:</strong> 38% dos pedidos sao de produto unico. Bundle Creatina Gummy + Focus & Clareza com 12% off pode aumentar ticket medio.</div></div>
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Horario de pico:</strong> 70% dos pedidos entre 19h e 23h. Agendar push e posts nesse horario pode aumentar conversao.</div></div>
-          <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>B2B subutilizado:</strong> Apenas 8% do volume. Ticket 2.8x maior que Nuvemshop — grande potencial com academias e nutricionistas.</div></div>
-        </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><div><div class="card-title">Histórico de Pedidos</div><div class="card-sub" id="v-hist-sub">--</div></div></div>
+        <div class="tscroll" style="max-height:360px"><table>
+          <thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Total</th><th>Status</th><th>Canal</th></tr></thead>
+          <tbody id="tb-v-hist"></tbody>
+        </table></div>
       </div>
     </div>
 
+    <!-- CANAIS -->
     <div class="module" id="mod-canais">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-lbl">Nuvemshop</div><div class="kpi-val">83%</div><div class="kpi-delta up">canal principal</div></div>
-        <div class="kpi blue"><div class="kpi-lbl">Mercado Livre</div><div class="kpi-val">8%</div><div class="kpi-delta neu">canal secundario</div></div>
-        <div class="kpi yellow"><div class="kpi-lbl">B2B / Direto</div><div class="kpi-val">6%</div><div class="kpi-delta neu">alto potencial</div></div>
-        <div class="kpi red"><div class="kpi-lbl">Outros</div><div class="kpi-val">3%</div><div class="kpi-delta neu">WhatsApp direto</div></div>
-      </div>
-      <div class="grid-eq">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Participacao por Canal</div></div><span class="tag green">BLING</span></div><div class="chart-wrap"><canvas id="ch-canais2"></canvas></div></div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Performance por Canal</div></div></div>
-          <table><thead><tr><th>Canal</th><th>Pedidos</th><th>Part.%</th><th>Ticket Med.</th></tr></thead><tbody>
-            <tr><td>Nuvemshop</td><td>83</td><td>83%</td><td>R$ 148,15</td></tr>
-            <tr><td>Mercado Livre</td><td>8</td><td>8%</td><td>R$ 131,20</td></tr>
-            <tr><td>B2B / Direto</td><td>6</td><td>6%</td><td>R$ 420,00</td></tr>
-            <tr><td>Outros</td><td>3</td><td>3%</td><td>R$ 95,00</td></tr>
-          </tbody></table>
+      <div class="kpi-row cols4" id="canal-kpis"></div>
+      <div class="grid2">
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Faturamento por Canal</div><div class="card-sub">receita bruta no período</div></div><span class="badge g">BLING</span></div>
+          <div class="chart-box h280"><canvas id="ch-canal-fat"></canvas></div>
+        </div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Volume de Pedidos</div><div class="card-sub">participação percentual</div></div></div>
+          <div class="chart-box h280"><canvas id="ch-canal-ped"></canvas></div>
         </div>
       </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Insights de Canal</div></div></div>
-        <div class="alert-list">
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>B2B tem ticket 2.8x maior</strong> (R$ 420 vs R$ 148). Expandir com proposta para academias e clinicas pode aumentar faturamento sem aumentar volume.</div></div>
-          <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>Mercado Livre:</strong> Ticket abaixo da media. Verificar mix de produtos e descontos aplicados nesse canal.</div></div>
-        </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><div><div class="card-title">Comparativo por Canal</div></div></div>
+        <table><thead><tr><th>Canal</th><th>Pedidos</th><th>Faturamento</th><th>Ticket Médio</th><th>Part. %</th></tr></thead>
+        <tbody id="tb-canal"></tbody></table>
       </div>
     </div>
 
+    <!-- PRODUTOS -->
+    <div class="module" id="mod-produtos">
+      <div class="kpi-row cols3">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">SKUs Ativos</div><div class="kpi-value" id="p-total">--</div><div class="kpi-meta"><span class="ne">no catálogo</span></div></div>
+        <div class="kpi a"><div class="kpi-accent"></div><div class="kpi-label">Preço Médio</div><div class="kpi-value mono" id="p-avg">--</div><div class="kpi-meta"><span class="ne">média catálogo</span></div></div>
+        <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Faixa de Preço</div><div class="kpi-value" id="p-range">--</div><div class="kpi-meta"><span class="ne">min → max</span></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">Catálogo Completo</div><div class="card-sub">todos os produtos ativos — Bling</div></div><span class="badge g">BLING</span></div>
+        <table><thead><tr><th>Produto</th><th>Código</th><th>Preço</th></tr></thead>
+        <tbody id="tb-produtos"></tbody></table>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
     <div class="module" id="mod-clientes">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-ico">&#128101;</div><div class="kpi-lbl">Clientes Unicos (amostra)</div><div class="kpi-val" id="c-unicos">--</div><div class="kpi-delta neu">100 pedidos analisados</div></div>
-        <div class="kpi blue"><div class="kpi-ico">&#128260;</div><div class="kpi-lbl">Recompra Estimada</div><div class="kpi-val">~35%</div><div class="kpi-delta neu">historico estimado</div></div>
-        <div class="kpi yellow"><div class="kpi-ico">&#128178;</div><div class="kpi-lbl">LTV Estimado</div><div class="kpi-val mono">R$ 444</div><div class="kpi-delta neu">3x ticket medio</div></div>
-        <div class="kpi red"><div class="kpi-ico">&#128683;</div><div class="kpi-lbl">Churn Estimado</div><div class="kpi-val">~65%</div><div class="kpi-delta down">nao recompram</div></div>
+      <div class="kpi-row cols4">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Clientes Únicos</div><div class="kpi-value" id="c-unicos">--</div><div class="kpi-meta"><span id="c-unicos-m" class="ne">--</span></div></div>
+        <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Novos no Período</div><div class="kpi-value" id="c-novos">--</div><div class="kpi-meta"><span class="ne">1ª compra</span></div></div>
+        <div class="kpi a"><div class="kpi-accent"></div><div class="kpi-label">Ticket Médio</div><div class="kpi-value mono" id="c-ticket">--</div><div class="kpi-meta"><span class="ne">por cliente</span></div></div>
+        <div class="kpi r"><div class="kpi-accent"></div><div class="kpi-label">LTV Estimado</div><div class="kpi-value mono" id="c-ltv">--</div><div class="kpi-meta"><span class="ne">3× ticket histórico</span></div></div>
       </div>
-      <div class="grid-eq">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Distribuicao Geografica (estimada)</div></div></div>
-          <div>
-            <div class="stat-row"><span class="stat-lbl">Sao Paulo</span><span class="stat-val">~52%</span></div><div class="progress-bar"><div class="progress-fill" style="width:52%;background:var(--green)"></div></div>
-            <div class="stat-row" style="margin-top:8px"><span class="stat-lbl">Rio de Janeiro</span><span class="stat-val">~18%</span></div><div class="progress-bar"><div class="progress-fill" style="width:18%;background:var(--blue)"></div></div>
-            <div class="stat-row" style="margin-top:8px"><span class="stat-lbl">Minas Gerais</span><span class="stat-val">~11%</span></div><div class="progress-bar"><div class="progress-fill" style="width:11%;background:var(--yellow)"></div></div>
-            <div class="stat-row" style="margin-top:8px"><span class="stat-lbl">Demais estados</span><span class="stat-val">~19%</span></div><div class="progress-bar"><div class="progress-fill" style="width:19%;background:var(--text3)"></div></div>
-          </div>
+      <div class="grid2">
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Top 20 Clientes</div><div class="card-sub">por faturamento total histórico</div></div></div>
+          <div class="tscroll"><table>
+            <thead><tr><th>Rank</th><th>Cliente</th><th>Pedidos</th><th>Total</th></tr></thead>
+            <tbody id="tb-top-clientes"></tbody>
+          </table></div>
         </div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Clientes Recentes</div></div></div><div class="scroll"><table><thead><tr><th>Cliente</th><th>Valor</th><th>Canal</th></tr></thead><tbody id="tb-clientes"></tbody></table></div></div>
-      </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Insights de Base de Clientes</div></div></div>
-        <div class="alert-list">
-          <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>Churn alto (~65%):</strong> A Trilha C pos-compra e fundamental para reduzir esse numero. Cada ponto percentual de recompra = ~R$ 1.500/mes adicional.</div></div>
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Perfil predominante:</strong> Mulheres 24-45 anos, Sudeste, classes A/B — alinhado ao ICP Suplemind.</div></div>
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>LTV potencial:</strong> Se recompra subir de 35% para 50%, LTV sobe de R$ 444 para R$ 740 — impacto direto no CAC sustentavel.</div></div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Insights de Base</div></div></div>
+          <div class="alert-stack" id="cliente-insights"></div>
         </div>
       </div>
     </div>
 
-    <div class="module" id="mod-estoque">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-ico">&#128230;</div><div class="kpi-lbl">SKUs Ativos</div><div class="kpi-val">9</div><div class="kpi-delta neu">catalogo atual</div></div>
-        <div class="kpi yellow"><div class="kpi-ico">&#9888;</div><div class="kpi-lbl">Alertas de Estoque</div><div class="kpi-val">2</div><div class="kpi-delta down">requer atencao</div></div>
-        <div class="kpi blue"><div class="kpi-ico">&#128200;</div><div class="kpi-lbl">Giro Estimado</div><div class="kpi-val">~30d</div><div class="kpi-delta neu">cobertura media</div></div>
-        <div class="kpi red"><div class="kpi-ico">&#128683;</div><div class="kpi-lbl">API Estoque Bling</div><div class="kpi-val">Indisp.</div><div class="kpi-delta down">endpoint v3 pendente</div></div>
-      </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Posicao de Estoque por SKU</div><div class="card-sub">Dados estimados — integrar endpoint Bling v3 para dados reais</div></div><span class="tag yellow">ESTIMADO</span></div>
-        <table><thead><tr><th>Produto</th><th>Cod.</th><th>Preco</th><th>Vendas/30d (est.)</th><th>Cobertura</th><th>Status</th></tr></thead><tbody>
-          <tr><td>Creatina Gummy Maca Verde</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">CG-MV</td><td>R$ 157,90</td><td>~28 un</td><td>~32 dias</td><td><span class="pill green">OK</span></td></tr>
-          <tr><td>Creatina Gummy Framboesa</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">CG-FR</td><td>R$ 157,90</td><td>~22 un</td><td>~28 dias</td><td><span class="pill green">OK</span></td></tr>
-          <tr><td>Creatina Po</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">CR-PO</td><td>R$ 129,90</td><td>~15 un</td><td>~18 dias</td><td><span class="pill yellow">Atencao</span></td></tr>
-          <tr><td>Focus & Clareza</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">FC-AH</td><td>R$ 189,90</td><td>~19 un</td><td>~35 dias</td><td><span class="pill green">OK</span></td></tr>
-          <tr><td>Fiber Active</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">FA-01</td><td>R$ 157,90</td><td>~12 un</td><td>~14 dias</td><td><span class="pill yellow">Atencao</span></td></tr>
-          <tr><td>Good Sleep Chocolate</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">GS-CH</td><td>R$ 189,90</td><td>~8 un</td><td>~40 dias</td><td><span class="pill green">OK</span></td></tr>
-          <tr><td>Matcha Latte</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">ML-01</td><td>R$ 129,90</td><td>~6 un</td><td>~45 dias</td><td><span class="pill green">OK</span></td></tr>
-          <tr><td>Meia Suplemind</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">ME-01</td><td>R$ 35,00</td><td>~4 un</td><td>--</td><td><span class="pill blue">Brinde</span></td></tr>
-          <tr><td>Copo Brinde</td><td style="font-family:monospace;font-size:10px;color:var(--text3)">CO-01</td><td>R$ 49,90</td><td>~3 un</td><td>--</td><td><span class="pill blue">Brinde</span></td></tr>
-        </tbody></table>
-      </div>
-      <div class="card no-mb" style="margin-top:16px"><div class="card-head"><div><div class="card-title">Alertas de Estoque</div></div></div>
-        <div class="alert-list">
-          <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>Creatina Po (CR-PO):</strong> Cobertura estimada ~18 dias. Pedido ao fornecedor recomendado em breve.</div></div>
-          <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>Fiber Active (FA-01):</strong> Cobertura estimada ~14 dias. Demanda crescente — verificar pedido urgente.</div></div>
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Proxima acao:</strong> Ativar endpoint de estoque na API Bling v3 para dados precisos em tempo real.</div></div>
-        </div>
-      </div>
-    </div>
-
+    <!-- RECORRÊNCIA -->
     <div class="module" id="mod-recorrencia">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-ico">&#128260;</div><div class="kpi-lbl">Taxa de Recompra (est.)</div><div class="kpi-val">~35%</div><div class="kpi-delta neu">estimado historico</div></div>
-        <div class="kpi yellow"><div class="kpi-ico">&#128197;</div><div class="kpi-lbl">Ciclo Medio</div><div class="kpi-val">~45d</div><div class="kpi-delta neu">entre compras</div></div>
-        <div class="kpi blue"><div class="kpi-ico">&#128178;</div><div class="kpi-lbl">LTV Medio Est.</div><div class="kpi-val mono">R$ 444</div><div class="kpi-delta neu">3x ticket</div></div>
-        <div class="kpi red"><div class="kpi-ico">&#128683;</div><div class="kpi-lbl">Churn Estimado</div><div class="kpi-val">~65%</div><div class="kpi-delta down">nao retornam</div></div>
+      <div class="kpi-row cols4">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Clientes Recorrentes</div><div class="kpi-value" id="rec-recorrentes">--</div><div class="kpi-meta"><span class="ne">2+ compras</span></div></div>
+        <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Taxa de Recompra</div><div class="kpi-value" id="rec-taxa">--</div><div class="kpi-meta"><span class="ne">% da base total</span></div></div>
+        <div class="kpi a"><div class="kpi-accent"></div><div class="kpi-label">Média de Pedidos</div><div class="kpi-value" id="rec-media">--</div><div class="kpi-meta"><span class="ne">por cliente recorrente</span></div></div>
+        <div class="kpi r"><div class="kpi-accent"></div><div class="kpi-label">Churn Estimado</div><div class="kpi-value" id="rec-churn">--</div><div class="kpi-meta"><span class="ne">compraram 1× apenas</span></div></div>
       </div>
-      <div class="grid-eq">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Combos Mais Frequentes</div></div></div>
-          <table><thead><tr><th>Combo</th><th>Freq. Est.</th><th>Valor Med.</th></tr></thead><tbody>
-            <tr><td>Creatina Gummy + Focus</td><td>~18%</td><td>R$ 347,80</td></tr>
-            <tr><td>Creatina Gummy + Fiber Active</td><td>~12%</td><td>R$ 315,80</td></tr>
-            <tr><td>Focus + Good Sleep</td><td>~9%</td><td>R$ 379,80</td></tr>
-            <tr><td>Creatina Po + Matcha Latte</td><td>~7%</td><td>R$ 259,80</td></tr>
-          </tbody></table>
-        </div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Funil de Recompra</div></div></div>
-          <div>
-            <div class="stat-row"><span class="stat-lbl">Compraram 1x</span><span class="stat-val">~65%</span></div><div class="progress-bar"><div class="progress-fill" style="width:65%;background:var(--red)"></div></div>
-            <div class="stat-row" style="margin-top:8px"><span class="stat-lbl">Compraram 2x</span><span class="stat-val">~22%</span></div><div class="progress-bar"><div class="progress-fill" style="width:22%;background:var(--yellow)"></div></div>
-            <div class="stat-row" style="margin-top:8px"><span class="stat-lbl">Compraram 3x+</span><span class="stat-val">~13%</span></div><div class="progress-bar"><div class="progress-fill" style="width:13%;background:var(--green)"></div></div>
-          </div>
-        </div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">Funil de Frequência</div><div class="card-sub">distribuição de recompras — base histórica</div></div></div>
+        <div class="chart-box h240"><canvas id="ch-rec-funil"></canvas></div>
       </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Oportunidades de Cross-sell e Upsell</div></div></div>
-        <div class="alert-list">
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Cross-sell alto potencial:</strong> Clientes de Creatina Gummy tem 3x mais chance de comprar Focus & Clareza. Automacao WhatsApp em D+15 com bundle.</div></div>
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Upsell:</strong> Clientes em 2a compra tem ticket 22% maior. Sugerir kit de 2 potes com 10% off no checkout.</div></div>
-          <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>Risco de churn D+45:</strong> Clientes sem interacao apos 45 dias provaveis de nao recomprar. Trilha de reativacao com cupom exclusivo.</div></div>
-        </div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">Insights de Recorrência</div></div></div>
+        <div class="alert-stack" id="rec-insights"></div>
       </div>
     </div>
 
+    <!-- FINANCEIRO -->
     <div class="module" id="mod-financeiro">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-ico">&#128200;</div><div class="kpi-lbl">A Receber</div><div class="kpi-val mono" id="f-rec">--</div><div class="kpi-delta up">contas em aberto</div></div>
-        <div class="kpi red"><div class="kpi-ico">&#128178;</div><div class="kpi-lbl">A Pagar</div><div class="kpi-val mono" id="f-pag">--</div><div class="kpi-delta down">compromissos</div></div>
-        <div class="kpi yellow"><div class="kpi-ico">&#128202;</div><div class="kpi-lbl">Saldo Liquido Proj.</div><div class="kpi-val mono" id="f-saldo">--</div><div class="kpi-delta" id="f-saldo-d">--</div></div>
-        <div class="kpi blue"><div class="kpi-ico">&#128203;</div><div class="kpi-lbl">Contas a Pagar (qtd)</div><div class="kpi-val" id="f-cp-n">--</div><div class="kpi-delta neu">proximas</div></div>
+      <div class="kpi-row cols4">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">A Receber</div><div class="kpi-value mono" id="f-rec">--</div><div class="kpi-meta"><span class="ne" id="f-rec-n">--</span></div></div>
+        <div class="kpi r"><div class="kpi-accent"></div><div class="kpi-label">A Pagar</div><div class="kpi-value mono" id="f-pag">--</div><div class="kpi-meta"><span class="ne" id="f-pag-n">--</span></div></div>
+        <div class="kpi a"><div class="kpi-accent"></div><div class="kpi-label">Saldo Líquido</div><div class="kpi-value mono" id="f-saldo">--</div><div class="kpi-meta"><span id="f-saldo-m" class="ne">--</span></div></div>
+        <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Faturamento Histórico</div><div class="kpi-value mono" id="f-fat-hist">--</div><div class="kpi-meta"><span class="ne">receita bruta total</span></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">Faturamento por Ano</div><div class="card-sub">evolução histórica anual</div></div><span class="badge g">BLING</span></div>
+        <div class="chart-box h240"><canvas id="ch-f-ano"></canvas></div>
       </div>
       <div class="grid-eq">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Contas a Pagar — Proximos Vencimentos</div></div><span class="tag red">BLING</span></div><div class="scroll"><table><thead><tr><th>Descricao</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody id="tb-pagar"></tbody></table></div></div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Contas a Receber — Em Aberto</div></div><span class="tag green">BLING</span></div><div class="scroll"><table><thead><tr><th>Descricao</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody id="tb-receber"></tbody></table></div></div>
-      </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Analise Financeira</div></div></div>
-        <div class="alert-list">
-          <div class="alert danger" id="f-alert-saldo"></div>
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Nota:</strong> Volume alto de contas a pagar e tipico de operacoes com estoque e investimento em growth. Importante monitorar liquidez no ciclo de 30 dias.</div></div>
-          <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Proxima acao:</strong> Conciliar contas a pagar com fluxo de caixa previsto para garantir liquidez.</div></div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Contas a Pagar</div><div class="card-sub">próximos vencimentos</div></div><span class="badge r">BLING</span></div>
+          <div class="tscroll"><table>
+            <thead><tr><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
+            <tbody id="tb-cp"></tbody>
+          </table></div>
+        </div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Contas a Receber</div><div class="card-sub">em aberto</div></div><span class="badge g">BLING</span></div>
+          <div class="tscroll"><table>
+            <thead><tr><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
+            <tbody id="tb-cr"></tbody>
+          </table></div>
         </div>
       </div>
     </div>
 
+    <!-- FLUXO -->
     <div class="module" id="mod-fluxo">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-lbl">Entradas Previstas (30d)</div><div class="kpi-val mono" id="fl-ent">--</div><div class="kpi-delta neu">a receber aberto</div></div>
-        <div class="kpi red"><div class="kpi-lbl">Saidas Previstas (30d)</div><div class="kpi-val mono" id="fl-sai">--</div><div class="kpi-delta neu">a pagar proximo</div></div>
-        <div class="kpi yellow"><div class="kpi-lbl">Saldo Projetado 30d</div><div class="kpi-val mono" id="fl-liq">--</div><div class="kpi-delta" id="fl-liq-d">--</div></div>
-        <div class="kpi blue"><div class="kpi-lbl">Receita Media/Dia</div><div class="kpi-val mono" id="fl-dia">--</div><div class="kpi-delta neu">ultimos 3 dias</div></div>
+      <div class="kpi-row cols3">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Entradas (a receber)</div><div class="kpi-value mono" id="fl-ent">--</div><div class="kpi-meta"><span class="ne">em aberto</span></div></div>
+        <div class="kpi r"><div class="kpi-accent"></div><div class="kpi-label">Saídas (a pagar)</div><div class="kpi-value mono" id="fl-sai">--</div><div class="kpi-meta"><span class="ne">compromissos</span></div></div>
+        <div class="kpi a"><div class="kpi-accent"></div><div class="kpi-label">Saldo Projetado</div><div class="kpi-value mono" id="fl-liq">--</div><div class="kpi-meta"><span id="fl-liq-m" class="ne">--</span></div></div>
       </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Projecao de Fluxo — 10 dias</div><div class="card-sub">Entradas e saidas previstas com base em dados Bling</div></div><span class="tag blue">PROJECAO</span></div><div class="chart-wrap tall"><canvas id="ch-fluxo"></canvas></div></div>
-      <div class="card no-mb" style="margin-top:16px"><div class="card-head"><div><div class="card-title">Calendario de Vencimentos</div></div></div>
-        <table><thead><tr><th>Tipo</th><th>Descricao</th><th>Data</th><th>Valor</th></tr></thead><tbody>
-          <tr><td><span class="pill green">Entrada</span></td><td>Pedido #4310 — Nuvemshop</td><td>02/04/2026</td><td style="color:var(--green)">+R$ 189,90</td></tr>
-          <tr><td><span class="pill green">Entrada</span></td><td>Pedido #4320 — Nuvemshop</td><td>03/04/2026</td><td style="color:var(--green)">+R$ 315,00</td></tr>
-          <tr><td><span class="pill red">Saida</span></td><td>Fornecedor Ingredientes</td><td>05/04/2026</td><td style="color:var(--red)">-R$ 12.500,00</td></tr>
-          <tr><td><span class="pill green">Entrada</span></td><td>B2B — Pedido #4330</td><td>08/04/2026</td><td style="color:var(--green)">+R$ 1.200,00</td></tr>
-          <tr><td><span class="pill red">Saida</span></td><td>Aluguel Escritorio</td><td>10/04/2026</td><td style="color:var(--red)">-R$ 4.800,00</td></tr>
-          <tr><td><span class="pill green">Entrada</span></td><td>Pedido #4340 — Nuvemshop</td><td>10/04/2026</td><td style="color:var(--green)">+R$ 157,90</td></tr>
-          <tr><td><span class="pill red">Saida</span></td><td>Logistica / Frete</td><td>12/04/2026</td><td style="color:var(--red)">-R$ 3.200,00</td></tr>
-          <tr><td><span class="pill red">Saida</span></td><td>Marketing Digital</td><td>15/04/2026</td><td style="color:var(--red)">-R$ 8.000,00</td></tr>
-          <tr><td><span class="pill red">Saida</span></td><td>Embalagens</td><td>20/04/2026</td><td style="color:var(--red)">-R$ 2.100,00</td></tr>
-        </tbody></table>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">Receita Diária — Últimos 30 Dias</div><div class="card-sub">faturamento real por dia</div></div><span class="badge b">HISTÓRICO</span></div>
+        <div class="chart-box h280"><canvas id="ch-fl-diario"></canvas></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><div><div class="card-title">Calendário de Vencimentos</div></div></div>
+        <div class="tscroll"><table>
+          <thead><tr><th>Tipo</th><th>Descrição</th><th>Vencimento</th><th>Valor</th></tr></thead>
+          <tbody id="tb-fl-cal"></tbody>
+        </table></div>
       </div>
     </div>
 
+    <!-- CRM -->
     <div class="module" id="mod-crm">
-      <div class="kpi-grid">
-        <div class="kpi green"><div class="kpi-ico">&#128172;</div><div class="kpi-lbl">Workflows Ativos</div><div class="kpi-val">6</div><div class="kpi-delta up">Reportana</div></div>
-        <div class="kpi blue"><div class="kpi-ico">&#128233;</div><div class="kpi-lbl">Envios (Trilha C)</div><div class="kpi-val">300</div><div class="kpi-delta neu">ultimos 6 meses</div></div>
-        <div class="kpi yellow"><div class="kpi-ico">&#128200;</div><div class="kpi-lbl">CTR Medio A/B/C</div><div class="kpi-val">4,7%</div><div class="kpi-delta neu">media das variacoes</div></div>
-        <div class="kpi red"><div class="kpi-ico">&#128683;</div><div class="kpi-lbl">Workflows Inativos</div><div class="kpi-val">1</div><div class="kpi-delta down">desativado</div></div>
+      <div class="kpi-row cols4">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Workflows Ativos</div><div class="kpi-value">6</div><div class="kpi-meta"><span class="ne">Reportana</span></div></div>
+        <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Envios Trilha C</div><div class="kpi-value">300</div><div class="kpi-meta"><span class="ne">últimos 6 meses</span></div></div>
+        <div class="kpi a"><div class="kpi-accent"></div><div class="kpi-label">CTR Vencedor</div><div class="kpi-value">15%</div><div class="kpi-meta"><span class="ne">Curiosidade+Urgência</span></div></div>
+        <div class="kpi r"><div class="kpi-accent"></div><div class="kpi-label">Workflows Inativos</div><div class="kpi-value">1</div><div class="kpi-meta"><span class="ne">revisão pendente</span></div></div>
       </div>
       <div class="grid-eq">
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Resultado A/B Test — Base Fria (300 contatos)</div></div><span class="tag green">CONCLUIDO</span></div><div class="chart-wrap"><canvas id="ch-ab"></canvas></div></div>
-        <div class="card no-mb"><div class="card-head"><div><div class="card-title">Insights do A/B Test</div></div></div>
-          <div class="alert-list">
-            <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Vencedor: Curiosidade + Urgencia</strong> — CTR 15%. Gift oculto que some em 48h foi o gatilho mais eficaz na base fria.</div></div>
-            <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>Identificacao de dor: 0% CTR</strong> — Abrir com dor explicita foi invasivo. Evitar em cold audiences.</div></div>
-            <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Proxima acao:</strong> Escalar variante vencedora. Testar tom "amiga" vs. "especialista" na Trilha C D+30.</div></div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">A/B Test — Base Fria (300 contatos)</div></div><span class="badge g">CONCLUÍDO</span></div>
+          <div class="chart-box h220"><canvas id="ch-crm-ab"></canvas></div>
+        </div>
+        <div class="card no-mb">
+          <div class="card-head"><div><div class="card-title">Insights do A/B Test</div></div></div>
+          <div class="alert-stack">
+            <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Vencedor: Curiosidade + Urgência — 15% CTR.</strong> Gift oculto que some em 48h foi o gatilho mais eficaz na base fria.</div></div>
+            <div class="alert warn"><div class="adot warn"></div><div class="atext"><strong>Identificação de dor: 0% CTR.</strong> Abrir com dor explícita foi invasivo em cold audiences.</div></div>
+            <div class="alert info"><div class="adot info"></div><div class="atext"><strong>Próximo passo:</strong> Escalar variante vencedora. Testar "amiga" vs "especialista" na Trilha C D+30.</div></div>
           </div>
         </div>
       </div>
-      <div class="card no-mb"><div class="card-head"><div><div class="card-title">Workflows Reportana — Status e Metricas</div></div><span class="tag green">REPORTANA</span></div>
-        <table><thead><tr><th>Workflow</th><th>Status</th><th>Envios</th><th>CTR</th><th>Observacao</th></tr></thead><tbody>
-          <tr><td>Trilha C — Pos-Compra D+0/10/20/30</td><td><span class="pill green">Ativo</span></td><td>300</td><td>0%*</td><td>*Aguardando CTR campanha ativa</td></tr>
-          <tr><td>Confirmacao de Pedido</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>Transacional — API Oficial</td></tr>
-          <tr><td>Rec. Carrinho A/B/C</td><td><span class="pill green">Ativo</span></td><td>--</td><td>~4-8%</td><td>Atualizado 25/03 — 3 variacoes</td></tr>
-          <tr><td>Recuperacao Pix</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>Pagamento pendente</td></tr>
-          <tr><td>Recuperacao Cartao Recusado</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>Checkout abandonado</td></tr>
-          <tr><td>Atualizacao de Entrega</td><td><span class="pill green">Ativo</span></td><td>--</td><td>--</td><td>Pos-venda logistico</td></tr>
-          <tr><td>CRM — Pos carrinho criado</td><td><span class="pill red">Inativo</span></td><td>--</td><td>--</td><td>Desativado — revisao pendente</td></tr>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><div><div class="card-title">Workflows Reportana</div></div><span class="badge g">REPORTANA</span></div>
+        <table><thead><tr><th>Workflow</th><th>Status</th><th>Envios</th><th>CTR</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr><td>Trilha C — Pós-Compra D+0/10/20/30</td><td><span class="pill g">Ativo</span></td><td>300</td><td>—</td><td>Aguardando CTR campanha ativa</td></tr>
+          <tr><td>Confirmação de Pedido</td><td><span class="pill g">Ativo</span></td><td>—</td><td>—</td><td>Transacional — API Oficial</td></tr>
+          <tr><td>Recuperação Carrinho A/B/C</td><td><span class="pill g">Ativo</span></td><td>—</td><td>~4-8%</td><td>3 variações ativas</td></tr>
+          <tr><td>Recuperação Pix</td><td><span class="pill g">Ativo</span></td><td>—</td><td>—</td><td>Pagamento pendente</td></tr>
+          <tr><td>Recuperação Cartão Recusado</td><td><span class="pill g">Ativo</span></td><td>—</td><td>—</td><td>Checkout abandonado</td></tr>
+          <tr><td>Atualização de Entrega</td><td><span class="pill g">Ativo</span></td><td>—</td><td>—</td><td>Pós-venda logístico</td></tr>
+          <tr><td>CRM — Pós carrinho criado</td><td><span class="pill r">Inativo</span></td><td>—</td><td>—</td><td>Revisão pendente</td></tr>
         </tbody></table>
-      </div>
-      <div class="card no-mb" style="margin-top:16px"><div class="card-head"><div><div class="card-title">Copy que Funciona vs. Nao Funciona</div><div class="card-sub">Aprendizados A/B test base fria (300 contatos)</div></div></div>
-        <div class="inline-grid">
-          <div><div class="section-lbl" style="color:var(--green)">O que funciona</div>
-            <div class="alert-list">
-              <div class="alert info"><div class="adot info"></div><div class="atext">Curiosidade + escassez ("gift some em 48h")</div></div>
-              <div class="alert info"><div class="adot info"></div><div class="atext">Tom leve e humano, curto, direto</div></div>
-              <div class="alert info"><div class="adot info"></div><div class="atext">Pergunta direta no fechamento</div></div>
-              <div class="alert info"><div class="adot info"></div><div class="atext">FOMO com gift revelado so apos clique</div></div>
-            </div>
-          </div>
-          <div><div class="section-lbl" style="color:var(--red)">O que NAO funciona</div>
-            <div class="alert-list">
-              <div class="alert danger"><div class="adot danger"></div><div class="atext">Identificacao explicita de dor (invasivo)</div></div>
-              <div class="alert danger"><div class="adot danger"></div><div class="atext">Mensagens longas na base fria</div></div>
-              <div class="alert danger"><div class="adot danger"></div><div class="atext">Provas sociais sem relacao previa</div></div>
-              <div class="alert danger"><div class="adot danger"></div><div class="atext">Explicar a marca antes de gerar curiosidade</div></div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -386,133 +435,246 @@ tr:last-child td{border-bottom:none}.tr:hover td{background:var(--bg3)}
 </main>
 
 <script>
-var V=[
-  {num:"4350",data:"2026-04-01",nome:"Kelly Lessa do Prado Innocente",total:0,prod:0,sit:1,loja:205193054},
-  {num:"4349",data:"2026-04-01",nome:"Bruna Fonseca",total:157.9,prod:157.9,sit:1,loja:205193054},
-  {num:"4348",data:"2026-04-01",nome:"Daiane Aparecida Castro",total:189.9,prod:189.9,sit:1,loja:205193054},
-  {num:"4347",data:"2026-04-01",nome:"Nathalia Santos",total:189.9,prod:189.9,sit:1,loja:205193054},
-  {num:"4346",data:"2026-04-01",nome:"Thalia Cristina",total:157.9,prod:157.9,sit:1,loja:205193054},
-  {num:"4345",data:"2026-04-01",nome:"Marina Ribeiro",total:310.0,prod:310.0,sit:1,loja:205193054},
-  {num:"4344",data:"2026-04-01",nome:"Ana Paula Souza",total:189.9,prod:189.9,sit:1,loja:205193054},
-  {num:"4343",data:"2026-03-31",nome:"Fernanda Lima",total:157.9,prod:157.9,sit:1,loja:205988658},
-  {num:"4342",data:"2026-03-31",nome:"Beatriz Costa",total:220.0,prod:220.0,sit:1,loja:205741642},
-  {num:"4341",data:"2026-03-31",nome:"Larissa Martins",total:157.9,prod:157.9,sit:1,loja:205193054}
-];
-var ST={fat:14815.45,ped:100,ticket:148.15,aPagar:553810.92,aReceber:22829.77,
-  dias:[["30/03",{n:19,v:2819.69}],["31/03",{n:56,v:8064.68}],["01/04",{n:25,v:3931.08}]],
-  canais:{"Nuvemshop":83,"Merc.Livre":8,"B2B/Dir.":6,"Outros":3}};
-var CP=[{desc:"Fornecedor Ingredientes",venc:"2026-04-05",val:12500},{desc:"Aluguel Escritorio",venc:"2026-04-10",val:4800},{desc:"Logistica / Frete",venc:"2026-04-12",val:3200},{desc:"Marketing Digital",venc:"2026-04-15",val:8000},{desc:"Embalagens",venc:"2026-04-20",val:2100}];
-var CR=[{desc:"Pedido #4310 Nuvemshop",venc:"2026-04-02",val:189.9},{desc:"Pedido #4320 Nuvemshop",venc:"2026-04-03",val:315.0},{desc:"B2B Pedido #4330",venc:"2026-04-08",val:1200.0},{desc:"Pedido #4340 Nuvemshop",venc:"2026-04-10",val:157.9}];
-var PR=[{n:"Creatina Gummy Maca Verde",c:"CG-MV",p:157.9},{n:"Creatina Gummy Framboesa",c:"CG-FR",p:157.9},{n:"Creatina Po",c:"CR-PO",p:129.9},{n:"Focus e Clareza Abacaxi c/ Hortela",c:"FC-AH",p:189.9},{n:"Fiber Active",c:"FA-01",p:157.9},{n:"Good Sleep Chocolate",c:"GS-CH",p:189.9},{n:"Matcha Latte",c:"ML-01",p:129.9},{n:"Meia Suplemind",c:"ME-01",p:35.0},{n:"Copo Brinde",c:"CO-01",p:49.9}];
-var PD={"7d":{fat:14815.45,ped:100,ticket:148.15,lbl:"ultimos 3 dias (API)"},"30d":{fat:47200,ped:318,ticket:148.43,lbl:"estimativa 30 dias"},"90d":{fat:141600,ped:954,ticket:148.43,lbl:"estimativa 90 dias"}};
-var CURR="7d";
-function R(v){return"R$ "+Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}
-function D(s){if(!s)return"--";var p=String(s).substring(0,10).split("-");return p[2]+"/"+p[1]+"/"+p[0]}
-var CN={205193054:"Nuvemshop",205988658:"Merc. Livre",205741642:"B2B/Direto",206009082:"Outros"};
-var SN={1:"Pago",0:"Em aberto","em_aberto":"Em aberto","pago":"Pago"};
-var SC={1:"green","pago":"green",0:"yellow","em_aberto":"yellow"};
-Chart.defaults.color="#555e66";Chart.defaults.borderColor="#1e2428";Chart.defaults.font.family="'DM Sans',sans-serif";Chart.defaults.font.size=11;
-var CH={};
-function dc(id){if(CH[id]){CH[id].destroy();delete CH[id]}}
-var META={home:{t:"Visao Geral",s:"Resumo executivo em tempo real"},vendas:{t:"Vendas",s:"Faturamento, pedidos e ticket medio - Bling"},estrategia:{t:"Estrategia Comercial",s:"Cupons, descontos e oportunidades - Bling + Nuvemshop"},canais:{t:"Canais de Venda",s:"Distribuicao por canal de origem - Bling"},clientes:{t:"Clientes",s:"Base ativa, LTV e segmentacao - Bling"},estoque:{t:"Estoque",s:"Posicao, giro e alertas por SKU - Bling"},recorrencia:{t:"Recorrencia e Cross-sell",s:"Recompra, churn e combinacoes - Bling"},financeiro:{t:"Financeiro / DRE",s:"Contas a pagar, receber e saldo projetado - Bling"},fluxo:{t:"Fluxo de Caixa",s:"Projecao 30 dias com vencimentos - Bling"},crm:{t:"CRM / WhatsApp",s:"Automacoes e metricas de engajamento - Reportana"}};
+var DATA=null,PERIOD=7,CHARTS={};
+var TODAY=new Date().toISOString().substring(0,10);
+var CN={'205193054':'Nuvemshop','205988658':'Mercado Livre','205741642':'B2B/Direto','206009082':'Outros','205318204':'Nuvemshop 2','205588858':'ML 2','205757515':'Outros 2','undefined':'Direto','null':'Direto'};
+var CC=['#00e5a0','#3d9aff','#ffb340','#ff4560','#a78bfa','#00b87a','#c87a00'];
+var SIT={'1':'Pago','2':'Cancelado','null':'Pendente'};
+var SC={'1':'g','2':'r','null':'a'};
+function R(v){return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function N(v){return Number(v).toLocaleString('pt-BR');}
+function D(s){if(!s)return'—';var p=String(s).substring(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+function dc(k){if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k];}}
+Chart.defaults.color='#4a5a66';Chart.defaults.borderColor='#1e2830';
+Chart.defaults.font.family="'Inter',sans-serif";Chart.defaults.font.size=11;
+
+function loadData(){
+  document.getElementById('load-msg').textContent='buscando dados...';
+  if(!document.getElementById('loading').classList.contains('done')){
+    document.getElementById('loading').style.display='flex';
+    document.getElementById('loading').style.opacity='1';
+  }
+  fetch('data/bling.json?t='+Date.now())
+    .then(function(r){return r.json();})
+    .then(function(d){
+      DATA=d;
+      document.getElementById('loading').classList.add('done');
+      initDashboard();
+    })
+    .catch(function(e){
+      document.getElementById('load-msg').textContent='erro ao carregar';
+      setTimeout(function(){document.getElementById('loading').classList.add('done');},1500);
+    });
+}
+
+function getV(days){
+  if(!DATA||!DATA.vendas)return[];
+  if(!days||days===0)return DATA.vendas;
+  var c=new Date(TODAY);c.setDate(c.getDate()-days);
+  var cut=c.toISOString().substring(0,10);
+  return DATA.vendas.filter(function(v){return v.data>=cut;});
+}
+
+function calcS(vendas){
+  var fat=0,maxV=0,porDia={},porCanal={};
+  vendas.forEach(function(v){
+    var val=v.total||0;fat+=val;if(val>maxV)maxV=val;
+    if(v.data){if(!porDia[v.data])porDia[v.data]={n:0,v:0};porDia[v.data].n++;porDia[v.data].v+=val;}
+    var c=String(v.lojaId),cn=CN[c]||('Loja '+c);
+    if(!porCanal[cn])porCanal[cn]={n:0,v:0};porCanal[cn].n++;porCanal[cn].v+=val;
+  });
+  var comVal=vendas.filter(function(v){return(v.total||0)>0;});
+  return{n:vendas.length,fat:fat,ticket:comVal.length>0?fat/comVal.length:0,maxV:maxV,
+    porDia:Object.entries(porDia).sort(function(a,b){return a[0].localeCompare(b[0]);}),
+    porCanal:porCanal};
+}
+
+var META={home:{t:'Home',s:'Resumo executivo'},vendas:{t:'Vendas',s:'Faturamento e pedidos — Bling'},canais:{t:'Canais de Venda',s:'Distribuição por canal — Bling'},produtos:{t:'Produtos',s:'Catálogo completo — Bling'},clientes:{t:'Clientes',s:'Base ativa e LTV — Bling'},recorrencia:{t:'Recorrência',s:'Recompra e frequência — Bling'},financeiro:{t:'Financeiro / DRE',s:'Contas e saldo — Bling'},fluxo:{t:'Fluxo de Caixa',s:'Projeção e vencimentos — Bling'},crm:{t:'CRM / WhatsApp',s:'Automações — Reportana'}};
+var ACTIVE='home';
+
 function go(id,el){
-  document.querySelectorAll(".module").forEach(function(m){m.classList.remove("active")});
-  document.querySelectorAll(".nav-item").forEach(function(n){n.classList.remove("active")});
-  var mod=document.getElementById("mod-"+id);
-  if(mod)mod.classList.add("active");
-  if(el)el.classList.add("active");
+  ACTIVE=id;
+  document.querySelectorAll('.module').forEach(function(m){m.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var mod=document.getElementById('mod-'+id);if(mod)mod.classList.add('active');
+  if(el)el.classList.add('active');
   var m=META[id]||{};
-  document.getElementById("ptitle").textContent=m.t||id;
-  document.getElementById("psub").textContent=m.s||"";
-  if(id==="home")rHome();
-  if(id==="vendas")rVendas();
-  if(id==="financeiro")rFin();
-  if(id==="fluxo")rFluxo();
-  if(id==="canais")rCanais();
-  if(id==="clientes")rClientes();
-  if(id==="crm")rCRM();
+  document.getElementById('ptitle').textContent=m.t||id;
+  document.getElementById('psub').textContent=m.s||'';
+  render(id);
 }
-function setPeriod(btn,p){
-  document.querySelectorAll(".pb").forEach(function(b){b.classList.remove("active")});
-  btn.classList.add("active");CURR=p;
-  var aid=null;document.querySelectorAll(".module.active").forEach(function(m){aid=m.id.replace("mod-","")});
-  if(aid)go(aid,null);
+
+function setPeriod(days,btn){
+  document.querySelectorAll('.pbtn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');PERIOD=days;render(ACTIVE);
 }
-function rHome(){
-  var d=PD[CURR];
-  document.getElementById("h-fat").textContent=R(d.fat);document.getElementById("h-fat-d").textContent=d.lbl;
-  document.getElementById("h-ped").textContent=d.ped;document.getElementById("h-ped-d").textContent=d.lbl;
-  document.getElementById("h-ticket").textContent=R(d.ticket);document.getElementById("h-rec").textContent=R(ST.aReceber);
-  dc("fd");
-  var lb=ST.dias.map(function(x){return x[0]});
-  var vl=ST.dias.map(function(x){return x[1].v});
-  var ct=ST.dias.map(function(x){return x[1].n});
-  CH["fd"]=new Chart(document.getElementById("ch-fat-dia"),{type:"bar",data:{labels:lb,datasets:[{label:"Faturamento(R$)",data:vl,backgroundColor:"rgba(0,214,143,.25)",borderColor:"#00d68f",borderWidth:2,borderRadius:5,yAxisID:"y"},{label:"Pedidos",data:ct,type:"line",borderColor:"#4da6ff",backgroundColor:"rgba(77,166,255,.1)",tension:.4,pointRadius:4,pointBackgroundColor:"#4da6ff",yAxisID:"y1"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}},scales:{y:{grid:{color:"#1e2428"},ticks:{callback:function(v){return"R$"+Number(v/1000).toFixed(0)+"k"}}},y1:{position:"right",grid:{drawOnChartArea:false},ticks:{color:"#4da6ff"}},x:{grid:{display:false}}}}});
-  dc("ca");
-  CH["ca"]=new Chart(document.getElementById("ch-canais"),{type:"doughnut",data:{labels:Object.keys(ST.canais),datasets:[{data:Object.values(ST.canais),backgroundColor:["#00d68f","#4da6ff","#ffd166","#ff4d6d"],borderColor:"#111417",borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:"65%",plugins:{legend:{position:"bottom",labels:{padding:10,font:{size:11}}}}}});
-  var als=[{t:"danger",x:"<strong>Atencao financeira:</strong> Contas a pagar ("+R(ST.aPagar)+") superam muito o que ha a receber. Analisar no modulo Financeiro."},{t:"info",x:"<strong>Periodo analisado:</strong> 100 pedidos mais recentes via API Bling v3. Dados atualizados 2x/dia (8h e 20h BRT)."},{t:"warn",x:"<strong>Estoque:</strong> Endpoint nao retornou dados — verificar permissoes API Bling v3."},{t:"info",x:"<strong>Nuvemshop:</strong> 549 carrinhos identificados — recuperacao via Reportana ativa."}];
-  document.getElementById("alertas").innerHTML=als.map(function(a){return'<div class="alert '+a.t+'"><div class="adot '+a.t+'"></div><div class="atext">'+a.x+'</div></div>'}).join("");
-  document.getElementById("tb-produtos").innerHTML=PR.map(function(p){return"<tr><td>"+p.n+"</td><td style='font-family:monospace;font-size:10px;color:var(--text3)'>"+p.c+"</td><td>"+R(p.p)+"</td></tr>"}).join("");
-  document.getElementById("tb-vendas").innerHTML=V.map(function(v){var sc=SC[v.sit]||"yellow";var sn=SN[v.sit]||"--";var cn=CN[v.loja]||"--";return"<tr><td>#"+v.num+"</td><td>"+D(v.data)+"</td><td>"+(v.nome||"--")+"</td><td>"+(v.total>0?R(v.total):"<span style='color:var(--text3)'>--</span>")+"</td><td><span class='pill "+sc+"'>"+sn+"</span></td><td style='font-size:10px;color:var(--text3)'>"+cn+"</td></tr>"}).join("");
+
+function render(id){
+  if(!DATA)return;
+  var fns={home:renderHome,vendas:renderVendas,canais:renderCanais,produtos:renderProdutos,clientes:renderClientes,recorrencia:renderRecorrencia,financeiro:renderFinanceiro,fluxo:renderFluxo,crm:renderCRM};
+  if(fns[id])fns[id]();
 }
-function rVendas(){
-  var d=PD[CURR];
-  document.getElementById("v-fat").textContent=R(d.fat);document.getElementById("v-fat-d").textContent=d.lbl;
-  document.getElementById("v-ped").textContent=d.ped;document.getElementById("v-ped-d").textContent=d.lbl;
-  document.getElementById("v-ticket").textContent=R(d.ticket);document.getElementById("v-max").textContent=R(310);
+
+function renderHome(){
+  var v=getV(PERIOD),s=calcS(v),lbl=PERIOD===0?'todo o histórico':'últimos '+PERIOD+' dias';
+  document.getElementById('h-fat').textContent=R(s.fat);
+  document.getElementById('h-fat-m').textContent=lbl;
+  document.getElementById('h-ped').textContent=N(s.n);
+  document.getElementById('h-ped-m').textContent=lbl;
+  document.getElementById('h-ticket').textContent=R(s.ticket);
+  document.getElementById('h-arec').textContent=R(DATA.stats.totalAReceber);
+  dc('hf');
+  var dias=s.porDia.slice(-60);
+  CHARTS['hf']=new Chart(document.getElementById('ch-home-fat'),{type:'bar',data:{labels:dias.map(function(x){return x[0].substring(5);}),datasets:[{label:'Faturamento',data:dias.map(function(x){return x[1].v;}),backgroundColor:'rgba(0,229,160,.2)',borderColor:'#00e5a0',borderWidth:1.5,borderRadius:3,yAxisID:'y'},{label:'Pedidos',data:dias.map(function(x){return x[1].n;}),type:'line',borderColor:'#3d9aff',backgroundColor:'transparent',tension:.4,pointRadius:0,borderWidth:1.5,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{position:'top',labels:{padding:12,boxWidth:10}}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'},ticks:{callback:function(v){return'R$'+Math.round(v/1000)+'k';}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#3d9aff'}},x:{grid:{display:false},ticks:{maxTicksLimit:15,maxRotation:0}}}}});
+  dc('hc');
+  var ce=Object.entries(s.porCanal).sort(function(a,b){return b[1].n-a[1].n;});
+  CHARTS['hc']=new Chart(document.getElementById('ch-home-canal'),{type:'doughnut',data:{labels:ce.map(function(e){return e[0];}),datasets:[{data:ce.map(function(e){return e[1].n;}),backgroundColor:CC,borderColor:'#0e1215',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{padding:10,boxWidth:10,font:{size:11}}}}}});
+  dc('hm');
+  var m12=(DATA.stats.porMes||[]).slice(-12);
+  CHARTS['hm']=new Chart(document.getElementById('ch-home-mensal'),{type:'bar',data:{labels:m12.map(function(m){return m[0].substring(2);}),datasets:[{label:'Faturamento',data:m12.map(function(m){return m[1].valor;}),backgroundColor:function(ctx){var g=ctx.chart.ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'rgba(0,229,160,.5)');g.addColorStop(1,'rgba(0,229,160,.05)');return g;},borderColor:'#00e5a0',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'},ticks:{callback:function(v){return'R$'+Math.round(v/1000)+'k';}}},x:{grid:{display:false}}}}});
+  var saldo=DATA.stats.totalAReceber-DATA.stats.totalAPagar;
+  document.getElementById('home-alerts').innerHTML=[
+    {t:saldo<0?'danger':'info',txt:'<strong>Saldo financeiro:</strong> A pagar '+R(DATA.stats.totalAPagar)+' vs A receber '+R(DATA.stats.totalAReceber)+'. Saldo: <strong>'+R(saldo)+'</strong>.'},
+    {t:'info',txt:'<strong>'+N(s.n)+' pedidos</strong> no período • Ticket médio <strong>'+R(s.ticket)+'</strong>'},
+    {t:'info',txt:'<strong>Histórico:</strong> '+N(DATA.meta.totalPedidosColetados)+' pedidos de '+DATA.meta.periodoColetado.inicio+' a '+DATA.meta.periodoColetado.fim},
+    {t:'warn',txt:'<strong>Atualização automática</strong> a cada 25 minutos via GitHub Actions.'}
+  ].map(function(a){return'<div class="alert '+a.t+'"><div class="adot '+a.t+'"></div><div class="atext">'+a.txt+'</div></div>';}).join('');
+  document.getElementById('tb-home-vendas').innerHTML=v.slice(0,20).map(function(vv){var sc=SC[String(vv.situacao)]||'a',sn=SIT[String(vv.situacao)]||'—',cn=CN[String(vv.lojaId)]||('Loja '+vv.lojaId);return'<tr><td>#'+vv.numero+'</td><td>'+D(vv.data)+'</td><td>'+(vv.contato||'—')+'</td><td>'+R(vv.total)+'</td><td><span class="pill '+sc+'">'+sn+'</span></td><td style="color:var(--text3);font-size:11px">'+cn+'</td></tr>';}).join('');
+}
+
+function renderVendas(){
+  var v=getV(PERIOD),s=calcS(v),lbl=PERIOD===0?'todo o histórico':'últimos '+PERIOD+' dias';
+  document.getElementById('v-fat').textContent=R(s.fat);document.getElementById('v-fat-m').textContent=lbl;
+  document.getElementById('v-ped').textContent=N(s.n);document.getElementById('v-ped-m').textContent=lbl;
+  document.getElementById('v-ticket').textContent=R(s.ticket);document.getElementById('v-max').textContent=R(s.maxV);
+  document.getElementById('v-hist-sub').textContent=N(v.length)+' pedidos no período';
   setTimeout(function(){
-    dc("vev");
-    var lb=ST.dias.map(function(x){return x[0]});
-    var vl=ST.dias.map(function(x){return x[1].v});
-    var ct=ST.dias.map(function(x){return x[1].n});
-    CH["vev"]=new Chart(document.getElementById("ch-vev"),{type:"bar",data:{labels:lb,datasets:[{label:"Receita(R$)",data:vl,backgroundColor:"rgba(0,214,143,.22)",borderColor:"#00d68f",borderWidth:2,borderRadius:5,yAxisID:"y"},{label:"Pedidos",data:ct,type:"line",borderColor:"#ffd166",backgroundColor:"rgba(255,209,102,.1)",tension:.4,pointRadius:4,pointBackgroundColor:"#ffd166",yAxisID:"y1"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}},scales:{y:{grid:{color:"#1e2428"},ticks:{callback:function(v){return"R$"+Number(v/1000).toFixed(0)+"k"}}},y1:{position:"right",grid:{drawOnChartArea:false}},x:{grid:{display:false}}}}});
-    dc("td");var fx={"<R$100":0,"R$100-150":0,"R$150-200":0,"R$200-300":0,">R$300":0};
-    V.forEach(function(v){if(!v.total)return;if(v.total<100)fx["<R$100"]++;else if(v.total<150)fx["R$100-150"]++;else if(v.total<200)fx["R$150-200"]++;else if(v.total<300)fx["R$200-300"]++;else fx[">R$300"]++;});
-    CH["td"]=new Chart(document.getElementById("ch-tdist"),{type:"bar",data:{labels:Object.keys(fx),datasets:[{data:Object.values(fx),backgroundColor:["#1e2428","rgba(0,214,143,.35)","#00d68f","rgba(0,214,143,.35)","rgba(0,214,143,.15)"],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:"#1e2428"}},x:{grid:{display:false}}}}});
+    dc('vev');
+    CHARTS['vev']=new Chart(document.getElementById('ch-v-evol'),{type:'bar',data:{labels:s.porDia.map(function(x){return x[0].substring(5);}),datasets:[{label:'Faturamento',data:s.porDia.map(function(x){return x[1].v;}),backgroundColor:'rgba(0,229,160,.2)',borderColor:'#00e5a0',borderWidth:1.5,borderRadius:3,yAxisID:'y'},{label:'Pedidos',data:s.porDia.map(function(x){return x[1].n;}),type:'line',borderColor:'#ffb340',backgroundColor:'transparent',tension:.3,pointRadius:0,borderWidth:1.5,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{position:'top'}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'},ticks:{callback:function(v){return'R$'+Math.round(v/1000)+'k';}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#ffb340'}},x:{grid:{display:false},ticks:{maxTicksLimit:20,maxRotation:0}}}}});
+    dc('vt');
+    var fx={'<R$50':0,'R$50-100':0,'R$100-200':0,'R$200-350':0,'R$350-500':0,'>R$500':0};
+    v.forEach(function(vv){var t=vv.total||0;if(t<50)fx['<R$50']++;else if(t<100)fx['R$50-100']++;else if(t<200)fx['R$100-200']++;else if(t<350)fx['R$200-350']++;else if(t<500)fx['R$350-500']++;else fx['>R$500']++;});
+    CHARTS['vt']=new Chart(document.getElementById('ch-v-ticket'),{type:'bar',data:{labels:Object.keys(fx),datasets:[{data:Object.values(fx),backgroundColor:['rgba(30,40,48,.8)','rgba(0,229,160,.2)','#00e5a0','rgba(0,229,160,.5)','rgba(0,229,160,.3)','rgba(0,184,122,.4)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'}},x:{grid:{display:false}}}}});
   },30);
-  document.getElementById("tb-hist").innerHTML=V.map(function(v){var sc=SC[v.sit]||"yellow";var sn=SN[v.sit]||"--";var cn=CN[v.loja]||"--";return"<tr><td>#"+v.num+"</td><td>"+D(v.data)+"</td><td>"+(v.nome||"--")+"</td><td>"+(v.prod>0?R(v.prod):"--")+"</td><td>"+(v.total>0?R(v.total):"--")+"</td><td><span class='pill "+sc+"'>"+sn+"</span></td><td style='font-size:10px;color:var(--text3)'>"+cn+"</td></tr>"}).join("");
+  document.getElementById('tb-v-hist').innerHTML=v.slice(0,100).map(function(vv){var sc=SC[String(vv.situacao)]||'a',sn=SIT[String(vv.situacao)]||'—',cn=CN[String(vv.lojaId)]||('Loja '+vv.lojaId);return'<tr><td>#'+vv.numero+'</td><td>'+D(vv.data)+'</td><td>'+(vv.contato||'—')+'</td><td>'+R(vv.total)+'</td><td><span class="pill '+sc+'">'+sn+'</span></td><td style="color:var(--text3);font-size:11px">'+cn+'</td></tr>';}).join('');
 }
-function rFin(){
-  document.getElementById("f-rec").textContent=R(ST.aReceber);document.getElementById("f-pag").textContent=R(ST.aPagar);
-  var s=ST.aReceber-ST.aPagar;document.getElementById("f-saldo").textContent=R(s);
-  var sd=document.getElementById("f-saldo-d");if(s<0){sd.textContent="Negativo";sd.className="kpi-delta down"}else{sd.textContent="Positivo";sd.className="kpi-delta up"}
-  document.getElementById("f-cp-n").textContent=CP.length;
-  var fa=document.getElementById("f-alert-saldo");fa.className="alert danger";fa.innerHTML='<div class="adot danger"></div><div class="atext"><strong>Atencao:</strong> Contas a pagar ('+R(ST.aPagar)+') muito acima de contas a receber ('+R(ST.aReceber)+'). Monitorar liquidez no ciclo de 30 dias.</div>';
-  document.getElementById("tb-pagar").innerHTML=CP.map(function(c){return"<tr><td>"+c.desc+"</td><td>"+D(c.venc)+"</td><td>"+R(c.val)+"</td><td><span class='pill yellow'>Em aberto</span></td></tr>"}).join("");
-  document.getElementById("tb-receber").innerHTML=CR.map(function(c){return"<tr><td>"+c.desc+"</td><td>"+D(c.venc)+"</td><td>"+R(c.val)+"</td><td><span class='pill green'>A receber</span></td></tr>"}).join("");
-}
-function rFluxo(){
-  var ent=CR.reduce(function(a,c){return a+c.val},0);
-  var sai=CP.reduce(function(a,c){return a+c.val},0);
-  var liq=ent-sai;
-  document.getElementById("fl-ent").textContent=R(ent);document.getElementById("fl-sai").textContent=R(sai);document.getElementById("fl-liq").textContent=R(liq);
-  var ld=document.getElementById("fl-liq-d");ld.textContent=liq<0?"Negativo 30d":"Positivo 30d";ld.className="kpi-delta "+(liq<0?"down":"up");
-  document.getElementById("fl-dia").textContent=R(ST.fat/3);
+
+function renderCanais(){
+  var v=getV(PERIOD),s=calcS(v);
+  var entries=Object.entries(s.porCanal).sort(function(a,b){return b[1].v-a[1].v;});
+  var cls=['g','b','a','r','p'];
+  document.getElementById('canal-kpis').innerHTML=entries.slice(0,4).map(function(e,i){var pct=s.n>0?Math.round(e[1].n/s.n*100):0;return'<div class="kpi '+cls[i]+'"><div class="kpi-accent"></div><div class="kpi-label">'+e[0]+'</div><div class="kpi-value">'+pct+'%</div><div class="kpi-meta"><span class="ne">'+N(e[1].n)+' ped • '+R(e[1].v)+'</span></div></div>';}).join('');
   setTimeout(function(){
-    dc("flx");
-    var dias=[];var ents=[];var sais=[];var sal=[];var s=0;
-    var evts=[[2,189.9,0],[3,315,0],[5,0,12500],[8,1200,4800],[9,0,3200],[10,157.9,8000]];
-    for(var i=1;i<=10;i++){
-      dias.push("D+"+i);var e=0,sa=0;
-      evts.forEach(function(ev){if(ev[0]===i){e+=ev[1];sa+=ev[2]}});
-      ents.push(e);sais.push(sa);s+=e-sa;sal.push(s);
-    }
-    CH["flx"]=new Chart(document.getElementById("ch-fluxo"),{type:"bar",data:{labels:dias,datasets:[{label:"Entradas(R$)",data:ents,backgroundColor:"rgba(0,214,143,.35)",borderColor:"#00d68f",borderWidth:1.5,borderRadius:4},{label:"Saidas(R$)",data:sais,backgroundColor:"rgba(255,77,109,.35)",borderColor:"#ff4d6d",borderWidth:1.5,borderRadius:4},{label:"Saldo Acum.(R$)",data:sal,type:"line",borderColor:"#ffd166",backgroundColor:"rgba(255,209,102,.08)",tension:.4,pointRadius:3,pointBackgroundColor:"#ffd166"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}},scales:{y:{grid:{color:"#1e2428"}},x:{grid:{display:false}}}}});
+    dc('cf');CHARTS['cf']=new Chart(document.getElementById('ch-canal-fat'),{type:'bar',data:{labels:entries.map(function(e){return e[0];}),datasets:[{label:'Faturamento',data:entries.map(function(e){return e[1].v;}),backgroundColor:CC,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'},ticks:{callback:function(v){return'R$'+Math.round(v/1000)+'k';}}},x:{grid:{display:false}}}}});
+    dc('cp');CHARTS['cp']=new Chart(document.getElementById('ch-canal-ped'),{type:'doughnut',data:{labels:entries.map(function(e){return e[0];}),datasets:[{data:entries.map(function(e){return e[1].n;}),backgroundColor:CC,borderColor:'#0e1215',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{padding:10,boxWidth:10}}}}});
+  },30);
+  document.getElementById('tb-canal').innerHTML=entries.map(function(e,i){var t=e[1].n>0?e[1].v/e[1].n:0,pct=s.n>0?(e[1].n/s.n*100).toFixed(1):0;return'<tr><td>'+(i+1)+'. '+e[0]+'</td><td>'+N(e[1].n)+'</td><td>'+R(e[1].v)+'</td><td>'+R(t)+'</td><td><span class="pill '+(i===0?'g':'b')+'">'+pct+'%</span></td></tr>';}).join('');
+}
+
+function renderProdutos(){
+  var prods=DATA.produtos||[];
+  var precos=prods.filter(function(p){return p.preco>0;}).map(function(p){return p.preco;});
+  var avg=precos.length>0?precos.reduce(function(a,b){return a+b;},0)/precos.length:0;
+  document.getElementById('p-total').textContent=prods.length;
+  document.getElementById('p-avg').textContent=R(avg);
+  document.getElementById('p-range').textContent=prods.length>0?R(Math.min.apply(null,precos))+' → '+R(Math.max.apply(null,precos)):'—';
+  document.getElementById('tb-produtos').innerHTML=prods.map(function(p){return'<tr><td>'+p.nome+'</td><td style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text3)">'+(p.codigo||'—')+'</td><td>'+R(p.preco)+'</td></tr>';}).join('');
+}
+
+function renderClientes(){
+  var v=getV(PERIOD),allV=DATA.vendas||[];
+  var clP={};v.forEach(function(vv){if(vv.contato){if(!clP[vv.contato])clP[vv.contato]={n:0,v:0};clP[vv.contato].n++;clP[vv.contato].v+=vv.total||0;}});
+  var clAll={};allV.forEach(function(vv){if(vv.contato){if(!clAll[vv.contato])clAll[vv.contato]={n:0,v:0};clAll[vv.contato].n++;clAll[vv.contato].v+=vv.total||0;}});
+  var unicos=Object.keys(clP).length,novos=Object.values(clP).filter(function(c){return c.n===1;}).length;
+  var ticketCl=unicos>0?v.reduce(function(s,vv){return s+(vv.total||0);},0)/unicos:0;
+  document.getElementById('c-unicos').textContent=N(unicos);
+  document.getElementById('c-unicos-m').textContent=PERIOD===0?'base total':'no período';
+  document.getElementById('c-novos').textContent=N(novos);
+  document.getElementById('c-ticket').textContent=R(ticketCl);
+  document.getElementById('c-ltv').textContent=R(DATA.stats.ticketMedio*3);
+  var top20=Object.entries(clAll).sort(function(a,b){return b[1].v-a[1].v;}).slice(0,20);
+  document.getElementById('tb-top-clientes').innerHTML=top20.map(function(e,i){return'<tr><td>'+(i+1)+'.</td><td>'+e[0]+'</td><td>'+e[1].n+'</td><td>'+R(e[1].v)+'</td></tr>';}).join('');
+  var recorrentes=Object.values(clAll).filter(function(c){return c.n>=2;}).length;
+  var taxaRec=Object.keys(clAll).length>0?Math.round(recorrentes/Object.keys(clAll).length*100):0;
+  document.getElementById('cliente-insights').innerHTML=[
+    {t:'info',txt:'<strong>'+N(Object.keys(clAll).length)+' clientes únicos</strong> no histórico. Taxa de recompra: <strong>'+taxaRec+'%</strong>.'},
+    {t:taxaRec<40?'warn':'info',txt:'<strong>LTV estimado: '+R(DATA.stats.ticketMedio*3)+'</strong> (3× ticket médio histórico de '+R(DATA.stats.ticketMedio)+').'},
+    {t:'info',txt:'<strong>Março/2026</strong> foi o mês recorde com '+(((DATA.stats.porMes||[]).find(function(m){return m[0]==='2026-03';})||[,'',{count:0}])[1].count)+' pedidos.'}
+  ].map(function(a){return'<div class="alert '+a.t+'"><div class="adot '+a.t+'"></div><div class="atext">'+a.txt+'</div></div>';}).join('');
+}
+
+function renderRecorrencia(){
+  var allV=DATA.vendas||[],clAll={};
+  allV.forEach(function(vv){if(vv.contato){if(!clAll[vv.contato])clAll[vv.contato]=0;clAll[vv.contato]++;}});
+  var counts=Object.values(clAll),total=counts.length;
+  var freq={1:0,2:0,3:0,4:0,'5+':0};
+  counts.forEach(function(n){if(n===1)freq[1]++;else if(n===2)freq[2]++;else if(n===3)freq[3]++;else if(n===4)freq[4]++;else freq['5+']++;});
+  var recorrentes=counts.filter(function(n){return n>=2;}).length;
+  var taxaRec=total>0?Math.round(recorrentes/total*100):0;
+  var mediaPed=recorrentes>0?Math.round(counts.filter(function(n){return n>=2;}).reduce(function(a,b){return a+b;},0)/recorrentes*10)/10:0;
+  document.getElementById('rec-recorrentes').textContent=N(recorrentes);
+  document.getElementById('rec-taxa').textContent=taxaRec+'%';
+  document.getElementById('rec-media').textContent=mediaPed+'x';
+  document.getElementById('rec-churn').textContent=(100-taxaRec)+'%';
+  setTimeout(function(){
+    dc('rf');CHARTS['rf']=new Chart(document.getElementById('ch-rec-funil'),{type:'bar',data:{labels:['1 compra','2 compras','3 compras','4 compras','5+ compras'],datasets:[{data:[freq[1],freq[2],freq[3],freq[4],freq['5+']],backgroundColor:['rgba(255,69,96,.6)','rgba(255,179,64,.6)','rgba(0,229,160,.4)','rgba(0,229,160,.6)','#00e5a0'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'}},x:{grid:{display:false}}}}});
+  },30);
+  document.getElementById('rec-insights').innerHTML=[
+    {t:'info',txt:'<strong>'+N(recorrentes)+' clientes ('+taxaRec+'%)</strong> fizeram 2+ compras. Cada +1% de recompra = ~R$ '+R(DATA.stats.ticketMedio*total/100)+'/ciclo.'},
+    {t:taxaRec<40?'warn':'info',txt:'<strong>Frequência média dos recorrentes:</strong> '+mediaPed+' pedidos. Meta: elevar para 3+ com Trilha C pós-compra.'},
+    {t:'warn',txt:'<strong>'+N(freq[1])+' clientes compraram 1× apenas.</strong> Maior oportunidade de reativação via CRM/WhatsApp.'}
+  ].map(function(a){return'<div class="alert '+a.t+'"><div class="adot '+a.t+'"></div><div class="atext">'+a.txt+'</div></div>';}).join('');
+}
+
+function renderFinanceiro(){
+  var rec=DATA.stats.totalAReceber,pag=DATA.stats.totalAPagar,saldo=rec-pag;
+  document.getElementById('f-rec').textContent=R(rec);document.getElementById('f-pag').textContent=R(pag);
+  document.getElementById('f-saldo').textContent=R(saldo);document.getElementById('f-fat-hist').textContent=R(DATA.stats.faturamentoTotal);
+  document.getElementById('f-rec-n').textContent=(DATA.contasReceber||[]).length+' registros';
+  document.getElementById('f-pag-n').textContent=(DATA.contasPagar||[]).length+' registros';
+  var sm=document.getElementById('f-saldo-m');sm.textContent=saldo<0?'negativo':'positivo';sm.className=saldo<0?'dn':'up';
+  setTimeout(function(){
+    dc('fano');var anos=DATA.stats.porAno||[];
+    CHARTS['fano']=new Chart(document.getElementById('ch-f-ano'),{type:'bar',data:{labels:anos.map(function(a){return a[0];}),datasets:[{label:'Faturamento',data:anos.map(function(a){return a[1].valor;}),backgroundColor:function(ctx){var g=ctx.chart.ctx.createLinearGradient(0,0,0,220);g.addColorStop(0,'rgba(0,229,160,.6)');g.addColorStop(1,'rgba(0,229,160,.05)');return g;},borderColor:'#00e5a0',borderWidth:2,borderRadius:6},{label:'Pedidos',data:anos.map(function(a){return a[1].count;}),type:'line',borderColor:'#3d9aff',backgroundColor:'transparent',tension:.3,pointRadius:5,pointBackgroundColor:'#3d9aff',borderWidth:2,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'},ticks:{callback:function(v){return'R$'+Math.round(v/1000)+'k';}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#3d9aff'}},x:{grid:{display:false}}}}});
+  },30);
+  var fmt=function(c){return'<tr><td>'+(c.descricao||'—')+'</td><td>'+D(c.vencimento)+'</td><td>'+R(c.valor)+'</td><td><span class="pill a">Em aberto</span></td></tr>';};
+  document.getElementById('tb-cp').innerHTML=(DATA.contasPagar||[]).slice(0,30).map(fmt).join('');
+  document.getElementById('tb-cr').innerHTML=(DATA.contasReceber||[]).slice(0,30).map(fmt).join('');
+}
+
+function renderFluxo(){
+  var rec=DATA.stats.totalAReceber,pag=DATA.stats.totalAPagar,liq=rec-pag;
+  document.getElementById('fl-ent').textContent=R(rec);document.getElementById('fl-sai').textContent=R(pag);
+  document.getElementById('fl-liq').textContent=R(liq);
+  var lm=document.getElementById('fl-liq-m');lm.textContent=liq<0?'déficit':'superávit';lm.className=liq<0?'dn':'up';
+  setTimeout(function(){
+    dc('fld');var corte=new Date(TODAY);corte.setDate(corte.getDate()-30);var cut=corte.toISOString().substring(0,10);
+    var dias30=(DATA.stats.porData||[]).filter(function(d){return d[0]>=cut;});
+    CHARTS['fld']=new Chart(document.getElementById('ch-fl-diario'),{type:'bar',data:{labels:dias30.map(function(d){return d[0].substring(5);}),datasets:[{label:'Faturamento Diário',data:dias30.map(function(d){return d[1].valor;}),backgroundColor:'rgba(0,229,160,.25)',borderColor:'#00e5a0',borderWidth:1.5,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'},ticks:{callback:function(v){return'R$'+Math.round(v/1000)+'k';}}},x:{grid:{display:false},ticks:{maxRotation:0}}}}});
+  },30);
+  var cal=[];
+  (DATA.contasReceber||[]).slice(0,15).forEach(function(c){cal.push({t:'g',desc:c.descricao||'Recebimento',venc:c.vencimento,val:c.valor});});
+  (DATA.contasPagar||[]).slice(0,15).forEach(function(c){cal.push({t:'r',desc:c.descricao||'Pagamento',venc:c.vencimento,val:c.valor});});
+  cal.sort(function(a,b){return(a.venc||'').localeCompare(b.venc||'');});
+  document.getElementById('tb-fl-cal').innerHTML=cal.map(function(c){return'<tr><td><span class="pill '+c.t+'">'+(c.t==='g'?'Entrada':'Saída')+'</span></td><td>'+c.desc+'</td><td>'+D(c.venc)+'</td><td style="color:var(--'+(c.t==='g'?'green':'red')+');">'+(c.t==='g'?'+':'-')+R(c.val)+'</td></tr>';}).join('');
+}
+
+function renderCRM(){
+  setTimeout(function(){
+    dc('cab');CHARTS['cab']=new Chart(document.getElementById('ch-crm-ab'),{type:'bar',data:{labels:['Curiosidade+Urgência','Prova Social','Direto+Cupom','Identificação Dor'],datasets:[{label:'CTR (%)',data:[15,4,4,0],backgroundColor:['#00e5a0','#3d9aff','#ffb340','rgba(255,69,96,.4)'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(30,40,48,.8)'},ticks:{callback:function(v){return v+'%';}}},x:{grid:{display:false}}}}});
   },30);
 }
-function rCanais(){
-  setTimeout(function(){dc("ca2");CH["ca2"]=new Chart(document.getElementById("ch-canais2"),{type:"doughnut",data:{labels:Object.keys(ST.canais),datasets:[{data:Object.values(ST.canais),backgroundColor:["#00d68f","#4da6ff","#ffd166","#ff4d6d"],borderColor:"#111417",borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:"60%",plugins:{legend:{position:"bottom",labels:{padding:12}}}}});},30);
+
+function initDashboard(){
+  if(DATA&&DATA.meta){
+    var upd=new Date(DATA.meta.lastUpdate);
+    document.getElementById('ts-label').textContent=upd.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('period-label').textContent=DATA.meta.periodoColetado.inicio+' a '+DATA.meta.periodoColetado.fim;
+  }
+  renderHome();
 }
-function rClientes(){
-  var nm={};V.forEach(function(v){if(v.nome)nm[v.nome]=1});
-  document.getElementById("c-unicos").textContent=Object.keys(nm).length+" (amostra)";
-  document.getElementById("tb-clientes").innerHTML=V.filter(function(v){return v.total>0}).map(function(v){return"<tr><td>"+(v.nome||"--")+"</td><td>"+R(v.total)+"</td><td style='font-size:10px;color:var(--text3)'>"+CN[v.loja]+"</td></tr>"}).join("");
-}
-function rCRM(){
-  setTimeout(function(){dc("ab");CH["ab"]=new Chart(document.getElementById("ch-ab"),{type:"bar",data:{labels:["Curiosid.+Urgencia","Prova Social","Direto+Cupom","Identif. Dor"],datasets:[{label:"CTR (%)",data:[15,4,4,0],backgroundColor:["#00d68f","#4da6ff","#ffd166","#ff4d6d"],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:"#1e2428"},ticks:{callback:function(v){return v+"%"}}},x:{grid:{display:false}}}}});},30);
-}
-function init(){document.getElementById("ts").textContent=new Date().toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});rHome();rFin();}
-document.addEventListener("DOMContentLoaded",init);
+
+loadData();
 </script>
 </body>
 </html>
