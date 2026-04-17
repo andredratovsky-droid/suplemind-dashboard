@@ -58,21 +58,52 @@ async function blingGet(token, endpoint) {
   return res.data;
 }
 
-async function main() {
-  console.log('Suplemind - coleta iniciada ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
-
-  var token = await getAccessToken();
-
-  // Buscar até 1000 pedidos (10 páginas) para cobrir 90 dias
-  console.log('Coletando pedidos/vendas (ate 10 paginas)...');
+async function fetchAllVendas(token) {
   var allVendas = [];
-  for (var p = 1; p <= 10; p++) {
+  var p = 1;
+  var MAX_PAGES = 50;
+  var hoje = new Date();
+  var corte = new Date(hoje);
+  corte.setDate(corte.getDate() - 91);
+  var cutoffStr = corte.toISOString().substring(0, 10);
+
+  console.log('Buscando pedidos (limite: ' + MAX_PAGES + ' paginas | corte: ' + cutoffStr + ')...');
+
+  while (p <= MAX_PAGES) {
     var r = await blingGet(token, 'pedidos/vendas?limite=100&pagina=' + p);
     var dados = (r && r.data) ? r.data : [];
+
+    if (dados.length === 0) {
+      console.log('Pagina ' + p + ': sem dados. Encerrando.');
+      break;
+    }
+
     allVendas = allVendas.concat(dados);
     console.log('Pagina ' + p + ': ' + dados.length + ' pedidos (total: ' + allVendas.length + ')');
-    if (dados.length < 100) break;
+
+    var ultimoData = (dados[dados.length - 1].data || dados[dados.length - 1].dataVenda || '').substring(0, 10);
+    if (ultimoData && ultimoData < cutoffStr) {
+      console.log('Alcancado limite de 91 dias (' + ultimoData + '). Encerrando.');
+      break;
+    }
+
+    if (dados.length < 100) {
+      console.log('Ultima pagina atingida.');
+      break;
+    }
+
+    p++;
   }
+
+  console.log('Total: ' + allVendas.length + ' pedidos em ' + p + ' paginas.');
+  return allVendas;
+}
+
+async function main() {
+  console.log('Suplemind v4 - ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+
+  var token = await getAccessToken();
+  var allVendas = await fetchAllVendas(token);
 
   console.log('Coletando produtos...');
   var produtos = await blingGet(token, 'produtos?limite=100&pagina=1');
@@ -86,11 +117,13 @@ async function main() {
   var cr = await blingGet(token, 'contas/receber?limite=100&pagina=1');
   var crData = (cr && cr.data) ? cr.data : [];
 
-  // Calcular por data e canal
   var porData = {};
   var porCanal = {};
+  var faturamento = 0;
+
   allVendas.forEach(function(v) {
     var val = parseFloat(v.totalVenda || v.total) || 0;
+    faturamento += val;
     var d = (v.data || v.dataVenda || '').substring(0, 10);
     if (d) {
       if (!porData[d]) porData[d] = { count: 0, valor: 0 };
@@ -101,7 +134,6 @@ async function main() {
     porCanal[canal] = (porCanal[canal] || 0) + 1;
   });
 
-  var faturamento = allVendas.reduce(function(s, v) { return s + (parseFloat(v.totalVenda || v.total) || 0); }, 0);
   var comValor = allVendas.filter(function(v) { return (parseFloat(v.totalVenda || v.total) || 0) > 0; });
   var ticket = comValor.length > 0 ? faturamento / comValor.length : 0;
   var totalPagar = cpData.reduce(function(s, c) { return s + (parseFloat(c.valor) || 0); }, 0);
@@ -112,7 +144,7 @@ async function main() {
       lastUpdate: new Date().toISOString(),
       source: 'Bling API v3',
       collectorVersion: '4.0',
-      totalPaginasBuscadas: Math.ceil(allVendas.length / 100)
+      totalPedidosColetados: allVendas.length
     },
     stats: {
       totalVendas: allVendas.length,
@@ -152,6 +184,7 @@ async function main() {
 }
 
 main().catch(function(err) {
-  console.error('ERRO:', err.message);
+  console.error('ERRO CRITICO:', err.message);
+  console.error(err.stack);
   process.exit(1);
 });
