@@ -40,19 +40,18 @@ async function getAccessToken() {
   if (res.status !== 200 || !res.data.access_token) {
     throw new Error('Falha ao obter token (HTTP ' + res.status + '): ' + JSON.stringify(res.data));
   }
-  console.log('Token obtido com sucesso');
+  console.log('Token OK');
   if (res.data.refresh_token) {
     fs.writeFileSync('.bling_refresh_token', res.data.refresh_token);
-    console.log('Novo refresh token salvo');
   }
   return res.data.access_token;
 }
 
-async function blingGet(token, path_) {
-  await sleep(400);
+async function blingGet(token, endpoint) {
+  await sleep(350);
   var res = await httpRequest({
     hostname: 'www.bling.com.br',
-    path: '/Api/v3/' + path_,
+    path: '/Api/v3/' + endpoint,
     method: 'GET',
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
   });
@@ -60,53 +59,51 @@ async function blingGet(token, path_) {
 }
 
 async function main() {
-  console.log('Suplemind - coleta iniciada');
-  console.log(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+  console.log('Suplemind - coleta iniciada ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
 
   var token = await getAccessToken();
 
-  console.log('Coletando pedidos/vendas...');
-  var vendas = await blingGet(token, 'pedidos/vendas?limite=100&pagina=1');
-  var vendasData = (vendas && vendas.data) ? vendas.data : [];
-  console.log(vendasData.length + ' vendas coletadas');
+  // Buscar até 1000 pedidos (10 páginas) para cobrir 90 dias
+  console.log('Coletando pedidos/vendas (ate 10 paginas)...');
+  var allVendas = [];
+  for (var p = 1; p <= 10; p++) {
+    var r = await blingGet(token, 'pedidos/vendas?limite=100&pagina=' + p);
+    var dados = (r && r.data) ? r.data : [];
+    allVendas = allVendas.concat(dados);
+    console.log('Pagina ' + p + ': ' + dados.length + ' pedidos (total: ' + allVendas.length + ')');
+    if (dados.length < 100) break;
+  }
 
   console.log('Coletando produtos...');
   var produtos = await blingGet(token, 'produtos?limite=100&pagina=1');
   var produtosData = (produtos && produtos.data) ? produtos.data : [];
-  console.log(produtosData.length + ' produtos coletados');
 
   console.log('Coletando contas a pagar...');
-  var contasPagar = await blingGet(token, 'contas/pagar?limite=50&pagina=1');
-  var cpData = (contasPagar && contasPagar.data) ? contasPagar.data : [];
+  var cp = await blingGet(token, 'contas/pagar?limite=100&pagina=1');
+  var cpData = (cp && cp.data) ? cp.data : [];
 
   console.log('Coletando contas a receber...');
-  var contasReceber = await blingGet(token, 'contas/receber?limite=50&pagina=1');
-  var crData = (contasReceber && contasReceber.data) ? contasReceber.data : [];
+  var cr = await blingGet(token, 'contas/receber?limite=100&pagina=1');
+  var crData = (cr && cr.data) ? cr.data : [];
 
-  var faturamento = vendasData.reduce(function(s, v) {
-    return s + (parseFloat(v.totalVenda || v.total) || 0);
-  }, 0);
-  var comValor = vendasData.filter(function(v) {
-    return (parseFloat(v.totalVenda || v.total) || 0) > 0;
-  });
-  var ticket = comValor.length > 0 ? faturamento / comValor.length : 0;
-
+  // Calcular por data e canal
   var porData = {};
-  vendasData.forEach(function(v) {
+  var porCanal = {};
+  allVendas.forEach(function(v) {
+    var val = parseFloat(v.totalVenda || v.total) || 0;
     var d = (v.data || v.dataVenda || '').substring(0, 10);
     if (d) {
       if (!porData[d]) porData[d] = { count: 0, valor: 0 };
       porData[d].count++;
-      porData[d].valor += (parseFloat(v.totalVenda || v.total) || 0);
+      porData[d].valor += val;
     }
+    var canal = v.loja && v.loja.id ? 'Loja ' + v.loja.id : 'Direto';
+    porCanal[canal] = (porCanal[canal] || 0) + 1;
   });
 
-  var porCanal = {};
-  vendasData.forEach(function(v) {
-    var nome = v.loja && v.loja.id ? 'Loja ' + v.loja.id : 'Direto';
-    porCanal[nome] = (porCanal[nome] || 0) + 1;
-  });
-
+  var faturamento = allVendas.reduce(function(s, v) { return s + (parseFloat(v.totalVenda || v.total) || 0); }, 0);
+  var comValor = allVendas.filter(function(v) { return (parseFloat(v.totalVenda || v.total) || 0) > 0; });
+  var ticket = comValor.length > 0 ? faturamento / comValor.length : 0;
   var totalPagar = cpData.reduce(function(s, c) { return s + (parseFloat(c.valor) || 0); }, 0);
   var totalReceber = crData.reduce(function(s, c) { return s + (parseFloat(c.valor) || 0); }, 0);
 
@@ -114,11 +111,11 @@ async function main() {
     meta: {
       lastUpdate: new Date().toISOString(),
       source: 'Bling API v3',
-      period: 'ultimos 100 pedidos',
-      collectorVersion: '3.0'
+      collectorVersion: '4.0',
+      totalPaginasBuscadas: Math.ceil(allVendas.length / 100)
     },
     stats: {
-      totalVendas: vendasData.length,
+      totalVendas: allVendas.length,
       faturamentoTotal: parseFloat(faturamento.toFixed(2)),
       ticketMedio: parseFloat(ticket.toFixed(2)),
       totalAPagar: parseFloat(totalPagar.toFixed(2)),
@@ -126,44 +123,24 @@ async function main() {
       porData: Object.entries(porData).sort(function(a, b) { return a[0].localeCompare(b[0]); }),
       porCanal: porCanal
     },
-    vendas: vendasData.map(function(v) {
+    vendas: allVendas.map(function(v) {
       return {
-        id: v.id,
-        numero: v.numero,
+        id: v.id, numero: v.numero,
         data: v.data || v.dataVenda,
         contato: (v.contato && v.contato.nome) || (v.cliente && v.cliente.nome) || '',
         total: parseFloat(v.totalVenda || v.total) || 0,
-        totalProdutos: parseFloat(v.totalProdutos) || 0,
         situacao: v.situacao && v.situacao.valor,
         lojaId: v.loja && v.loja.id
       };
     }),
     produtos: produtosData.map(function(p) {
-      return {
-        id: p.id,
-        nome: p.nome,
-        codigo: p.codigo,
-        preco: parseFloat(p.preco) || 0,
-        estoque: p.estoque && p.estoque.saldoVirtualTotal
-      };
+      return { id: p.id, nome: p.nome, codigo: p.codigo, preco: parseFloat(p.preco) || 0 };
     }),
-    contasPagar: cpData.slice(0, 50).map(function(c) {
-      return {
-        id: c.id,
-        descricao: c.descricao,
-        vencimento: c.dataVencimento,
-        valor: parseFloat(c.valor) || 0,
-        situacao: c.situacao && c.situacao.valor
-      };
+    contasPagar: cpData.slice(0, 100).map(function(c) {
+      return { id: c.id, descricao: c.descricao, vencimento: c.dataVencimento, valor: parseFloat(c.valor) || 0, situacao: c.situacao && c.situacao.valor };
     }),
-    contasReceber: crData.slice(0, 50).map(function(c) {
-      return {
-        id: c.id,
-        descricao: c.descricao,
-        vencimento: c.dataVencimento,
-        valor: parseFloat(c.valor) || 0,
-        situacao: c.situacao && c.situacao.valor
-      };
+    contasReceber: crData.slice(0, 100).map(function(c) {
+      return { id: c.id, descricao: c.descricao, vencimento: c.dataVencimento, valor: parseFloat(c.valor) || 0, situacao: c.situacao && c.situacao.valor };
     })
   };
 
@@ -171,14 +148,10 @@ async function main() {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(path.join(dataDir, 'bling.json'), JSON.stringify(output, null, 2));
 
-  console.log('Coleta concluida com sucesso!');
-  console.log(output.stats.totalVendas + ' vendas | R$ ' + output.stats.faturamentoTotal);
-  console.log(output.produtos.length + ' produtos');
-  console.log('A pagar: R$ ' + output.stats.totalAPagar + ' | A receber: R$ ' + output.stats.totalAReceber);
+  console.log('Coleta concluida! ' + allVendas.length + ' pedidos | R$ ' + output.stats.faturamentoTotal);
 }
 
 main().catch(function(err) {
-  console.error('ERRO CRITICO:', err.message);
-  console.error(err.stack);
+  console.error('ERRO:', err.message);
   process.exit(1);
 });
