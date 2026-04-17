@@ -58,101 +58,139 @@ async function blingGet(token, endpoint) {
   return res.data;
 }
 
-async function fetchAllVendas(token) {
+async function fetchTodoHistorico(token) {
   var allVendas = [];
   var p = 1;
-  var MAX_PAGES = 50;
-  var hoje = new Date();
-  var corte = new Date(hoje);
-  corte.setDate(corte.getDate() - 91);
-  var cutoffStr = corte.toISOString().substring(0, 10);
+  // 500 páginas = 50.000 pedidos (~4 anos com crescimento acelerado)
+  var MAX_PAGES = 500;
 
-  console.log('Buscando pedidos (limite: ' + MAX_PAGES + ' paginas | corte: ' + cutoffStr + ')...');
+  console.log('Iniciando coleta completa do historico (sem corte de data)...');
 
   while (p <= MAX_PAGES) {
     var r = await blingGet(token, 'pedidos/vendas?limite=100&pagina=' + p);
     var dados = (r && r.data) ? r.data : [];
 
     if (dados.length === 0) {
-      console.log('Pagina ' + p + ': sem dados. Encerrando.');
+      console.log('Pagina ' + p + ': sem dados. Fim do historico atingido.');
       break;
     }
 
     allVendas = allVendas.concat(dados);
-    console.log('Pagina ' + p + ': ' + dados.length + ' pedidos (total: ' + allVendas.length + ')');
 
-    var ultimoData = (dados[dados.length - 1].data || dados[dados.length - 1].dataVenda || '').substring(0, 10);
-    if (ultimoData && ultimoData < cutoffStr) {
-      console.log('Alcancado limite de 91 dias (' + ultimoData + '). Encerrando.');
-      break;
+    if (p % 10 === 0 || dados.length < 100) {
+      var oldest = (dados[dados.length-1].data || dados[dados.length-1].dataVenda || '').substring(0,10);
+      console.log('Pagina ' + p + ' | Total: ' + allVendas.length + ' pedidos | Mais antigo nesta pag: ' + oldest);
     }
 
     if (dados.length < 100) {
-      console.log('Ultima pagina atingida.');
+      console.log('Ultima pagina atingida (' + p + ', ' + dados.length + ' pedidos).');
       break;
     }
 
     p++;
   }
 
-  console.log('Total: ' + allVendas.length + ' pedidos em ' + p + ' paginas.');
+  if (p > MAX_PAGES) {
+    console.log('AVISO: limite de seguranca (' + MAX_PAGES + ' pags) atingido. Aumentar MAX_PAGES se necessario.');
+  }
+
+  var newest = allVendas.length > 0 ? (allVendas[0].data || allVendas[0].dataVenda || '').substring(0,10) : '';
+  var oldest = allVendas.length > 0 ? (allVendas[allVendas.length-1].data || allVendas[allVendas.length-1].dataVenda || '').substring(0,10) : '';
+  console.log('Historico completo: ' + allVendas.length + ' pedidos | ' + oldest + ' ate ' + newest);
   return allVendas;
 }
 
 async function main() {
-  console.log('Suplemind v4 - ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+  console.log('Suplemind Intelligence v5 — Coleta Completa');
+  console.log(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+  console.log('');
 
   var token = await getAccessToken();
-  var allVendas = await fetchAllVendas(token);
+
+  var allVendas = await fetchTodoHistorico(token);
 
   console.log('Coletando produtos...');
   var produtos = await blingGet(token, 'produtos?limite=100&pagina=1');
   var produtosData = (produtos && produtos.data) ? produtos.data : [];
+  console.log(produtosData.length + ' produtos');
 
-  console.log('Coletando contas a pagar...');
-  var cp = await blingGet(token, 'contas/pagar?limite=100&pagina=1');
-  var cpData = (cp && cp.data) ? cp.data : [];
+  console.log('Coletando contas a pagar (todas as paginas)...');
+  var cpAll = [];
+  for (var cp = 1; cp <= 10; cp++) {
+    var cpR = await blingGet(token, 'contas/pagar?limite=100&pagina=' + cp);
+    var cpD = (cpR && cpR.data) ? cpR.data : [];
+    cpAll = cpAll.concat(cpD);
+    if (cpD.length < 100) break;
+  }
+  console.log(cpAll.length + ' contas a pagar');
 
-  console.log('Coletando contas a receber...');
-  var cr = await blingGet(token, 'contas/receber?limite=100&pagina=1');
-  var crData = (cr && cr.data) ? cr.data : [];
+  console.log('Coletando contas a receber (todas as paginas)...');
+  var crAll = [];
+  for (var crP = 1; crP <= 10; crP++) {
+    var crR = await blingGet(token, 'contas/receber?limite=100&pagina=' + crP);
+    var crD = (crR && crR.data) ? crR.data : [];
+    crAll = crAll.concat(crD);
+    if (crD.length < 100) break;
+  }
+  console.log(crAll.length + ' contas a receber');
 
+  // Estatísticas sobre todo o histórico
   var porData = {};
+  var porMes = {};
+  var porAno = {};
   var porCanal = {};
-  var faturamento = 0;
+  var faturamentoTotal = 0;
 
   allVendas.forEach(function(v) {
     var val = parseFloat(v.totalVenda || v.total) || 0;
-    faturamento += val;
+    faturamentoTotal += val;
+
     var d = (v.data || v.dataVenda || '').substring(0, 10);
     if (d) {
       if (!porData[d]) porData[d] = { count: 0, valor: 0 };
       porData[d].count++;
       porData[d].valor += val;
+
+      var mes = d.substring(0, 7);
+      if (!porMes[mes]) porMes[mes] = { count: 0, valor: 0 };
+      porMes[mes].count++;
+      porMes[mes].valor += val;
+
+      var ano = d.substring(0, 4);
+      if (!porAno[ano]) porAno[ano] = { count: 0, valor: 0 };
+      porAno[ano].count++;
+      porAno[ano].valor += val;
     }
+
     var canal = v.loja && v.loja.id ? 'Loja ' + v.loja.id : 'Direto';
     porCanal[canal] = (porCanal[canal] || 0) + 1;
   });
 
   var comValor = allVendas.filter(function(v) { return (parseFloat(v.totalVenda || v.total) || 0) > 0; });
-  var ticket = comValor.length > 0 ? faturamento / comValor.length : 0;
-  var totalPagar = cpData.reduce(function(s, c) { return s + (parseFloat(c.valor) || 0); }, 0);
-  var totalReceber = crData.reduce(function(s, c) { return s + (parseFloat(c.valor) || 0); }, 0);
+  var ticketMedio = comValor.length > 0 ? faturamentoTotal / comValor.length : 0;
+  var totalPagar = cpAll.reduce(function(s, c) { return s + (parseFloat(c.valor) || 0); }, 0);
+  var totalReceber = crAll.reduce(function(s, c) { return s + (parseFloat(c.valor) || 0); }, 0);
 
   var output = {
     meta: {
       lastUpdate: new Date().toISOString(),
       source: 'Bling API v3',
-      collectorVersion: '4.0',
-      totalPedidosColetados: allVendas.length
+      collectorVersion: '5.0',
+      totalPedidosColetados: allVendas.length,
+      periodoColetado: {
+        inicio: allVendas.length > 0 ? (allVendas[allVendas.length-1].data || allVendas[allVendas.length-1].dataVenda || '').substring(0,10) : '',
+        fim:    allVendas.length > 0 ? (allVendas[0].data || allVendas[0].dataVenda || '').substring(0,10) : ''
+      }
     },
     stats: {
       totalVendas: allVendas.length,
-      faturamentoTotal: parseFloat(faturamento.toFixed(2)),
-      ticketMedio: parseFloat(ticket.toFixed(2)),
+      faturamentoTotal: parseFloat(faturamentoTotal.toFixed(2)),
+      ticketMedio: parseFloat(ticketMedio.toFixed(2)),
       totalAPagar: parseFloat(totalPagar.toFixed(2)),
       totalAReceber: parseFloat(totalReceber.toFixed(2)),
       porData: Object.entries(porData).sort(function(a, b) { return a[0].localeCompare(b[0]); }),
+      porMes:  Object.entries(porMes).sort(function(a, b)  { return a[0].localeCompare(b[0]); }),
+      porAno:  Object.entries(porAno).sort(function(a, b)  { return a[0].localeCompare(b[0]); }),
       porCanal: porCanal
     },
     vendas: allVendas.map(function(v) {
@@ -168,10 +206,10 @@ async function main() {
     produtos: produtosData.map(function(p) {
       return { id: p.id, nome: p.nome, codigo: p.codigo, preco: parseFloat(p.preco) || 0 };
     }),
-    contasPagar: cpData.slice(0, 100).map(function(c) {
+    contasPagar: cpAll.map(function(c) {
       return { id: c.id, descricao: c.descricao, vencimento: c.dataVencimento, valor: parseFloat(c.valor) || 0, situacao: c.situacao && c.situacao.valor };
     }),
-    contasReceber: crData.slice(0, 100).map(function(c) {
+    contasReceber: crAll.map(function(c) {
       return { id: c.id, descricao: c.descricao, vencimento: c.dataVencimento, valor: parseFloat(c.valor) || 0, situacao: c.situacao && c.situacao.valor };
     })
   };
@@ -180,7 +218,12 @@ async function main() {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(path.join(dataDir, 'bling.json'), JSON.stringify(output, null, 2));
 
-  console.log('Coleta concluida! ' + allVendas.length + ' pedidos | R$ ' + output.stats.faturamentoTotal);
+  console.log('');
+  console.log('=== COLETA CONCLUIDA ===');
+  console.log('Pedidos: ' + allVendas.length + ' (' + output.meta.periodoColetado.inicio + ' ate ' + output.meta.periodoColetado.fim + ')');
+  console.log('Faturamento total historico: R$ ' + output.stats.faturamentoTotal);
+  console.log('Ticket medio: R$ ' + output.stats.ticketMedio);
+  console.log('Meses com dados: ' + Object.keys(porMes).length + ' | Anos: ' + Object.keys(porAno).join(', '));
 }
 
 main().catch(function(err) {
