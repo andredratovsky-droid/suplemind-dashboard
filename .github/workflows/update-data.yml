@@ -2,7 +2,6 @@ name: Update Bling Data
 
 on:
   schedule:
-    # A cada 25 min. Usa offset :07/:32/:57 para evitar picos do scheduler do GitHub.
     - cron: '7,32,57 * * * *'
   workflow_dispatch:
     inputs:
@@ -22,10 +21,10 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 60  # Ampliado p/ v5.3.1 — 1a coleta full demora ~40min
 
     steps:
-      - name: Checkout repositório
+      - name: Checkout repositorio
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -36,16 +35,13 @@ jobs:
       - name: Determinar modo de coleta
         id: mode
         run: |
-          # Hora atual em UTC
           HOUR_UTC=$(date -u +%H)
-          # Modo manual sobrescreve
           MANUAL_MODE="${{ github.event.inputs.mode }}"
 
           if [ "$MANUAL_MODE" = "full" ] || [ "$MANUAL_MODE" = "incremental" ]; then
             MODE="$MANUAL_MODE"
             echo "Modo manual: $MODE"
           elif [ "$HOUR_UTC" = "11" ] || [ "$HOUR_UTC" = "23" ]; then
-            # 08:00 e 20:00 BRT = 11:00 e 23:00 UTC → coleta completa
             MODE="full"
             echo "Janela de coleta completa (hora $HOUR_UTC UTC)"
           else
@@ -73,22 +69,25 @@ jobs:
           if [ -n "$NEW_TOKEN" ]; then
             echo "Atualizando BLING_REFRESH_TOKEN..."
             echo "$NEW_TOKEN" | gh secret set BLING_REFRESH_TOKEN --repo ${{ github.repository }}
-            echo "✅ Token atualizado no Secrets"
+            echo "Token atualizado no Secrets"
           else
-            echo "⚠️  Arquivo .bling_refresh_token vazio — nada a atualizar"
+            echo "Arquivo .bling_refresh_token vazio"
           fi
           rm -f .bling_refresh_token
 
-      - name: Commit e push dos dados atualizados
-        if: success()
+      - name: Commit e push dos dados (incluindo cache parcial)
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/bling.json
+          # Adiciona tanto bling.json quanto o cache de NFes (pode existir mesmo se job falhou)
+          git add data/bling.json 2>/dev/null || true
+          git add data/nfes_cache.json 2>/dev/null || true
           if git diff --staged --quiet; then
-            echo "Nenhuma mudança nos dados — skip commit"
+            echo "Nenhuma mudanca nos dados"
           else
             MODE="${{ steps.mode.outputs.mode }}"
-            git commit -m "chore: atualizar dados Bling ($MODE) [skip ci]"
+            STATUS="${{ job.status }}"
+            git commit -m "chore: atualizar dados Bling ($MODE, status=$STATUS) [skip ci]"
             git push
           fi
