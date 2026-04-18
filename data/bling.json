@@ -1,38 +1,38 @@
 {
   "meta": {
     "version": "5.1",
-    "collectedAt": "2026-04-18T10:26:30.131Z",
+    "collectedAt": "2026-04-18T12:01:13.685Z",
     "mode": "incremental",
     "counts": {
-      "pedidos": 5024,
+      "pedidos": 5029,
       "produtos": 18,
       "contasPagar": 309,
       "contasReceber": 1000
     }
   },
   "stats": {
-    "totalPedidos": 5024,
-    "faturamentoTotal": 1215325.799999997,
-    "ticketMedio": 241.90402070063635,
+    "totalPedidos": 5029,
+    "faturamentoTotal": 1216483.189999997,
+    "ticketMedio": 241.89365480214693,
     "periodo7d": {
-      "pedidos": 298,
-      "faturamento": 52536.94000000004,
-      "ticketMedio": 176.29845637583907
+      "pedidos": 303,
+      "faturamento": 53694.33000000005,
+      "ticketMedio": 177.20900990099028
     },
     "periodo30d": {
-      "pedidos": 958,
-      "faturamento": 166095.8599999999,
-      "ticketMedio": 173.37772442588715
+      "pedidos": 963,
+      "faturamento": 167253.2499999999,
+      "ticketMedio": 173.6793873312564
     },
     "periodo90d": {
-      "pedidos": 2284,
-      "faturamento": 407690.1799999969,
-      "ticketMedio": 178.49832749562037
+      "pedidos": 2289,
+      "faturamento": 408847.56999999704,
+      "ticketMedio": 178.61405417212626
     },
     "porData": {
       "2026-04-18": {
-        "pedidos": 3,
-        "faturamento": 383.68
+        "pedidos": 8,
+        "faturamento": 1541.0700000000002
       },
       "2026-04-17": {
         "pedidos": 64,
@@ -1933,8 +1933,8 @@
     },
     "porMes": {
       "2026-04": {
-        "pedidos": 653,
-        "faturamento": 114698.63000000002
+        "pedidos": 658,
+        "faturamento": 115856.01999999999
       },
       "2026-03": {
         "pedidos": 777,
@@ -2015,14 +2015,14 @@
         "faturamento": 749803.5299999994
       },
       "2026": {
-        "pedidos": 2481,
-        "faturamento": 449321.2999999968
+        "pedidos": 2486,
+        "faturamento": 450478.68999999674
       }
     },
     "porCanal": {
       "205193054": {
-        "pedidos": 4517,
-        "faturamento": 1106732.1800000002
+        "pedidos": 4521,
+        "faturamento": 1107772.5000000002
       },
       "205318204": {
         "pedidos": 164,
@@ -2045,8 +2045,8 @@
         "faturamento": 22357.270000000004
       },
       "206009082": {
-        "pedidos": 36,
-        "faturamento": 5697.939999999999
+        "pedidos": 37,
+        "faturamento": 5815.009999999998
       },
       "sem_loja": {
         "pedidos": 79,
@@ -2126,6 +2126,136 @@
         "nome": "Taís Carneiro",
         "tipoPessoa": "F",
         "numeroDocumento": "010.173.455-70"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25597187956,
+      "numero": 4986,
+      "numeroLoja": "4837",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 298,
+      "total": 335.32,
+      "contato": {
+        "id": 17972296041,
+        "nome": "Anne Clicia Santos Bento",
+        "tipoPessoa": "F",
+        "numeroDocumento": "001.622.962-23"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25597084572,
+      "numero": 4985,
+      "numeroLoja": "4836",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 248,
+      "total": 256.4,
+      "contato": {
+        "id": 18085253999,
+        "nome": "Fatima Braz",
+        "tipoPessoa": "F",
+        "numeroDocumento": "129.919.218-11"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25597071307,
+      "numero": 4984,
+      "numeroLoja": "2000016038288560",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "2026-04-20",
+      "totalProdutos": 111.08,
+      "total": 117.07,
+      "contato": {
+        "id": 17840754431,
+        "nome": "Patricia Dos Santos Mendes Peres (pattyperes2011)",
+        "tipoPessoa": "F",
+        "numeroDocumento": "262.278.148-22"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 206009082,
+        "unidadeNegocio": {
+          "id": 2791239
+        }
+      }
+    },
+    {
+      "id": 25597012700,
+      "numero": 4983,
+      "numeroLoja": "4835",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 387,
+      "total": 328.95,
+      "contato": {
+        "id": 18085238212,
+        "nome": "Anelize Ferrari Dantas",
+        "tipoPessoa": "F",
+        "numeroDocumento": "383.218.888-60"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25596943923,
+      "numero": 4982,
+      "numeroLoja": "4834",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 119.65,
+      "contato": {
+        "id": 18085220654,
+        "nome": "Luciana nogueira Ursulino",
+        "tipoPessoa": "F",
+        "numeroDocumento": "004.131.956-78"
       },
       "situacao": {
         "id": 9,
