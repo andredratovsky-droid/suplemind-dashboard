@@ -1,12 +1,12 @@
-// collect.js v5.3 — Coletor Bling com campos corretos da API v3
+// collect.js v5.3.1 — Coletor Bling com checkpoint incremental
 //
-// Changelog v5.3:
-//   - Situação é campo number direto (não situacao.id)
-//   - tipoPessoa deduzido por tamanho de numeroDocumento (11=CPF=F, 14=CNPJ=J)
-//   - valorNota só existe no detalhe — buscamos individualmente para NFes válidas
-//   - Vínculo pedido↔NFe via numeroPedidoLoja (não idOrigem)
-//   - Modo incremental busca detalhe só de NFes novas (economia massiva)
-//   - Relatório de distribuição de situações no log (para descobrir quais valem)
+// Mudanças vs v5.3:
+//   - NFE_DETAILS_CACHE: arquivo dedicado em data/nfes_cache.json que persiste
+//     detalhes de NFes individualmente. Sobrevive a falhas do workflow.
+//   - Checkpoint a cada 500 detalhes: salva progresso em disco.
+//   - Retomada automática: se cache existir, só busca o que falta.
+//   - Progresso mais verboso (cada 50 ao invés de 100).
+//   - Salva cache mesmo se main() falhar (via try/finally global).
 
 const fs = require('fs');
 const path = require('path');
@@ -19,6 +19,7 @@ const MODE = (process.env.COLLECT_MODE || 'full').toLowerCase();
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'bling.json');
 const BACKUP_FILE = path.join(DATA_DIR, 'bling_backup_v5.2.json');
+const CACHE_FILE = path.join(DATA_DIR, 'nfes_cache.json');  // NOVO
 const TOKEN_FILE = path.join(__dirname, '.bling_refresh_token');
 
 const BLING_CLIENT_ID = process.env.BLING_CLIENT_ID;
@@ -27,39 +28,23 @@ const BLING_REFRESH_TOKEN = process.env.BLING_REFRESH_TOKEN;
 
 const API_BASE = 'https://www.bling.com.br/Api/v3';
 const RATE_LIMIT_MS = 400;
-const DETAIL_RATE_LIMIT_MS = 350;  // Detalhes individuais — ritmo confortável
+const DETAIL_RATE_LIMIT_MS = 350;
 const MAX_PAGES_FULL = 500;
 const INCREMENTAL_DAYS_BACK = 3;
+const CHECKPOINT_INTERVAL = 500;  // Salvar cache a cada N detalhes
 
 // ============================================================
-// SITUAÇÕES DE NFe (códigos v3, agora confirmados via inspeção)
-// Do log: NFe Rejane (data 18/04/2026, DANFE gerada) tem situacao = 5
-// Isso indica que 5 = "Emitida DANFE" na v3 (reinterpretação vs docs v2)
-//
-// Hipótese para v3 (assumida):
-//   situacao 5 = Autorizada / Emitida DANFE (confirmado no log)
-//   situacao 6, 7 = outras variações de válidas (incluídas por precaução)
-//
-// Vamos incluir 5, 6, 7 e o próprio script vai reportar a distribuição
-// ao final, para você ajustar se necessário.
+// SITUAÇÕES DE NFe
+// Do log anterior: 6.209 de 6.219 (99.8%) passaram em [5, 6, 7] → códigos OK
 // ============================================================
 const NFE_SITUACOES_VALIDAS = [5, 6, 7];
 const NFE_TIPO_SAIDA = 1;
-
 const PEDIDO_SITUACOES_PAGAS = [1, 9];
 
-// Labels legíveis das situações (para relatórios)
 const NFE_SIT_LABELS = {
-  1: 'Pendente',
-  2: 'Cancelada',
-  3: 'Denegada',
-  4: 'Aguardando Recibo',
-  5: 'Emitida DANFE',
-  6: 'Autorizada',
-  7: 'Emitida DANFE (alt)',
-  8: 'Registrada',
-  9: 'Enviada',
-  10: 'Denegada'
+  1: 'Pendente', 2: 'Cancelada', 3: 'Denegada', 4: 'Aguardando Recibo',
+  5: 'Emitida DANFE', 6: 'Autorizada', 7: 'Emitida DANFE (alt)',
+  8: 'Registrada', 9: 'Enviada', 10: 'Denegada'
 };
 
 // ============================================================
@@ -82,9 +67,6 @@ function httpRequest(options, body) {
 
 function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
-// ============================================================
-// Tipo de pessoa (F/J) baseado em tamanho do documento
-// ============================================================
 function detectTipoPessoa(numeroDocumento) {
   if (!numeroDocumento) return null;
   const clean = String(numeroDocumento).replace(/\D/g, '');
@@ -138,12 +120,38 @@ function apiGet(accessToken, endpoint) {
     if (resp.status === 429) {
       return sleep(2000).then(function () { return apiGet(accessToken, endpoint); });
     }
-    if (resp.status === 404) return { data: null };  // NFe pode ter sido excluída
+    if (resp.status === 404) return { data: null };
     if (resp.status !== 200) {
       throw new Error('API ' + endpoint + ' retornou ' + resp.status + ': ' + resp.body.slice(0, 200));
     }
     return JSON.parse(resp.body);
   });
+}
+
+// ============================================================
+// CHECKPOINT: cache de detalhes NFe
+// ============================================================
+function carregarCacheDetalhes() {
+  if (fs.existsSync(CACHE_FILE)) {
+    try {
+      const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+      const count = Object.keys(cache).length;
+      console.log('📥 Cache de detalhes carregado de ' + path.basename(CACHE_FILE) + ': ' + count + ' NFes');
+      return cache;
+    } catch (err) {
+      console.log('⚠️  Cache corrompido, ignorando: ' + err.message);
+      return {};
+    }
+  }
+  console.log('📥 Cache de detalhes: nenhum encontrado (começando do zero)');
+  return {};
+}
+
+function salvarCacheDetalhes(cache) {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(cache));
+  const sizeKB = (fs.statSync(CACHE_FILE).size / 1024).toFixed(1);
+  console.log('   💾 Checkpoint salvo: ' + Object.keys(cache).length + ' detalhes (' + sizeKB + ' KB)');
 }
 
 // ============================================================
@@ -188,9 +196,6 @@ function coletarPaginado(accessToken, config) {
   return nextPage();
 }
 
-// ============================================================
-// Coleta de pedidos
-// ============================================================
 function coletarPedidos(accessToken, opts) {
   opts = opts || {};
   return coletarPaginado(accessToken, {
@@ -206,9 +211,6 @@ function coletarPedidos(accessToken, opts) {
   });
 }
 
-// ============================================================
-// Coleta de NFes em múltiplas janelas anuais
-// ============================================================
 function gerarJanelasAnuais(dataInicialStr) {
   const hoje = new Date();
   const inicial = new Date(dataInicialStr + 'T00:00:00Z');
@@ -258,63 +260,91 @@ function coletarNFesLista(accessToken, opts) {
 }
 
 // ============================================================
-// Enriquecimento: busca detalhes individuais (para obter valorNota e numeroPedidoLoja)
-// Só buscamos detalhes de NFes com situação válida — economia massiva
+// Enriquecimento COM CHECKPOINT
 // ============================================================
-function enriquecerNFesComDetalhes(accessToken, nfes, opts) {
-  opts = opts || {};
-  const cacheExistente = opts.cacheExistente || {};  // { nfeId: detalhe }
-
-  // Filtrar NFes válidas (situação permitida + tipo saída)
+function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
   const validas = nfes.filter(function (n) {
     return NFE_SITUACOES_VALIDAS.indexOf(Number(n.situacao)) !== -1 &&
            Number(n.tipo) === NFE_TIPO_SAIDA;
   });
 
-  // Separar: quais já temos em cache vs quais precisam buscar
   const precisaBuscar = [];
   const jaTemosDetalhes = {};
 
   validas.forEach(function (n) {
-    if (cacheExistente[n.id]) {
-      jaTemosDetalhes[n.id] = cacheExistente[n.id];
+    if (cacheDetalhes[n.id]) {
+      jaTemosDetalhes[n.id] = cacheDetalhes[n.id];
     } else {
       precisaBuscar.push(n);
     }
   });
 
-  console.log('\n🔍 Enriquecimento de detalhes:');
-  console.log('   NFes válidas (sit ∈ [' + NFE_SITUACOES_VALIDAS.join(',') + ']): ' + validas.length);
+  console.log('\n🔍 Enriquecimento de detalhes (com checkpoint):');
+  console.log('   NFes válidas: ' + validas.length);
   console.log('   Em cache: ' + Object.keys(jaTemosDetalhes).length);
   console.log('   A buscar: ' + precisaBuscar.length);
 
   if (precisaBuscar.length > 0) {
     const tempoEst = Math.ceil(precisaBuscar.length * DETAIL_RATE_LIMIT_MS / 60000);
     console.log('   Tempo estimado: ~' + tempoEst + ' min');
+    console.log('   Checkpoint a cada ' + CHECKPOINT_INTERVAL + ' NFes salvas em ' + path.basename(CACHE_FILE));
   }
 
-  const detalhes = Object.assign({}, jaTemosDetalhes);
+  // Começa cópia do cache existente
+  const detalhes = Object.assign({}, cacheDetalhes);
   let processados = 0;
+  let novos = 0;
   let erros = 0;
+  let desdeUltimoCheckpoint = 0;
 
   function buscarProximo(idx) {
-    if (idx >= precisaBuscar.length) return Promise.resolve(detalhes);
+    if (idx >= precisaBuscar.length) {
+      // Salva cache final
+      if (desdeUltimoCheckpoint > 0) salvarCacheDetalhes(detalhes);
+      return Promise.resolve(detalhes);
+    }
     const nfe = precisaBuscar[idx];
     return apiGet(accessToken, '/nfe/' + nfe.id).then(function (resp) {
       if (resp && resp.data) {
-        detalhes[nfe.id] = resp.data;
+        // Salva só os campos que precisamos (economiza memória e disco)
+        detalhes[nfe.id] = {
+          valorNota: resp.data.valorNota,
+          valorFrete: resp.data.valorFrete,
+          serie: resp.data.serie,
+          numeroPedidoLoja: resp.data.numeroPedidoLoja,
+          chaveAcesso: resp.data.chaveAcesso
+        };
+        novos += 1;
       }
       processados += 1;
-      if (processados % 100 === 0) {
-        console.log('   📦 ' + processados + '/' + precisaBuscar.length + ' detalhes buscados');
+      desdeUltimoCheckpoint += 1;
+
+      if (processados % 50 === 0) {
+        const pct = (processados / precisaBuscar.length * 100).toFixed(1);
+        console.log('   📦 ' + processados + '/' + precisaBuscar.length + ' (' + pct + '%) — novos: ' + novos + ' | erros: ' + erros);
       }
+
+      // CHECKPOINT
+      if (desdeUltimoCheckpoint >= CHECKPOINT_INTERVAL) {
+        salvarCacheDetalhes(detalhes);
+        desdeUltimoCheckpoint = 0;
+      }
+
       return sleep(DETAIL_RATE_LIMIT_MS).then(function () {
         return buscarProximo(idx + 1);
       });
     }).catch(function (err) {
       erros += 1;
-      if (erros <= 3) console.log('   ⚠️  Erro na NFe ' + nfe.id + ': ' + err.message);
+      if (erros <= 3) console.log('   ⚠️  Erro NFe ' + nfe.id + ': ' + err.message);
       processados += 1;
+      desdeUltimoCheckpoint += 1;
+
+      // Mesmo em erro, faz checkpoint periódico
+      if (desdeUltimoCheckpoint >= CHECKPOINT_INTERVAL) {
+        salvarCacheDetalhes(detalhes);
+        desdeUltimoCheckpoint = 0;
+      }
+
       return sleep(DETAIL_RATE_LIMIT_MS).then(function () {
         return buscarProximo(idx + 1);
       });
@@ -322,13 +352,13 @@ function enriquecerNFesComDetalhes(accessToken, nfes, opts) {
   }
 
   return buscarProximo(0).then(function () {
-    console.log('✅ Detalhes coletados: ' + Object.keys(detalhes).length + ' (erros: ' + erros + ')');
+    console.log('✅ Detalhes coletados: ' + Object.keys(detalhes).length + ' (novos nesta rodada: ' + novos + ', erros: ' + erros + ')');
     return detalhes;
   });
 }
 
 // ============================================================
-// Consolidação: combina listagem + detalhes em 1 objeto por NFe
+// Consolidação: lista + cache → array final
 // ============================================================
 function consolidarNFes(nfesLista, detalhesMap) {
   return nfesLista.map(function (n) {
@@ -341,7 +371,6 @@ function consolidarNFes(nfesLista, detalhesMap) {
       dataEmissao: n.dataEmissao,
       contato: n.contato,
       loja: n.loja,
-      // Tipo de pessoa deduzido do documento
       tipoPessoa: detectTipoPessoa(n.contato && n.contato.numeroDocumento)
     };
     if (det) {
@@ -372,9 +401,6 @@ function coletarContas(accessToken, tipo) {
     .catch(function (err) { console.log('  ⚠️  Erro contas a ' + tipo + ': ' + err.message); return []; });
 }
 
-// ============================================================
-// Merge (pedidos e NFes)
-// ============================================================
 function mergeById(existentes, novos, label) {
   const byId = {};
   for (let i = 0; i < existentes.length; i++) byId[existentes[i].id] = existentes[i];
@@ -394,7 +420,7 @@ function mergeById(existentes, novos, label) {
 }
 
 // ============================================================
-// Conciliação pedido ↔ NFe via numeroPedidoLoja
+// Conciliação
 // ============================================================
 function conciliar(pedidos, nfes) {
   const pedidosByNumero = {};
@@ -407,33 +433,25 @@ function conciliar(pedidos, nfes) {
   const nfePedidoLink = {};
   const pedidoNfeLink = {};
   const nfesSemPedidoIds = [];
-  const pedidosComNFeIds = [];
   const valoresDivergentes = [];
 
   nfes.forEach(function (nfe) {
-    if (!nfe.temDetalhe) return;  // Sem detalhe não conseguimos vincular
-
+    if (!nfe.temDetalhe) return;
     let pedido = null;
     if (nfe.numeroPedidoLoja) {
       const np = String(nfe.numeroPedidoLoja);
       pedido = pedidosByNumeroLoja[np] || pedidosByNumero[np];
     }
-
     if (pedido) {
       nfePedidoLink[nfe.id] = pedido.id;
       pedidoNfeLink[pedido.id] = nfe.id;
-      pedidosComNFeIds.push(pedido.id);
       const valNfe = parseFloat(nfe.valorNota) || 0;
       const valPed = parseFloat(pedido.total) || 0;
       if (Math.abs(valNfe - valPed) > 0.01) {
         valoresDivergentes.push({
-          pedidoId: pedido.id,
-          pedidoNumero: pedido.numero,
-          nfeId: nfe.id,
-          nfeNumero: nfe.numero,
-          valorPedido: valPed,
-          valorNFe: valNfe,
-          diff: valNfe - valPed
+          pedidoId: pedido.id, pedidoNumero: pedido.numero,
+          nfeId: nfe.id, nfeNumero: nfe.numero,
+          valorPedido: valPed, valorNFe: valNfe, diff: valNfe - valPed
         });
       }
     } else {
@@ -441,9 +459,7 @@ function conciliar(pedidos, nfes) {
     }
   });
 
-  const pedidosSemNFeIds = pedidos
-    .filter(function (p) { return !pedidoNfeLink[p.id]; })
-    .map(function (p) { return p.id; });
+  const pedidosSemNFeIds = pedidos.filter(function (p) { return !pedidoNfeLink[p.id]; }).map(function (p) { return p.id; });
 
   console.log('\n🔗 Conciliação pedido ↔ NFe:');
   console.log('   NFes com pedido vinculado: ' + Object.keys(nfePedidoLink).length);
@@ -458,8 +474,7 @@ function conciliar(pedidos, nfes) {
     pedidosSemNFeIds: pedidosSemNFeIds,
     valoresDivergentes: valoresDivergentes,
     resumo: {
-      totalNFes: nfes.length,
-      totalPedidos: pedidos.length,
+      totalNFes: nfes.length, totalPedidos: pedidos.length,
       nfesComPedido: Object.keys(nfePedidoLink).length,
       nfesSemPedido: nfesSemPedidoIds.length,
       pedidosSemNFe: pedidosSemNFeIds.length,
@@ -468,9 +483,6 @@ function conciliar(pedidos, nfes) {
   };
 }
 
-// ============================================================
-// Relatório de distribuição de situações (útil para diagnóstico)
-// ============================================================
 function relatarSituacoes(nfes) {
   const dist = {};
   nfes.forEach(function (n) {
@@ -486,7 +498,7 @@ function relatarSituacoes(nfes) {
 }
 
 // ============================================================
-// Estatísticas (baseadas em NFes enriquecidas)
+// Stats
 // ============================================================
 function computeStats(pedidos, nfes, produtos, contasPagar, contasReceber, conciliacao) {
   const hoje = new Date();
@@ -494,11 +506,9 @@ function computeStats(pedidos, nfes, produtos, contasPagar, contasReceber, conci
   const d30 = new Date(hoje.getTime() - 30 * 86400000);
   const d90 = new Date(hoje.getTime() - 90 * 86400000);
 
-  // NFes válidas = situação autorizada + tipo saída + tem detalhe (valor conhecido)
   const nfesValidas = nfes.filter(function (n) {
     return NFE_SITUACOES_VALIDAS.indexOf(Number(n.situacao)) !== -1 &&
-           Number(n.tipo) === NFE_TIPO_SAIDA &&
-           n.temDetalhe;
+           Number(n.tipo) === NFE_TIPO_SAIDA && n.temDetalhe;
   });
 
   console.log('\n📊 NFes válidas com detalhe completo: ' + nfesValidas.length);
@@ -540,7 +550,6 @@ function computeStats(pedidos, nfes, produtos, contasPagar, contasReceber, conci
     porAno[anoStr].nfes += 1;
     porAno[anoStr].faturamento += valor;
 
-    // Canal: via pedido vinculado OU via loja da própria NFe OU b2b_avulso
     let canalId = 'sem_canal';
     const pedidoId = conciliacao.nfePedidoLink[n.id];
     if (pedidoId) {
@@ -580,9 +589,6 @@ function computeStats(pedidos, nfes, produtos, contasPagar, contasReceber, conci
   };
 }
 
-// ============================================================
-// Backup
-// ============================================================
 function fazerBackup() {
   if (fs.existsSync(DATA_FILE)) {
     try {
@@ -595,42 +601,14 @@ function fazerBackup() {
 }
 
 // ============================================================
-// Cache de detalhes (do arquivo existente)
-// ============================================================
-function carregarCacheDetalhes() {
-  const cache = {};
-  if (!fs.existsSync(DATA_FILE)) return cache;
-  try {
-    const existente = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-    if (existente.nfes && Array.isArray(existente.nfes)) {
-      existente.nfes.forEach(function (n) {
-        if (n.temDetalhe && n.valorNota !== undefined) {
-          // Reconstrói um pseudo-detalhe para reuso
-          cache[n.id] = {
-            valorNota: n.valorNota,
-            valorFrete: n.valorFrete || 0,
-            serie: n.serie,
-            numeroPedidoLoja: n.numeroPedidoLoja,
-            chaveAcesso: n.chaveAcesso
-          };
-        }
-      });
-    }
-    console.log('📥 Cache carregado: ' + Object.keys(cache).length + ' detalhes de NFes');
-  } catch (err) {
-    console.log('⚠️  Cache não carregado: ' + err.message);
-  }
-  return cache;
-}
-
-// ============================================================
 // MAIN
 // ============================================================
 function main() {
-  console.log('🚀 Suplemind Bling Collector v5.3');
+  console.log('🚀 Suplemind Bling Collector v5.3.1 (checkpoint)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('   NFe situações válidas: [' + NFE_SITUACOES_VALIDAS.join(', ') + ']');
+  console.log('   Checkpoint interval: ' + CHECKPOINT_INTERVAL + ' NFes');
   console.log('');
 
   if (!BLING_CLIENT_ID || !BLING_CLIENT_SECRET || !BLING_REFRESH_TOKEN) {
@@ -663,7 +641,7 @@ function main() {
 
     const output = {
       meta: {
-        version: '5.3',
+        version: '5.3.1',
         collectedAt: new Date().toISOString(),
         mode: MODE,
         nfeSituacoesValidas: NFE_SITUACOES_VALIDAS,
@@ -692,7 +670,7 @@ function main() {
     console.log('');
     console.log('✅ Coleta concluída!');
     console.log('   Pedidos: ' + dados.pedidos.length);
-    console.log('   NFes: ' + dados.nfes.length + ' total, ' + stats.totalNFesValidas + ' válidas com detalhe');
+    console.log('   NFes: ' + dados.nfes.length + ' total, ' + stats.totalNFesValidas + ' válidas');
     console.log('   Faturamento total (NFes válidas): R$ ' + stats.faturamentoTotal.toFixed(2));
     console.log('     B2B: R$ ' + stats.faturamentoB2B.toFixed(2) + ' (' + stats.nfesB2B + ' NFes)');
     console.log('     DTC: R$ ' + stats.faturamentoDTC.toFixed(2) + ' (' + stats.nfesDTC + ' NFes)');
@@ -700,6 +678,7 @@ function main() {
   }).catch(function (err) {
     console.error('❌ ERRO: ' + err.message);
     console.error(err.stack);
+    // Cache já foi salvo incrementalmente — próxima rodada continua de onde parou
     process.exit(1);
   });
 }
@@ -712,7 +691,7 @@ function coletarModoFull(accessToken, cacheDetalhes) {
     coletarContas(accessToken, 'pagar'),
     coletarContas(accessToken, 'receber')
   ]).then(function (r) {
-    return enriquecerNFesComDetalhes(accessToken, r[1], { cacheExistente: cacheDetalhes })
+    return enriquecerNFesComDetalhes(accessToken, r[1], cacheDetalhes)
       .then(function (detalhesMap) {
         return {
           pedidos: r[0],
@@ -745,9 +724,7 @@ function coletarModoIncremental(accessToken, cacheDetalhes) {
   ]).then(function (r) {
     const pedidosNovos = r[0];
     const nfesListaNovas = r[1];
-
-    // Só buscar detalhes das NFes novas (não estão no cache)
-    return enriquecerNFesComDetalhes(accessToken, nfesListaNovas, { cacheExistente: cacheDetalhes })
+    return enriquecerNFesComDetalhes(accessToken, nfesListaNovas, cacheDetalhes)
       .then(function (detalhesMap) {
         const nfesNovas = consolidarNFes(nfesListaNovas, detalhesMap);
         return {
@@ -762,4 +739,3 @@ function coletarModoIncremental(accessToken, cacheDetalhes) {
 }
 
 main();
-
