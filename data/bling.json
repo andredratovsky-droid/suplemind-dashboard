@@ -1,38 +1,38 @@
 {
   "meta": {
     "version": "5.1",
-    "collectedAt": "2026-04-18T14:27:30.447Z",
+    "collectedAt": "2026-04-18T16:06:35.589Z",
     "mode": "incremental",
     "counts": {
-      "pedidos": 5030,
+      "pedidos": 5032,
       "produtos": 18,
       "contasPagar": 309,
       "contasReceber": 1000
     }
   },
   "stats": {
-    "totalPedidos": 5030,
-    "faturamentoTotal": 1216731.189999997,
-    "ticketMedio": 241.89486878727573,
+    "totalPedidos": 5032,
+    "faturamentoTotal": 1217171.219999997,
+    "ticketMedio": 241.88617249602484,
     "periodo7d": {
-      "pedidos": 304,
-      "faturamento": 53942.33000000005,
-      "ticketMedio": 177.44187500000018
+      "pedidos": 305,
+      "faturamento": 54271.28000000006,
+      "ticketMedio": 177.93862295081985
     },
     "periodo30d": {
-      "pedidos": 964,
-      "faturamento": 167501.2499999999,
-      "ticketMedio": 173.75648340248952
+      "pedidos": 965,
+      "faturamento": 167830.19999999992,
+      "ticketMedio": 173.91730569948177
     },
     "periodo90d": {
-      "pedidos": 2290,
-      "faturamento": 409095.56999999704,
-      "ticketMedio": 178.6443537117891
+      "pedidos": 2291,
+      "faturamento": 409424.519999997,
+      "ticketMedio": 178.7099607158433
     },
     "porData": {
       "2026-04-18": {
-        "pedidos": 9,
-        "faturamento": 1789.0700000000002
+        "pedidos": 11,
+        "faturamento": 2229.1
       },
       "2026-04-17": {
         "pedidos": 64,
@@ -1933,8 +1933,8 @@
     },
     "porMes": {
       "2026-04": {
-        "pedidos": 659,
-        "faturamento": 116104.01999999999
+        "pedidos": 661,
+        "faturamento": 116544.04999999999
       },
       "2026-03": {
         "pedidos": 777,
@@ -2015,8 +2015,8 @@
         "faturamento": 749803.5299999994
       },
       "2026": {
-        "pedidos": 2487,
-        "faturamento": 450726.6899999967
+        "pedidos": 2489,
+        "faturamento": 451166.71999999665
       }
     },
     "porCanal": {
@@ -2041,12 +2041,12 @@
         "faturamento": 177.27
       },
       "205988658": {
-        "pedidos": 117,
-        "faturamento": 22357.270000000004
+        "pedidos": 118,
+        "faturamento": 22686.220000000005
       },
       "206009082": {
-        "pedidos": 37,
-        "faturamento": 5815.009999999998
+        "pedidos": 38,
+        "faturamento": 5926.089999999998
       },
       "sem_loja": {
         "pedidos": 79,
@@ -2291,6 +2291,58 @@
         "id": 205193054,
         "unidadeNegocio": {
           "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25598842207,
+      "numero": 4989,
+      "numeroLoja": "2000012571385693",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "2026-04-20",
+      "totalProdutos": 111.08,
+      "total": 111.08,
+      "contato": {
+        "id": 18085662927,
+        "nome": "Maria Soares Da Silva (clma5806315)",
+        "tipoPessoa": "F",
+        "numeroDocumento": "529.569.541-72"
+      },
+      "situacao": {
+        "id": 6,
+        "valor": 0
+      },
+      "loja": {
+        "id": 206009082,
+        "unidadeNegocio": {
+          "id": 2791239
+        }
+      }
+    },
+    {
+      "id": 25598589531,
+      "numero": 4988,
+      "numeroLoja": "160397121",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 328.95,
+      "total": 328.95,
+      "contato": {
+        "id": 18085596397,
+        "nome": "Alessandra feliciano pires",
+        "tipoPessoa": "F",
+        "numeroDocumento": "110.729.578-50"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205988658,
+        "unidadeNegocio": {
+          "id": 2768035
         }
       }
     },
