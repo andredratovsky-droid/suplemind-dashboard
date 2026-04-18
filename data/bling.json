@@ -1,38 +1,38 @@
 {
   "meta": {
     "version": "5.1",
-    "collectedAt": "2026-04-18T08:06:54.481Z",
+    "collectedAt": "2026-04-18T10:26:30.131Z",
     "mode": "incremental",
     "counts": {
-      "pedidos": 5023,
+      "pedidos": 5024,
       "produtos": 18,
       "contasPagar": 309,
       "contasReceber": 1000
     }
   },
   "stats": {
-    "totalPedidos": 5023,
-    "faturamentoTotal": 1215194.5299999972,
-    "ticketMedio": 241.92604618753677,
+    "totalPedidos": 5024,
+    "faturamentoTotal": 1215325.799999997,
+    "ticketMedio": 241.90402070063635,
     "periodo7d": {
-      "pedidos": 297,
-      "faturamento": 52405.67000000004,
-      "ticketMedio": 176.45006734006748
+      "pedidos": 298,
+      "faturamento": 52536.94000000004,
+      "ticketMedio": 176.29845637583907
     },
     "periodo30d": {
-      "pedidos": 957,
-      "faturamento": 165964.58999999988,
-      "ticketMedio": 173.4217241379309
+      "pedidos": 958,
+      "faturamento": 166095.8599999999,
+      "ticketMedio": 173.37772442588715
     },
     "periodo90d": {
-      "pedidos": 2283,
-      "faturamento": 407558.9099999969,
-      "ticketMedio": 178.51901445466356
+      "pedidos": 2284,
+      "faturamento": 407690.1799999969,
+      "ticketMedio": 178.49832749562037
     },
     "porData": {
       "2026-04-18": {
-        "pedidos": 2,
-        "faturamento": 252.41
+        "pedidos": 3,
+        "faturamento": 383.68
       },
       "2026-04-17": {
         "pedidos": 64,
@@ -1933,8 +1933,8 @@
     },
     "porMes": {
       "2026-04": {
-        "pedidos": 652,
-        "faturamento": 114567.36000000002
+        "pedidos": 653,
+        "faturamento": 114698.63000000002
       },
       "2026-03": {
         "pedidos": 777,
@@ -2015,14 +2015,14 @@
         "faturamento": 749803.5299999994
       },
       "2026": {
-        "pedidos": 2480,
-        "faturamento": 449190.0299999968
+        "pedidos": 2481,
+        "faturamento": 449321.2999999968
       }
     },
     "porCanal": {
       "205193054": {
-        "pedidos": 4516,
-        "faturamento": 1106600.9100000001
+        "pedidos": 4517,
+        "faturamento": 1106732.1800000002
       },
       "205318204": {
         "pedidos": 164,
@@ -2100,6 +2100,32 @@
         "nome": "Lina Fernandes",
         "tipoPessoa": "F",
         "numeroDocumento": "139.215.968-74"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25596766285,
+      "numero": 4981,
+      "numeroLoja": "4833",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 131.27,
+      "contato": {
+        "id": 18085176965,
+        "nome": "Taís Carneiro",
+        "tipoPessoa": "F",
+        "numeroDocumento": "010.173.455-70"
       },
       "situacao": {
         "id": 9,
