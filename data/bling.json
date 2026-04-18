@@ -1,38 +1,38 @@
 {
   "meta": {
     "version": "5.1",
-    "collectedAt": "2026-04-18T16:06:35.589Z",
+    "collectedAt": "2026-04-18T18:03:45.698Z",
     "mode": "incremental",
     "counts": {
-      "pedidos": 5032,
+      "pedidos": 5036,
       "produtos": 18,
       "contasPagar": 309,
       "contasReceber": 1000
     }
   },
   "stats": {
-    "totalPedidos": 5032,
-    "faturamentoTotal": 1217171.219999997,
-    "ticketMedio": 241.88617249602484,
+    "totalPedidos": 5036,
+    "faturamentoTotal": 1217756.8799999969,
+    "ticketMedio": 241.81034154090486,
     "periodo7d": {
-      "pedidos": 305,
-      "faturamento": 54271.28000000006,
-      "ticketMedio": 177.93862295081985
+      "pedidos": 310,
+      "faturamento": 54968.02000000005,
+      "ticketMedio": 177.31619354838725
     },
     "periodo30d": {
-      "pedidos": 965,
-      "faturamento": 167830.19999999992,
-      "ticketMedio": 173.91730569948177
+      "pedidos": 970,
+      "faturamento": 168526.93999999992,
+      "ticketMedio": 173.73911340206178
     },
     "periodo90d": {
-      "pedidos": 2291,
-      "faturamento": 409424.519999997,
-      "ticketMedio": 178.7099607158433
+      "pedidos": 2296,
+      "faturamento": 410121.2599999969,
+      "ticketMedio": 178.62424216027742
     },
     "porData": {
       "2026-04-18": {
-        "pedidos": 11,
-        "faturamento": 2229.1
+        "pedidos": 15,
+        "faturamento": 2814.76
       },
       "2026-04-17": {
         "pedidos": 64,
@@ -1933,8 +1933,8 @@
     },
     "porMes": {
       "2026-04": {
-        "pedidos": 661,
-        "faturamento": 116544.04999999999
+        "pedidos": 665,
+        "faturamento": 117129.70999999998
       },
       "2026-03": {
         "pedidos": 777,
@@ -2015,14 +2015,14 @@
         "faturamento": 749803.5299999994
       },
       "2026": {
-        "pedidos": 2489,
-        "faturamento": 451166.71999999665
+        "pedidos": 2493,
+        "faturamento": 451752.3799999966
       }
     },
     "porCanal": {
       "205193054": {
-        "pedidos": 4522,
-        "faturamento": 1108020.5
+        "pedidos": 4526,
+        "faturamento": 1108606.16
       },
       "205318204": {
         "pedidos": 164,
@@ -2310,8 +2310,8 @@
         "numeroDocumento": "529.569.541-72"
       },
       "situacao": {
-        "id": 6,
-        "valor": 0
+        "id": 9,
+        "valor": 1
       },
       "loja": {
         "id": 206009082,
@@ -2343,6 +2343,110 @@
         "id": 205988658,
         "unidadeNegocio": {
           "id": 2768035
+        }
+      }
+    },
+    {
+      "id": 25599286569,
+      "numero": 4993,
+      "numeroLoja": "4842",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 152,
+      "total": 165.41,
+      "contato": {
+        "id": 18085799482,
+        "nome": "Oswaldo Rodrigues Malta Júnior",
+        "tipoPessoa": "F",
+        "numeroDocumento": "098.566.776-10"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25599053625,
+      "numero": 4992,
+      "numeroLoja": "4841",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 169,
+      "total": 164.78,
+      "contato": {
+        "id": 17257071479,
+        "nome": "Marjorie Lins",
+        "tipoPessoa": "F",
+        "numeroDocumento": "198.910.324-34"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25598957626,
+      "numero": 4991,
+      "numeroLoja": "4840",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 130.65,
+      "contato": {
+        "id": 18085695676,
+        "nome": "Maria Theresa r nobre",
+        "tipoPessoa": "F",
+        "numeroDocumento": "055.046.313-51"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25598925728,
+      "numero": 4990,
+      "numeroLoja": "4839",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 124.82,
+      "contato": {
+        "id": 18085686472,
+        "nome": "Catarina Garcia",
+        "tipoPessoa": "F",
+        "numeroDocumento": "054.171.455-48"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
         }
       }
     },
