@@ -1,38 +1,42 @@
 {
   "meta": {
     "version": "5.1",
-    "collectedAt": "2026-04-17T23:10:52.414Z",
-    "mode": "full",
+    "collectedAt": "2026-04-18T05:27:23.096Z",
+    "mode": "incremental",
     "counts": {
-      "pedidos": 5014,
+      "pedidos": 5023,
       "produtos": 18,
       "contasPagar": 309,
       "contasReceber": 1000
     }
   },
   "stats": {
-    "totalPedidos": 5014,
-    "faturamentoTotal": 1213906.0999999968,
-    "ticketMedio": 242.10333067411185,
+    "totalPedidos": 5023,
+    "faturamentoTotal": 1215194.5299999972,
+    "ticketMedio": 241.92604618753677,
     "periodo7d": {
-      "pedidos": 313,
-      "faturamento": 56073.26000000004,
-      "ticketMedio": 179.14779552715666
+      "pedidos": 297,
+      "faturamento": 52405.67000000004,
+      "ticketMedio": 176.45006734006748
     },
     "periodo30d": {
-      "pedidos": 968,
-      "faturamento": 168447.4499999999,
-      "ticketMedio": 174.01596074380154
+      "pedidos": 957,
+      "faturamento": 165964.58999999988,
+      "ticketMedio": 173.4217241379309
     },
     "periodo90d": {
-      "pedidos": 2278,
-      "faturamento": 407040.3099999969,
-      "ticketMedio": 178.68319139596002
+      "pedidos": 2283,
+      "faturamento": 407558.9099999969,
+      "ticketMedio": 178.51901445466356
     },
     "porData": {
+      "2026-04-18": {
+        "pedidos": 2,
+        "faturamento": 252.41
+      },
       "2026-04-17": {
-        "pedidos": 57,
-        "faturamento": 9350.99
+        "pedidos": 64,
+        "faturamento": 10387.01
       },
       "2026-04-16": {
         "pedidos": 84,
@@ -1929,8 +1933,8 @@
     },
     "porMes": {
       "2026-04": {
-        "pedidos": 643,
-        "faturamento": 113278.93
+        "pedidos": 652,
+        "faturamento": 114567.36000000002
       },
       "2026-03": {
         "pedidos": 777,
@@ -2011,14 +2015,14 @@
         "faturamento": 749803.5299999994
       },
       "2026": {
-        "pedidos": 2471,
-        "faturamento": 447901.5999999968
+        "pedidos": 2480,
+        "faturamento": 449190.0299999968
       }
     },
     "porCanal": {
       "205193054": {
-        "pedidos": 4509,
-        "faturamento": 1105599.5699999998
+        "pedidos": 4516,
+        "faturamento": 1106600.9100000001
       },
       "205318204": {
         "pedidos": 164,
@@ -2037,8 +2041,8 @@
         "faturamento": 177.27
       },
       "205988658": {
-        "pedidos": 115,
-        "faturamento": 22070.18
+        "pedidos": 117,
+        "faturamento": 22357.270000000004
       },
       "206009082": {
         "pedidos": 36,
@@ -2056,6 +2060,58 @@
     "somaContasReceber": 241106.2599999998
   },
   "pedidos": [
+    {
+      "id": 25596499631,
+      "numero": 4980,
+      "numeroLoja": "4832",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 125.63,
+      "contato": {
+        "id": 18085126604,
+        "nome": "Ana Elisa DE MELO BEZERRA",
+        "tipoPessoa": "F",
+        "numeroDocumento": "773.419.533-49"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25596334558,
+      "numero": 4979,
+      "numeroLoja": "4831",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 119,
+      "total": 126.78,
+      "contato": {
+        "id": 18085069554,
+        "nome": "Lina Fernandes",
+        "tipoPessoa": "F",
+        "numeroDocumento": "139.215.968-74"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
     {
       "id": 25595548060,
       "numero": 4971,
@@ -3526,6 +3582,188 @@
         "nome": "Belkys Lane",
         "tipoPessoa": "F",
         "numeroDocumento": "150.657.648-67"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25595871297,
+      "numero": 4978,
+      "numeroLoja": "160365511",
+      "data": "2026-04-17",
+      "dataSaida": "2026-04-17",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 138.26,
+      "contato": {
+        "id": 18084879532,
+        "nome": "Fernanda Cabral",
+        "tipoPessoa": "F",
+        "numeroDocumento": "324.167.068-61"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205988658,
+        "unidadeNegocio": {
+          "id": 2768035
+        }
+      }
+    },
+    {
+      "id": 25595856353,
+      "numero": 4977,
+      "numeroLoja": "4828",
+      "data": "2026-04-17",
+      "dataSaida": "2026-04-17",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 238,
+      "total": 222.2,
+      "contato": {
+        "id": 18084873747,
+        "nome": "Michelle Moraes",
+        "tipoPessoa": "F",
+        "numeroDocumento": "217.723.318-64"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25595757863,
+      "numero": 4976,
+      "numeroLoja": "4827",
+      "data": "2026-04-17",
+      "dataSaida": "2026-04-17",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 142.55,
+      "contato": {
+        "id": 18084833685,
+        "nome": "Thaina Formigoni",
+        "tipoPessoa": "F",
+        "numeroDocumento": "099.974.259-01"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25595755031,
+      "numero": 4975,
+      "numeroLoja": "4826",
+      "data": "2026-04-17",
+      "dataSaida": "2026-04-17",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 137,
+      "contato": {
+        "id": 18084832598,
+        "nome": "Rosemarie Canevazzi",
+        "tipoPessoa": "F",
+        "numeroDocumento": "042.279.208-09"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25595729999,
+      "numero": 4974,
+      "numeroLoja": "160363360",
+      "data": "2026-04-17",
+      "dataSaida": "2026-04-17",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 148.83,
+      "contato": {
+        "id": 18084822486,
+        "nome": "Thaia Cristina Teixeira",
+        "tipoPessoa": "F",
+        "numeroDocumento": "143.321.197-11"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205988658,
+        "unidadeNegocio": {
+          "id": 2768035
+        }
+      }
+    },
+    {
+      "id": 25595671833,
+      "numero": 4973,
+      "numeroLoja": "4825",
+      "data": "2026-04-17",
+      "dataSaida": "2026-04-17",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 123.59,
+      "contato": {
+        "id": 18084799954,
+        "nome": "Thyemi Hirata",
+        "tipoPessoa": "F",
+        "numeroDocumento": "061.612.069-94"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25595644930,
+      "numero": 4972,
+      "numeroLoja": "4824",
+      "data": "2026-04-17",
+      "dataSaida": "2026-04-17",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 129,
+      "total": 123.59,
+      "contato": {
+        "id": 18084789798,
+        "nome": "Vanessa Romão",
+        "tipoPessoa": "F",
+        "numeroDocumento": "090.790.499-80"
       },
       "situacao": {
         "id": 9,
