@@ -1,38 +1,38 @@
 {
   "meta": {
     "version": "5.1",
-    "collectedAt": "2026-04-18T12:01:13.685Z",
+    "collectedAt": "2026-04-18T14:27:30.447Z",
     "mode": "incremental",
     "counts": {
-      "pedidos": 5029,
+      "pedidos": 5030,
       "produtos": 18,
       "contasPagar": 309,
       "contasReceber": 1000
     }
   },
   "stats": {
-    "totalPedidos": 5029,
-    "faturamentoTotal": 1216483.189999997,
-    "ticketMedio": 241.89365480214693,
+    "totalPedidos": 5030,
+    "faturamentoTotal": 1216731.189999997,
+    "ticketMedio": 241.89486878727573,
     "periodo7d": {
-      "pedidos": 303,
-      "faturamento": 53694.33000000005,
-      "ticketMedio": 177.20900990099028
+      "pedidos": 304,
+      "faturamento": 53942.33000000005,
+      "ticketMedio": 177.44187500000018
     },
     "periodo30d": {
-      "pedidos": 963,
-      "faturamento": 167253.2499999999,
-      "ticketMedio": 173.6793873312564
+      "pedidos": 964,
+      "faturamento": 167501.2499999999,
+      "ticketMedio": 173.75648340248952
     },
     "periodo90d": {
-      "pedidos": 2289,
-      "faturamento": 408847.56999999704,
-      "ticketMedio": 178.61405417212626
+      "pedidos": 2290,
+      "faturamento": 409095.56999999704,
+      "ticketMedio": 178.6443537117891
     },
     "porData": {
       "2026-04-18": {
-        "pedidos": 8,
-        "faturamento": 1541.0700000000002
+        "pedidos": 9,
+        "faturamento": 1789.0700000000002
       },
       "2026-04-17": {
         "pedidos": 64,
@@ -1933,8 +1933,8 @@
     },
     "porMes": {
       "2026-04": {
-        "pedidos": 658,
-        "faturamento": 115856.01999999999
+        "pedidos": 659,
+        "faturamento": 116104.01999999999
       },
       "2026-03": {
         "pedidos": 777,
@@ -2015,14 +2015,14 @@
         "faturamento": 749803.5299999994
       },
       "2026": {
-        "pedidos": 2486,
-        "faturamento": 450478.68999999674
+        "pedidos": 2487,
+        "faturamento": 450726.6899999967
       }
     },
     "porCanal": {
       "205193054": {
-        "pedidos": 4521,
-        "faturamento": 1107772.5000000002
+        "pedidos": 4522,
+        "faturamento": 1108020.5
       },
       "205318204": {
         "pedidos": 164,
@@ -2256,6 +2256,32 @@
         "nome": "Luciana nogueira Ursulino",
         "tipoPessoa": "F",
         "numeroDocumento": "004.131.956-78"
+      },
+      "situacao": {
+        "id": 9,
+        "valor": 1
+      },
+      "loja": {
+        "id": 205193054,
+        "unidadeNegocio": {
+          "id": 2152033
+        }
+      }
+    },
+    {
+      "id": 25597487457,
+      "numero": 4987,
+      "numeroLoja": "4838",
+      "data": "2026-04-18",
+      "dataSaida": "2026-04-18",
+      "dataPrevista": "0000-00-00",
+      "totalProdutos": 298,
+      "total": 248,
+      "contato": {
+        "id": 18085343127,
+        "nome": "Deiva Sanches",
+        "tipoPessoa": "F",
+        "numeroDocumento": "008.339.707-80"
       },
       "situacao": {
         "id": 9,
