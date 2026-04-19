@@ -2,7 +2,7 @@ name: Update Meta Ads Data
 
 on:
   schedule:
-    # A cada 25 min, offset diferente do Bling (para não rodar simultâneos)
+    # A cada 25 min, offset diferente do Bling
     - cron: '13,38,3 * * * *'
   workflow_dispatch:
     inputs:
@@ -19,10 +19,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: update-meta-data
+  cancel-in-progress: false
+
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repositorio
@@ -41,16 +45,14 @@ jobs:
 
           if [ "$MANUAL_MODE" = "full" ] || [ "$MANUAL_MODE" = "incremental" ]; then
             MODE="$MANUAL_MODE"
-            echo "Modo manual: $MODE"
           elif [ "$HOUR_UTC" = "11" ] || [ "$HOUR_UTC" = "23" ]; then
-            # 08:00 e 20:00 BRT = coleta completa (180d)
             MODE="full"
           else
             MODE="incremental"
           fi
 
           echo "mode=$MODE" >> $GITHUB_OUTPUT
-          echo "Modo escolhido: $MODE"
+          echo "Modo: $MODE"
 
       - name: Executar coletor Meta Ads
         env:
@@ -61,16 +63,39 @@ jobs:
           COLLECT_MODE: ${{ steps.mode.outputs.mode }}
         run: node collect-meta.js
 
-      - name: Commit e push dos dados Meta
+      - name: Commit e push dos dados Meta (com pull+retry)
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/meta.json 2>/dev/null || true
-          if git diff --staged --quiet; then
-            echo "Nenhuma mudanca nos dados Meta"
-          else
+
+          for attempt in 1 2 3; do
+            echo "=== Tentativa $attempt ==="
+
+            git add data/meta.json 2>/dev/null || true
+            git add data/meta_creatives_cache.json 2>/dev/null || true
+
+            if git diff --staged --quiet; then
+              echo "Nenhuma mudanca nos dados Meta"
+              exit 0
+            fi
+
             MODE="${{ steps.mode.outputs.mode }}"
-            git commit -m "chore: atualizar dados Meta Ads ($MODE) [skip ci]"
-            git push
-          fi
+            git commit -m "chore: atualizar dados Meta Ads ($MODE) [skip ci]" || echo "Nada a commitar"
+
+            echo "Puxando mudancas remotas..."
+            if git pull --rebase origin main; then
+              if git push origin main; then
+                echo "Push OK na tentativa $attempt"
+                exit 0
+              else
+                sleep 5
+              fi
+            else
+              git rebase --abort 2>/dev/null || true
+              sleep 5
+            fi
+          done
+
+          echo "❌ Falha ao commitar após 3 tentativas"
+          exit 1
