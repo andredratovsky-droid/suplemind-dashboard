@@ -77,27 +77,17 @@ async function main() {
 
   if (!todosExistem) {
     console.log('');
-    console.log('⚠️  Faltam Secrets. Crie-os em Settings → Secrets → Actions e rode de novo.');
+    console.log('⚠️  Faltam Secrets.');
     process.exit(1);
   }
 
   console.log('');
-  if (META_APP_ID.match(/^[0-9]+$/)) {
-    console.log('   ✅ App ID formato válido (numérico)');
-  } else {
-    console.log('   ⚠️  App ID formato inesperado (não puramente numérico)');
-  }
-
-  if (META_SYSTEM_USER_TOKEN.length < 50) {
-    console.log('   ⚠️  Token parece curto (< 50 chars) — talvez truncado ou inválido');
-  } else if (META_SYSTEM_USER_TOKEN.startsWith('EAA')) {
-    console.log('   ✅ Token começa com "EAA" (formato Facebook OK)');
-  } else {
-    console.log('   ℹ️  Token não começa com "EAA" (normal para alguns tipos de token)');
-  }
+  if (META_APP_ID.match(/^[0-9]+$/)) console.log('   ✅ App ID formato válido');
+  if (META_SYSTEM_USER_TOKEN.length < 50) console.log('   ⚠️  Token parece curto');
+  else if (META_SYSTEM_USER_TOKEN.startsWith('EAA')) console.log('   ✅ Token começa com "EAA"');
 
   const adAccounts = META_AD_ACCOUNT_IDS.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-  console.log('   ℹ️  Ad Accounts parseadas: ' + adAccounts.length + ' → [' + adAccounts.join(', ') + ']');
+  console.log('   ℹ️  Ad Accounts: ' + adAccounts.length + ' → [' + adAccounts.join(', ') + ']');
 
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -108,7 +98,7 @@ async function main() {
   if (meResp.status === 200) {
     const me = safeParse(meResp.body);
     console.log('   ✅ Token válido');
-    console.log('   ℹ️  ID do usuário/app: ' + (me.id || '?'));
+    console.log('   ℹ️  ID: ' + (me.id || '?'));
     if (me.name) console.log('   ℹ️  Nome: ' + me.name);
   } else {
     const err = safeParse(meResp.body);
@@ -116,7 +106,7 @@ async function main() {
     if (err.error) {
       console.log('      Tipo: ' + err.error.type);
       console.log('      Mensagem: ' + err.error.message);
-      if (err.error.code === 190) console.log('      → Código 190 = token expirado ou revogado');
+      if (err.error.code === 190) console.log('      → Código 190 = token expirado/revogado');
     }
     process.exit(1);
   }
@@ -136,32 +126,29 @@ async function main() {
     const dbg = safeParse(debugResp.body);
     const d = dbg.data || {};
     console.log('   ✅ Debug realizado');
-    console.log('   ℹ️  Token válido?: ' + (d.is_valid ? '✅ sim' : '❌ não'));
+    console.log('   ℹ️  Válido?: ' + (d.is_valid ? '✅ sim' : '❌ não'));
     console.log('   ℹ️  Tipo: ' + (d.type || '?'));
     console.log('   ℹ️  App ID no token: ' + (d.app_id || '?'));
     if (String(d.app_id) !== META_APP_ID) {
-      console.log('      ⚠️  App ID do token (' + d.app_id + ') ≠ META_APP_ID (' + META_APP_ID + ')');
+      console.log('      ⚠️  App ID não bate!');
     } else {
       console.log('      ✅ App ID bate com META_APP_ID');
     }
     if (d.expires_at === 0 || !d.expires_at) {
-      console.log('   ✅ Token PERMANENTE (System User token — não expira)');
+      console.log('   ✅ Token PERMANENTE (System User token)');
     } else {
       const expDate = new Date(d.expires_at * 1000);
-      const hoje = new Date();
-      const diasRestantes = Math.round((expDate - hoje) / 86400000);
-      console.log('   ⚠️  Token expira em ' + expDate.toISOString() + ' (' + diasRestantes + ' dias)');
+      const dias = Math.round((expDate - new Date()) / 86400000);
+      console.log('   ⚠️  Token expira em ' + expDate.toISOString() + ' (' + dias + ' dias)');
     }
     if (d.scopes && d.scopes.length > 0) {
       console.log('   ℹ️  Escopos: ' + d.scopes.join(', '));
       if (d.scopes.indexOf('ads_read') !== -1) console.log('      ✅ ads_read presente');
       else console.log('      ❌ ads_read AUSENTE');
-      if (d.scopes.indexOf('ads_management') !== -1) {
-        console.log('      ⚠️  ads_management presente — BI não precisa disso');
-      }
+      if (d.scopes.indexOf('ads_management') !== -1) console.log('      ⚠️  ads_management presente (BI não precisa)');
     }
   } else {
-    console.log('   ⚠️  Falha no debug_token (HTTP ' + debugResp.status + ')');
+    console.log('   ⚠️  Falha debug_token (HTTP ' + debugResp.status + ')');
     const err = safeParse(debugResp.body);
     if (err.error) console.log('      Erro: ' + err.error.message);
   }
@@ -173,7 +160,7 @@ async function main() {
 
   for (const accId of adAccounts) {
     const path = '/' + GRAPH_API_VERSION + '/act_' + accId +
-      '?fields=name,currency,account_status,timezone_name,amount_spent' +
+      '?fields=name,currency,account_status,timezone_name' +
       '&access_token=' + encodeURIComponent(META_SYSTEM_USER_TOKEN);
     const resp = await httpsGet(path);
     if (resp.status === 200) {
@@ -186,31 +173,30 @@ async function main() {
     } else {
       const err = safeParse(resp.body);
       console.log('   ❌ act_' + accId + ' — HTTP ' + resp.status);
-      if (err.error) console.log('      Erro: ' + err.error.message);
+      if (err.error) console.log('      ' + err.error.message);
     }
   }
 
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('5️⃣  TESTE DE INSIGHTS — spend dos últimos 7 dias');
+  console.log('5️⃣  TESTE DE INSIGHTS (últimos 7 dias)');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
   for (const accId of adAccounts) {
     const path = '/' + GRAPH_API_VERSION + '/act_' + accId + '/insights' +
-      '?fields=spend,impressions,clicks' +
-      '&date_preset=last_7d' +
+      '?fields=spend,impressions,clicks&date_preset=last_7d' +
       '&access_token=' + encodeURIComponent(META_SYSTEM_USER_TOKEN);
     const resp = await httpsGet(path);
     if (resp.status === 200) {
       const data = safeParse(resp.body);
-      const insights = (data.data && data.data[0]) || {};
-      console.log('   ✅ act_' + accId + ' (últimos 7d)');
-      console.log('      Spend: ' + (insights.spend || '0'));
-      console.log('      Impressions: ' + (insights.impressions || '0'));
-      console.log('      Clicks: ' + (insights.clicks || '0'));
+      const ins = (data.data && data.data[0]) || {};
+      console.log('   ✅ act_' + accId + ' (7d)');
+      console.log('      Spend: ' + (ins.spend || '0'));
+      console.log('      Impressions: ' + (ins.impressions || '0'));
+      console.log('      Clicks: ' + (ins.clicks || '0'));
     } else {
       const err = safeParse(resp.body);
-      console.log('   ❌ act_' + accId + ' — HTTP ' + resp.status);
+      console.log('   ❌ act_' + accId + ' — ' + resp.status);
       if (err.error) console.log('      ' + err.error.message);
     }
   }
