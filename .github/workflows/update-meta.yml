@@ -1,0 +1,76 @@
+name: Update Meta Ads Data
+
+on:
+  schedule:
+    # A cada 25 min, offset diferente do Bling (para não rodar simultâneos)
+    - cron: '13,38,3 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Modo de coleta'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - full
+          - incremental
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Determinar modo de coleta
+        id: mode
+        run: |
+          HOUR_UTC=$(date -u +%H)
+          MANUAL_MODE="${{ github.event.inputs.mode }}"
+
+          if [ "$MANUAL_MODE" = "full" ] || [ "$MANUAL_MODE" = "incremental" ]; then
+            MODE="$MANUAL_MODE"
+            echo "Modo manual: $MODE"
+          elif [ "$HOUR_UTC" = "11" ] || [ "$HOUR_UTC" = "23" ]; then
+            # 08:00 e 20:00 BRT = coleta completa (180d)
+            MODE="full"
+          else
+            MODE="incremental"
+          fi
+
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+          echo "Modo escolhido: $MODE"
+
+      - name: Executar coletor Meta Ads
+        env:
+          META_APP_ID: ${{ secrets.META_APP_ID }}
+          META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+          META_SYSTEM_USER_TOKEN: ${{ secrets.META_SYSTEM_USER_TOKEN }}
+          META_AD_ACCOUNT_IDS: ${{ secrets.META_AD_ACCOUNT_IDS }}
+          COLLECT_MODE: ${{ steps.mode.outputs.mode }}
+        run: node collect-meta.js
+
+      - name: Commit e push dos dados Meta
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/meta.json 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "Nenhuma mudanca nos dados Meta"
+          else
+            MODE="${{ steps.mode.outputs.mode }}"
+            git commit -m "chore: atualizar dados Meta Ads ($MODE) [skip ci]"
+            git push
+          fi
