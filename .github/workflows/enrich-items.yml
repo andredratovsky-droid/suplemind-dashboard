@@ -1,0 +1,79 @@
+name: Enrich NFe Items
+
+# Roda sob demanda (manual) ou uma vez por noite até terminar
+# A cada execução pega ~2500 NFes (15 min de processamento)
+# Depois de 3 runs, todas as ~6200 NFes estarão com itens
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_minutes:
+        description: 'Tempo máximo (minutos)'
+        required: false
+        default: '15'
+        type: string
+
+  # Roda às 3h BRT (6h UTC) todo dia até não ter mais o que processar
+  schedule:
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: enrich-items
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Executar enrichment
+        env:
+          BLING_CLIENT_ID: ${{ secrets.BLING_CLIENT_ID }}
+          BLING_CLIENT_SECRET: ${{ secrets.BLING_CLIENT_SECRET }}
+          BLING_REFRESH_TOKEN: ${{ secrets.BLING_REFRESH_TOKEN }}
+          MAX_MINUTES: ${{ github.event.inputs.max_minutes || '15' }}
+        run: node enrich-items.js
+
+      - name: Atualizar BLING_REFRESH_TOKEN
+        if: always() && hashFiles('.bling_refresh_token') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          NEW_TOKEN=$(cat .bling_refresh_token)
+          if [ -n "$NEW_TOKEN" ]; then
+            echo "$NEW_TOKEN" | gh secret set BLING_REFRESH_TOKEN --repo ${{ github.repository }}
+            echo "Token atualizado"
+          fi
+          rm -f .bling_refresh_token
+
+      - name: Commit do cache enriquecido
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          for attempt in 1 2 3; do
+            git add data/nfes_cache.json 2>/dev/null || true
+            if git diff --staged --quiet; then
+              echo "Sem mudanças"
+              exit 0
+            fi
+            git commit -m "chore: enriquecer itens NFes [skip ci]" || true
+            if git pull --rebase origin main && git push origin main; then
+              echo "Push OK"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Falha no push"
+          exit 1
