@@ -1,10 +1,13 @@
-// collect-meta.js v2.1 — Coletor Meta Ads (Graph API v23.0)
+// collect-meta.js v2.2 — Versão SLIM (target: <15 MB em meta.json)
 //
-// Fixes vs v2.0:
-//   - Níveis adset/ad: quebra janela grande em sub-janelas de 30d (evita HTTP 500)
-//   - Retry com backoff em erros 5xx (transitórios)
-//   - Fallback gracioso: se um nível falhar, continua com os outros
-//   - Limite de paginação para evitar loop infinito
+// Mudanças vs v2.1:
+//   - Campos brutos (actions, action_values, unique_actions, etc) REMOVIDOS após extração
+//   - Nomes curtos nos insights (sp=spend, pv=purchaseValue, vp=videoPlays, etc)
+//   - JSON compacto (sem pretty-print)
+//   - Corrigido bug: campaign_name agora é coletado corretamente
+//   - Corrigido bug: ad_name agora é coletado corretamente
+//   - Campos de ranking só incluídos se presentes (economiza nulls)
+//   - Criativos: só URLs/IDs essenciais (remove body texts muito longos)
 
 const fs = require('fs');
 const path = require('path');
@@ -26,15 +29,13 @@ const META_AD_ACCOUNT_IDS = process.env.META_AD_ACCOUNT_IDS || '';
 const GRAPH_API_VERSION = 'v23.0';
 const GRAPH_HOST = 'graph.facebook.com';
 const RATE_LIMIT_MS = 300;
-const MAX_PAGES_PER_QUERY = 30;  // teto de páginas por request (evita loop)
+const MAX_PAGES_PER_QUERY = 30;
 
 const DAYS_FULL = 180;
 const DAYS_AD_LEVEL = 30;
 const DAYS_INCREMENTAL = 3;
 const DAYS_BREAKDOWN = 30;
-
-// Janelas menores para níveis granulares (evita HTTP 500 no Meta)
-const CHUNK_DAYS_GRANULAR = 30;  // adset/ad: 180d → 6 chunks de 30d
+const CHUNK_DAYS_GRANULAR = 30;
 
 const ACCOUNT_ALIASES = {
   '929553552297011': 'Principal',
@@ -44,32 +45,42 @@ const ACCOUNT_ALIASES = {
 // ============================================================
 // CAMPOS
 // ============================================================
+// Campos base: inclui campaign_name, ad_name, adset_name (CORREÇÃO DE BUG)
+// quality_ranking etc: só em nível ad
 const INSIGHT_FIELDS_BASE = [
   'spend', 'impressions', 'clicks', 'ctr', 'cpc', 'cpm', 'cpp', 'reach', 'frequency',
   'inline_link_clicks', 'outbound_clicks', 'unique_clicks', 'unique_ctr',
-  'unique_inline_link_clicks', 'unique_link_clicks_ctr',
-  'cost_per_inline_link_click', 'cost_per_outbound_click',
-  'cost_per_unique_click', 'cost_per_unique_inline_link_click',
+  'unique_inline_link_clicks',
   'actions', 'action_values', 'unique_actions',
-  'cost_per_action_type', 'cost_per_unique_action_type',
-  'conversions', 'conversion_values',
   'inline_post_engagement', 'social_spend',
   'video_play_actions', 'video_thruplay_watched_actions',
   'video_p25_watched_actions', 'video_p50_watched_actions',
   'video_p75_watched_actions', 'video_p100_watched_actions',
-  'video_avg_time_watched_actions', 'cost_per_thruplay',
-  'quality_ranking', 'engagement_rate_ranking', 'conversion_rate_ranking'
+  // Nomes (bug fix da v2.1)
+  'campaign_id', 'campaign_name',
+  'adset_id', 'adset_name',
+  'ad_id', 'ad_name',
+  'account_name',
+  'objective',
+  'quality_ranking', 'engagement_rate_ranking', 'conversion_rate_ranking',
+  'date_start', 'date_stop'
 ].join(',');
 
 const INSIGHT_FIELDS_ACCOUNT = INSIGHT_FIELDS_BASE
   .split(',')
-  .filter(function (f) { return !['quality_ranking', 'engagement_rate_ranking', 'conversion_rate_ranking'].includes(f); })
+  .filter(function (f) {
+    return !['quality_ranking', 'engagement_rate_ranking', 'conversion_rate_ranking'].includes(f);
+  })
   .join(',');
 
-// Conjunto reduzido de campos (fallback quando HTTP 500 mesmo em sub-janelas)
 const INSIGHT_FIELDS_MINIMAL = [
-  'spend', 'impressions', 'clicks', 'ctr', 'reach',
-  'actions', 'action_values', 'inline_link_clicks'
+  'spend', 'impressions', 'clicks', 'reach',
+  'actions', 'action_values',
+  'inline_link_clicks',
+  'campaign_id', 'campaign_name',
+  'adset_id', 'adset_name',
+  'ad_id', 'ad_name',
+  'date_start', 'date_stop'
 ].join(',');
 
 // ============================================================
@@ -78,9 +89,7 @@ const INSIGHT_FIELDS_MINIMAL = [
 function httpsGet(pathWithQuery) {
   return new Promise(function (resolve, reject) {
     const req = https.request({
-      hostname: GRAPH_HOST,
-      path: pathWithQuery,
-      method: 'GET',
+      hostname: GRAPH_HOST, path: pathWithQuery, method: 'GET',
       headers: { 'Accept': 'application/json' }
     }, function (res) {
       let body = '';
@@ -96,7 +105,6 @@ function httpsGet(pathWithQuery) {
 function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 function safeParse(body) { try { return JSON.parse(body); } catch (e) { return { _raw: body }; } }
 
-// graphGet com retry automático em 5xx e rate limit
 function graphGet(endpoint, queryParams, retryCount) {
   retryCount = retryCount || 0;
   const qs = new URLSearchParams(queryParams || {});
@@ -109,26 +117,23 @@ function graphGet(endpoint, queryParams, retryCount) {
     const err = safeParse(resp.body);
     const errObj = err.error || {};
 
-    // Rate limit
     if (errObj.code === 17 || errObj.code === 613 || errObj.code === 4 || resp.status === 429) {
-      if (retryCount >= 3) throw new Error('Rate limit persistente após 3 tentativas');
-      console.log('  ⏳ Rate limit (tentativa ' + (retryCount + 1) + '/3), aguardando 60s...');
+      if (retryCount >= 3) throw new Error('Rate limit persistente');
+      console.log('  ⏳ Rate limit (tent ' + (retryCount + 1) + '/3), 60s...');
       return sleep(60000).then(function () { return graphGet(endpoint, queryParams, retryCount + 1); });
     }
 
-    // Breakdown não suportado: retorna vazio
     if (errObj.code === 100 && errObj.message && errObj.message.indexOf('breakdown') !== -1) {
-      console.log('  ⚠️  Breakdown não suportado neste nível, pulando');
+      console.log('  ⚠️  Breakdown não suportado');
       return { data: [] };
     }
 
-    // HTTP 500/502/503 — transitório, retry com backoff
     if (resp.status >= 500 && resp.status < 600) {
       if (retryCount >= 2) {
-        throw new Error('Graph ' + endpoint + ' HTTP ' + resp.status + ' persistente após 2 retries: ' + (errObj.message || ''));
+        throw new Error('Graph ' + endpoint + ' HTTP ' + resp.status + ' persistente: ' + (errObj.message || ''));
       }
       const waitMs = 5000 * (retryCount + 1);
-      console.log('  ⏳ HTTP ' + resp.status + ' (tentativa ' + (retryCount + 1) + '/2), aguardando ' + (waitMs / 1000) + 's...');
+      console.log('  ⏳ HTTP ' + resp.status + ' (tent ' + (retryCount + 1) + '/2), ' + (waitMs / 1000) + 's...');
       return sleep(waitMs).then(function () { return graphGet(endpoint, queryParams, retryCount + 1); });
     }
 
@@ -143,7 +148,7 @@ function graphPaginate(endpoint, queryParams, label) {
   function next(qParams, nextUrl) {
     pageCount += 1;
     if (pageCount > MAX_PAGES_PER_QUERY) {
-      console.log('  ⚠️  Limite ' + MAX_PAGES_PER_QUERY + ' páginas em ' + label + ', parando');
+      console.log('  ⚠️  Limite ' + MAX_PAGES_PER_QUERY + ' páginas em ' + label);
       return Promise.resolve(all);
     }
 
@@ -180,12 +185,12 @@ function graphPaginate(endpoint, queryParams, label) {
 }
 
 // ============================================================
-// Geração de sub-janelas de datas
+// Janelas
 // ============================================================
 function gerarJanelas(totalDias, chunkDias) {
   const janelas = [];
   const hoje = new Date();
-  let offsetFim = 0;  // dias a partir de hoje
+  let offsetFim = 0;
 
   while (offsetFim < totalDias) {
     const offsetInicio = Math.min(offsetFim + chunkDias, totalDias);
@@ -197,14 +202,13 @@ function gerarJanelas(totalDias, chunkDias) {
     });
     offsetFim = offsetInicio;
   }
-  return janelas.reverse();  // mais antigo primeiro
+  return janelas.reverse();
 }
 
 // ============================================================
-// coletarInsights com chunking automático
+// coletarInsights
 // ============================================================
 async function coletarInsights(accountId, level, days, breakdowns, useMinimalFields) {
-  // Decide se precisa chunkar: níveis granulares com janela > chunk
   const precisaChunkar = (level === 'adset' || level === 'ad') && days > CHUNK_DAYS_GRANULAR && !breakdowns;
   const janelas = precisaChunkar
     ? gerarJanelas(days, CHUNK_DAYS_GRANULAR)
@@ -219,7 +223,7 @@ async function coletarInsights(accountId, level, days, breakdowns, useMinimalFie
   else fields = INSIGHT_FIELDS_ACCOUNT;
 
   const bkLabel = breakdowns ? '[' + breakdowns + ']' : '';
-  const chunkLabel = precisaChunkar ? ' [' + janelas.length + ' chunks de ' + CHUNK_DAYS_GRANULAR + 'd]' : '';
+  const chunkLabel = precisaChunkar ? ' [' + janelas.length + ' chunks]' : '';
   console.log('  🔹 insights[' + level + bkLabel + '] act_' + accountId.slice(-4) + ' (' + days + 'd)' + chunkLabel);
 
   const todos = [];
@@ -245,8 +249,7 @@ async function coletarInsights(accountId, level, days, breakdowns, useMinimalFie
       todos.push.apply(todos, rows);
       if (precisaChunkar) await sleep(RATE_LIMIT_MS);
     } catch (err) {
-      console.log('    ⚠️  Chunk falhou (' + j.since + '→' + j.until + '): ' + err.message);
-      // Se falhou com campos completos, tentar com campos mínimos
+      console.log('    ⚠️  Chunk falhou: ' + err.message);
       if (!useMinimalFields) {
         console.log('    🔄 Tentando com campos mínimos...');
         try {
@@ -254,14 +257,13 @@ async function coletarInsights(accountId, level, days, breakdowns, useMinimalFie
           const rows = await graphPaginate('/act_' + accountId + '/insights', paramsMin, subLabel + ' [min]');
           todos.push.apply(todos, rows);
         } catch (err2) {
-          console.log('    ❌ Chunk falhou mesmo com campos mínimos: ' + err2.message);
-          // Continua para próximo chunk
+          console.log('    ❌ Falhou com mínimos: ' + err2.message);
         }
       }
     }
   }
 
-  console.log('    ✅ ' + level + ': ' + todos.length + ' linhas totais');
+  console.log('    ✅ ' + level + ': ' + todos.length + ' linhas');
   return todos;
 }
 
@@ -275,24 +277,22 @@ function coletarAccountMeta(accountId) {
 }
 
 function coletarCampanhas(accountId) {
-  console.log('  📋 Metadados de campanhas...');
+  console.log('  📋 Metadados campanhas...');
   return graphPaginate('/act_' + accountId + '/campaigns', {
-    fields: 'id,name,objective,status,effective_status,buying_type,special_ad_categories,created_time,start_time,stop_time,daily_budget,lifetime_budget',
+    fields: 'id,name,objective,status,effective_status,buying_type,created_time,start_time,stop_time,daily_budget,lifetime_budget',
     limit: '100'
-  }, 'campanhas act_' + accountId.slice(-4)).catch(function (err) {
-    console.log('    ⚠️  Falhou: ' + err.message);
-    return [];
+  }, 'camp act_' + accountId.slice(-4)).catch(function (err) {
+    console.log('    ⚠️  ' + err.message); return [];
   });
 }
 
 function coletarAdsets(accountId) {
-  console.log('  📋 Metadados de adsets...');
+  console.log('  📋 Metadados adsets...');
   return graphPaginate('/act_' + accountId + '/adsets', {
-    fields: 'id,name,campaign_id,status,effective_status,optimization_goal,billing_event,bid_strategy,daily_budget,lifetime_budget,attribution_spec,created_time',
+    fields: 'id,name,campaign_id,status,effective_status,optimization_goal,billing_event,bid_strategy,daily_budget,lifetime_budget,created_time',
     limit: '100'
   }, 'adsets act_' + accountId.slice(-4)).catch(function (err) {
-    console.log('    ⚠️  Falhou: ' + err.message);
-    return [];
+    console.log('    ⚠️  ' + err.message); return [];
   });
 }
 
@@ -304,73 +304,110 @@ function coletarAdsECriativos(accountId, onlyActive) {
   }
   const params = {
     fields: 'id,name,status,effective_status,adset_id,campaign_id,created_time,updated_time,' +
-            'creative{id,name,title,body,image_url,thumbnail_url,video_id,object_type,call_to_action_type,instagram_permalink_url,effective_object_story_id}',
+            'creative{id,name,thumbnail_url,video_id,object_type,call_to_action_type}',  // REMOVIDO: body, title, image_url (muito grandes)
     limit: '100'
   };
   if (filtering) params.filtering = filtering;
   return graphPaginate('/act_' + accountId + '/ads', params, 'ads act_' + accountId.slice(-4)).catch(function (err) {
-    console.log('    ⚠️  Falhou: ' + err.message);
-    return [];
+    console.log('    ⚠️  ' + err.message); return [];
   });
 }
 
 // ============================================================
-// Enriquecimento (igual v2.0)
+// EXTRATOR + SLIMMER
+// Retorna apenas o objeto slim (sem os campos brutos)
 // ============================================================
 function extractActionValue(list, types) {
   if (!list) return 0;
   let sum = 0;
-  list.forEach(function (a) {
-    if (types.indexOf(a.action_type) !== -1) sum += parseFloat(a.value) || 0;
-  });
+  for (let i = 0; i < list.length; i++) {
+    if (types.indexOf(list[i].action_type) !== -1) sum += parseFloat(list[i].value) || 0;
+  }
   return sum;
 }
 
-function enriquecerInsight(row) {
-  const enriched = Object.assign({}, row);
+const PURCHASE_ALIASES = ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase',
+                          'onsite_web_purchase', 'onsite_web_app_purchase'];
+const ADD_CART_ALIASES = ['add_to_cart', 'omni_add_to_cart', 'offsite_conversion.fb_pixel_add_to_cart'];
+const INIT_CHECKOUT_ALIASES = ['initiate_checkout', 'omni_initiated_checkout', 'offsite_conversion.fb_pixel_initiate_checkout'];
+const VIEW_CONTENT_ALIASES = ['view_content', 'omni_view_content', 'offsite_conversion.fb_pixel_view_content'];
 
-  const purchaseAliases = ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase',
-                           'onsite_web_purchase', 'onsite_web_app_purchase'];
-  const addToCartAliases = ['add_to_cart', 'omni_add_to_cart', 'offsite_conversion.fb_pixel_add_to_cart'];
-  const initCheckoutAliases = ['initiate_checkout', 'omni_initiated_checkout', 'offsite_conversion.fb_pixel_initiate_checkout'];
-  const viewContentAliases = ['view_content', 'omni_view_content', 'offsite_conversion.fb_pixel_view_content'];
+function slimInsight(row, accountId) {
+  const slim = {
+    d: row.date_start,
+    acc: accountId
+  };
 
-  enriched.purchases = extractActionValue(row.actions, purchaseAliases);
-  enriched.purchaseValue = extractActionValue(row.action_values, purchaseAliases);
-  enriched.addToCart = extractActionValue(row.actions, addToCartAliases);
-  enriched.initiatedCheckout = extractActionValue(row.actions, initCheckoutAliases);
-  enriched.viewContent = extractActionValue(row.actions, viewContentAliases);
-  enriched.uniquePurchases = extractActionValue(row.unique_actions, purchaseAliases);
+  // IDs e nomes — só se existirem
+  if (row.campaign_id) slim.cid = row.campaign_id;
+  if (row.campaign_name) slim.cnm = row.campaign_name;
+  if (row.adset_id) slim.sid = row.adset_id;
+  if (row.adset_name) slim.snm = row.adset_name;
+  if (row.ad_id) slim.aid = row.ad_id;
+  if (row.ad_name) slim.anm = row.ad_name;
+  if (row.objective) slim.obj = row.objective;
 
-  enriched.spend = parseFloat(row.spend) || 0;
-  enriched.impressions = parseInt(row.impressions) || 0;
-  enriched.clicks = parseInt(row.clicks) || 0;
-  enriched.reach = parseInt(row.reach) || 0;
-  enriched.frequency = parseFloat(row.frequency) || 0;
-  enriched.inlineLinkClicks = parseInt(row.inline_link_clicks) || 0;
-  enriched.outboundClicks = row.outbound_clicks ?
-    (row.outbound_clicks.reduce(function (s, x) { return s + (parseFloat(x.value) || 0); }, 0)) : 0;
-  enriched.uniqueClicks = parseInt(row.unique_clicks) || 0;
-  enriched.socialSpend = parseFloat(row.social_spend) || 0;
+  // Breakdowns (se presentes)
+  if (row.age) slim.age = row.age;
+  if (row.gender) slim.gnd = row.gender;
+  if (row.publisher_platform) slim.pp = row.publisher_platform;
+  if (row.platform_position) slim.pos = row.platform_position;
 
-  enriched.videoPlays = extractActionValue(row.video_play_actions, ['video_view']);
-  enriched.videoThruplay = extractActionValue(row.video_thruplay_watched_actions, ['video_view']);
-  enriched.videoP25 = extractActionValue(row.video_p25_watched_actions, ['video_view']);
-  enriched.videoP50 = extractActionValue(row.video_p50_watched_actions, ['video_view']);
-  enriched.videoP75 = extractActionValue(row.video_p75_watched_actions, ['video_view']);
-  enriched.videoP100 = extractActionValue(row.video_p100_watched_actions, ['video_view']);
+  // Métricas numéricas (arredondadas pra economizar bytes)
+  const spend = parseFloat(row.spend) || 0;
+  const impressions = parseInt(row.impressions) || 0;
+  const clicks = parseInt(row.clicks) || 0;
+  const reach = parseInt(row.reach) || 0;
+  const linkClicks = parseInt(row.inline_link_clicks) || 0;
 
-  if (row.quality_ranking) enriched.qualityRanking = row.quality_ranking;
-  if (row.engagement_rate_ranking) enriched.engagementRateRanking = row.engagement_rate_ranking;
-  if (row.conversion_rate_ranking) enriched.conversionRateRanking = row.conversion_rate_ranking;
+  if (spend > 0) slim.sp = Math.round(spend * 100) / 100;
+  if (impressions > 0) slim.im = impressions;
+  if (clicks > 0) slim.cl = clicks;
+  if (reach > 0) slim.rc = reach;
+  if (linkClicks > 0) slim.lc = linkClicks;
+  if (row.frequency) slim.fr = Math.round(parseFloat(row.frequency) * 100) / 100;
 
-  enriched.roas = enriched.spend > 0 ? enriched.purchaseValue / enriched.spend : 0;
-  enriched.cpa = enriched.purchases > 0 ? enriched.spend / enriched.purchases : 0;
-  enriched.linkCtr = enriched.impressions > 0 ? (enriched.inlineLinkClicks / enriched.impressions) * 100 : 0;
-  enriched.videoViewRate = enriched.impressions > 0 ? (enriched.videoPlays / enriched.impressions) * 100 : 0;
-  enriched.thruplayRate = enriched.videoPlays > 0 ? (enriched.videoThruplay / enriched.videoPlays) * 100 : 0;
+  // Outbound clicks (lista de ações)
+  if (row.outbound_clicks) {
+    const oc = row.outbound_clicks.reduce(function (s, x) { return s + (parseFloat(x.value) || 0); }, 0);
+    if (oc > 0) slim.oc = oc;
+  }
 
-  return enriched;
+  // Purchases + value
+  const purchases = extractActionValue(row.actions, PURCHASE_ALIASES);
+  const purchaseValue = extractActionValue(row.action_values, PURCHASE_ALIASES);
+  if (purchases > 0) slim.pu = purchases;
+  if (purchaseValue > 0) slim.pv = Math.round(purchaseValue * 100) / 100;
+
+  // Funil
+  const addToCart = extractActionValue(row.actions, ADD_CART_ALIASES);
+  const initCheckout = extractActionValue(row.actions, INIT_CHECKOUT_ALIASES);
+  const viewContent = extractActionValue(row.actions, VIEW_CONTENT_ALIASES);
+  if (addToCart > 0) slim.atc = addToCart;
+  if (initCheckout > 0) slim.ic = initCheckout;
+  if (viewContent > 0) slim.vc = viewContent;
+
+  // Vídeo
+  const videoPlays = extractActionValue(row.video_play_actions, ['video_view']);
+  const videoThruplay = extractActionValue(row.video_thruplay_watched_actions, ['video_view']);
+  const videoP25 = extractActionValue(row.video_p25_watched_actions, ['video_view']);
+  const videoP50 = extractActionValue(row.video_p50_watched_actions, ['video_view']);
+  const videoP75 = extractActionValue(row.video_p75_watched_actions, ['video_view']);
+  const videoP100 = extractActionValue(row.video_p100_watched_actions, ['video_view']);
+
+  if (videoPlays > 0) slim.vp = videoPlays;
+  if (videoThruplay > 0) slim.vtp = videoThruplay;
+  if (videoP25 > 0) slim.vp25 = videoP25;
+  if (videoP50 > 0) slim.vp50 = videoP50;
+  if (videoP75 > 0) slim.vp75 = videoP75;
+  if (videoP100 > 0) slim.vp100 = videoP100;
+
+  // Rankings (só em ad)
+  if (row.quality_ranking && row.quality_ranking !== 'UNKNOWN') slim.qr = row.quality_ranking;
+  if (row.engagement_rate_ranking && row.engagement_rate_ranking !== 'UNKNOWN') slim.err = row.engagement_rate_ranking;
+  if (row.conversion_rate_ranking && row.conversion_rate_ranking !== 'UNKNOWN') slim.crr = row.conversion_rate_ranking;
+
+  return slim;
 }
 
 // ============================================================
@@ -389,74 +426,78 @@ function carregarCacheCriativos() {
 
 function salvarCacheCriativos(cache) {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(CREATIVES_CACHE_FILE, JSON.stringify(cache));
+  fs.writeFileSync(CREATIVES_CACHE_FILE, JSON.stringify(cache));  // Compacto também
 }
 
 // ============================================================
-// Stats (igual v2.0)
+// Stats (agora usa nomes curtos: sp, pv, pu, etc)
 // ============================================================
-function computeStats(accountInsights, campaignInsights, adInsights) {
+function computeStats(accountInsights, campaignInsights, adInsights, campaignsMeta) {
   const hoje = new Date();
   const d7 = new Date(hoje.getTime() - 7 * 86400000);
   const d30 = new Date(hoje.getTime() - 30 * 86400000);
   const d90 = new Date(hoje.getTime() - 90 * 86400000);
 
+  // Mapa id→name de campanhas (fallback se insights não trouxer cnm)
+  const campNameMap = {};
+  campaignsMeta.forEach(function (c) { campNameMap[c.id] = c.name; });
+
   function aggregate(rows, desde) {
     const filtered = desde ? rows.filter(function (r) {
-      return new Date(r.date_start || 0) >= desde;
+      return new Date(r.d || 0) >= desde;
     }) : rows;
     let spend = 0, purchases = 0, purchaseValue = 0, impressions = 0, clicks = 0,
-        linkClicks = 0, addToCart = 0, initiatedCheckout = 0;
+        linkClicks = 0, addToCart = 0, initCheckout = 0;
     filtered.forEach(function (r) {
-      spend += r.spend || 0;
-      purchases += r.purchases || 0;
-      purchaseValue += r.purchaseValue || 0;
-      impressions += r.impressions || 0;
-      clicks += r.clicks || 0;
-      linkClicks += r.inlineLinkClicks || 0;
-      addToCart += r.addToCart || 0;
-      initiatedCheckout += r.initiatedCheckout || 0;
+      spend += r.sp || 0;
+      purchases += r.pu || 0;
+      purchaseValue += r.pv || 0;
+      impressions += r.im || 0;
+      clicks += r.cl || 0;
+      linkClicks += r.lc || 0;
+      addToCart += r.atc || 0;
+      initCheckout += r.ic || 0;
     });
     return {
       spend: spend, purchases: purchases, purchaseValue: purchaseValue,
       impressions: impressions, clicks: clicks, linkClicks: linkClicks,
-      addToCart: addToCart, initiatedCheckout: initiatedCheckout,
+      addToCart: addToCart, initCheckout: initCheckout,
       roas: spend > 0 ? purchaseValue / spend : 0,
       cpa: purchases > 0 ? spend / purchases : 0,
-      ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
-      linkCtr: impressions > 0 ? (linkClicks / impressions) * 100 : 0,
-      convRate: linkClicks > 0 ? (purchases / linkClicks) * 100 : 0
+      ctr: impressions > 0 ? (clicks / impressions) * 100 : 0
     };
   }
 
   const byMonth = {};
   accountInsights.forEach(function (r) {
-    const m = (r.date_start || '').slice(0, 7);
+    const m = (r.d || '').slice(0, 7);
     if (!m) return;
     if (!byMonth[m]) byMonth[m] = { spend: 0, purchases: 0, purchaseValue: 0 };
-    byMonth[m].spend += r.spend || 0;
-    byMonth[m].purchases += r.purchases || 0;
-    byMonth[m].purchaseValue += r.purchaseValue || 0;
+    byMonth[m].spend += r.sp || 0;
+    byMonth[m].purchases += r.pu || 0;
+    byMonth[m].purchaseValue += r.pv || 0;
   });
   Object.keys(byMonth).forEach(function (m) {
     byMonth[m].roas = byMonth[m].spend > 0 ? byMonth[m].purchaseValue / byMonth[m].spend : 0;
   });
 
+  // Top campanhas
   const byCampaign = {};
   campaignInsights.forEach(function (r) {
-    const id = r.campaign_id || 'unknown';
+    const id = r.cid || 'unknown';
     if (!byCampaign[id]) {
       byCampaign[id] = {
-        campaign_id: id, campaign_name: r.campaign_name || '(sem nome)',
-        account_id: r.account_id, spend: 0, purchases: 0, purchaseValue: 0,
-        impressions: 0, clicks: 0
+        campaign_id: id,
+        campaign_name: r.cnm || campNameMap[id] || '(sem nome)',
+        account_id: r.acc,
+        spend: 0, purchases: 0, purchaseValue: 0, impressions: 0, clicks: 0
       };
     }
-    byCampaign[id].spend += r.spend || 0;
-    byCampaign[id].purchases += r.purchases || 0;
-    byCampaign[id].purchaseValue += r.purchaseValue || 0;
-    byCampaign[id].impressions += r.impressions || 0;
-    byCampaign[id].clicks += r.clicks || 0;
+    byCampaign[id].spend += r.sp || 0;
+    byCampaign[id].purchases += r.pu || 0;
+    byCampaign[id].purchaseValue += r.pv || 0;
+    byCampaign[id].impressions += r.im || 0;
+    byCampaign[id].clicks += r.cl || 0;
   });
   const campArr = Object.values(byCampaign).map(function (c) {
     c.roas = c.spend > 0 ? c.purchaseValue / c.spend : 0;
@@ -466,24 +507,23 @@ function computeStats(accountInsights, campaignInsights, adInsights) {
 
   const byAd = {};
   adInsights.forEach(function (r) {
-    const id = r.ad_id || 'unknown';
+    const id = r.aid || 'unknown';
     if (!byAd[id]) {
       byAd[id] = {
-        ad_id: id, ad_name: r.ad_name || '(sem nome)',
-        campaign_id: r.campaign_id, adset_id: r.adset_id, account_id: r.account_id,
+        ad_id: id,
+        ad_name: r.anm || '(sem nome)',
+        campaign_id: r.cid, adset_id: r.sid, account_id: r.acc,
         spend: 0, purchases: 0, purchaseValue: 0, impressions: 0,
         videoPlays: 0, videoThruplay: 0,
-        qualityRanking: r.qualityRanking,
-        engagementRateRanking: r.engagementRateRanking,
-        conversionRateRanking: r.conversionRateRanking
+        qr: r.qr, err: r.err, crr: r.crr
       };
     }
-    byAd[id].spend += r.spend || 0;
-    byAd[id].purchases += r.purchases || 0;
-    byAd[id].purchaseValue += r.purchaseValue || 0;
-    byAd[id].impressions += r.impressions || 0;
-    byAd[id].videoPlays += r.videoPlays || 0;
-    byAd[id].videoThruplay += r.videoThruplay || 0;
+    byAd[id].spend += r.sp || 0;
+    byAd[id].purchases += r.pu || 0;
+    byAd[id].purchaseValue += r.pv || 0;
+    byAd[id].impressions += r.im || 0;
+    byAd[id].videoPlays += r.vp || 0;
+    byAd[id].videoThruplay += r.vtp || 0;
   });
   const adArr = Object.values(byAd).map(function (a) {
     a.roas = a.spend > 0 ? a.purchaseValue / a.spend : 0;
@@ -515,11 +555,10 @@ function computeStats(accountInsights, campaignInsights, adInsights) {
 // MAIN
 // ============================================================
 async function main() {
-  console.log('🚀 Suplemind Meta Ads Collector v2.1');
+  console.log('🚀 Suplemind Meta Ads Collector v2.2 (SLIM)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
-  console.log('   Graph API: ' + GRAPH_API_VERSION);
-  console.log('   Chunk size granular: ' + CHUNK_DAYS_GRANULAR + 'd');
+  console.log('   Target: <15 MB em meta.json');
   console.log('');
 
   if (!META_APP_ID || !META_APP_SECRET || !META_SYSTEM_USER_TOKEN || !META_AD_ACCOUNT_IDS) {
@@ -537,17 +576,32 @@ async function main() {
 
   const output = {
     meta: {
-      version: '2.1',
+      version: '2.2-slim',
       collectedAt: new Date().toISOString(),
       mode: MODE,
       graphApiVersion: GRAPH_API_VERSION,
-      windows: { main: daysMain, ad: daysAd, breakdown: daysBreakdown }
+      windows: { main: daysMain, ad: daysAd, breakdown: daysBreakdown },
+      // Legenda para ajudar a interpretar os nomes curtos no JSON
+      fieldLegend: {
+        d: 'date_start',
+        acc: 'account_id', cid: 'campaign_id', cnm: 'campaign_name',
+        sid: 'adset_id', snm: 'adset_name', aid: 'ad_id', anm: 'ad_name',
+        sp: 'spend', im: 'impressions', cl: 'clicks', rc: 'reach', fr: 'frequency',
+        lc: 'inline_link_clicks', oc: 'outbound_clicks',
+        pu: 'purchases', pv: 'purchase_value',
+        atc: 'add_to_cart', ic: 'initiate_checkout', vc: 'view_content',
+        vp: 'video_plays', vtp: 'video_thruplay',
+        vp25: 'video_p25', vp50: 'video_p50', vp75: 'video_p75', vp100: 'video_p100',
+        qr: 'quality_ranking', err: 'engagement_rate_ranking', crr: 'conversion_rate_ranking',
+        age: 'age', gnd: 'gender', pp: 'publisher_platform', pos: 'platform_position',
+        obj: 'objective'
+      }
     },
     accounts: {},
     insights: { account: [], campaign: [], adset: [], ad: [] },
     breakdowns: { byAgeGender: [], byPublisherPlatform: [], byPlatformPosition: [] },
     campaigns: [], adsets: [], ads: [], creatives: {},
-    errors: []  // NOVO: registra o que falhou
+    errors: []
   };
 
   for (const accId of accountIds) {
@@ -566,13 +620,12 @@ async function main() {
       };
       console.log('  ✅ ' + meta.name);
     } catch (err) {
-      console.log('  ❌ Metadata falhou: ' + err.message);
+      console.log('  ❌ Meta: ' + err.message);
       output.errors.push({ account: accId, step: 'metadata', error: err.message });
       continue;
     }
     await sleep(RATE_LIMIT_MS);
 
-    // Insights 4 níveis — cada um em try/catch independente
     const levels = [
       { name: 'account', days: daysMain },
       { name: 'campaign', days: daysMain },
@@ -582,16 +635,15 @@ async function main() {
     for (const lv of levels) {
       try {
         const raw = await coletarInsights(accId, lv.name, lv.days, null, false);
-        const enriched = raw.map(enriquecerInsight).map(function (r) { r.account_id = accId; return r; });
-        output.insights[lv.name].push.apply(output.insights[lv.name], enriched);
+        const slim = raw.map(function (r) { return slimInsight(r, accId); });
+        output.insights[lv.name].push.apply(output.insights[lv.name], slim);
       } catch (err) {
-        console.log('  ❌ insights[' + lv.name + '] falhou: ' + err.message);
+        console.log('  ❌ insights[' + lv.name + ']: ' + err.message);
         output.errors.push({ account: accId, step: 'insights_' + lv.name, error: err.message });
       }
       await sleep(RATE_LIMIT_MS);
     }
 
-    // Breakdowns (só full)
     if (MODE === 'full') {
       console.log('  🎯 Breakdowns (30d)...');
       const bkConfigs = [
@@ -602,9 +654,9 @@ async function main() {
       for (const bc of bkConfigs) {
         try {
           const raw = await coletarInsights(accId, 'account', daysBreakdown, bc.bk, false);
-          const enriched = raw.map(enriquecerInsight).map(function (r) { r.account_id = accId; return r; });
-          output.breakdowns[bc.name].push.apply(output.breakdowns[bc.name], enriched);
-          console.log('    ✅ ' + bc.name + ': ' + enriched.length + ' linhas');
+          const slim = raw.map(function (r) { return slimInsight(r, accId); });
+          output.breakdowns[bc.name].push.apply(output.breakdowns[bc.name], slim);
+          console.log('    ✅ ' + bc.name + ': ' + slim.length + ' linhas');
         } catch (err) {
           console.log('    ⚠️  ' + bc.name + ': ' + err.message);
           output.errors.push({ account: accId, step: 'bk_' + bc.name, error: err.message });
@@ -613,7 +665,6 @@ async function main() {
       }
     }
 
-    // Metadados
     try {
       const campaigns = await coletarCampanhas(accId);
       campaigns.forEach(function (c) { c.account_id = accId; });
@@ -634,35 +685,43 @@ async function main() {
     }
     await sleep(RATE_LIMIT_MS);
 
-    // Criativos
     if (MODE === 'full') {
       try {
         const ads = await coletarAdsECriativos(accId, true);
         ads.forEach(function (a) {
           a.account_id = accId;
-          output.ads.push(a);
+          // Slim dos ads: remover o objeto creative aninhado
+          const slimAd = {
+            id: a.id, name: a.name, status: a.effective_status,
+            adset_id: a.adset_id, campaign_id: a.campaign_id,
+            account_id: accId,
+            creative_id: a.creative ? a.creative.id : null,
+            has_video: !!(a.creative && a.creative.video_id)
+          };
+          output.ads.push(slimAd);
+
           if (a.creative) {
             output.creatives[a.id] = {
-              ad_id: a.id, creative_id: a.creative.id,
+              ad_id: a.id,
+              creative_id: a.creative.id,
               name: a.creative.name || a.name,
-              title: a.creative.title, body: a.creative.body,
-              image_url: a.creative.image_url, thumbnail_url: a.creative.thumbnail_url,
-              video_id: a.creative.video_id, object_type: a.creative.object_type,
-              call_to_action_type: a.creative.call_to_action_type,
-              instagram_permalink_url: a.creative.instagram_permalink_url,
+              thumbnail_url: a.creative.thumbnail_url,
+              video_id: a.creative.video_id || null,
+              object_type: a.creative.object_type,
+              cta: a.creative.call_to_action_type,
               collectedAt: new Date().toISOString()
             };
             creativesCache[a.id] = output.creatives[a.id];
           }
         });
-        console.log('  ✅ Ads ativos + criativos: ' + ads.length);
+        console.log('  ✅ Ads ativos: ' + ads.length);
       } catch (err) {
         output.errors.push({ account: accId, step: 'ads_criativos', error: err.message });
       }
       await sleep(RATE_LIMIT_MS);
     } else {
       Object.assign(output.creatives, creativesCache);
-      console.log('  📥 Criativos do cache: ' + Object.keys(creativesCache).length);
+      console.log('  📥 Criativos cache: ' + Object.keys(creativesCache).length);
     }
   }
 
@@ -670,10 +729,10 @@ async function main() {
 
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📊 Calculando estatísticas...');
+  console.log('📊 Stats...');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-  output.stats = computeStats(output.insights.account, output.insights.campaign, output.insights.ad);
+  output.stats = computeStats(output.insights.account, output.insights.campaign, output.insights.ad, output.campaigns);
   output.meta.counts = {
     accounts: Object.keys(output.accounts).length,
     accountInsights: output.insights.account.length,
@@ -691,17 +750,19 @@ async function main() {
   };
 
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
-  const sizeKB = (fs.statSync(DATA_FILE).size / 1024).toFixed(1);
+  // SALVAR COMPACTO (sem pretty-print!)
+  fs.writeFileSync(DATA_FILE, JSON.stringify(output));
+  const sizeMB = (fs.statSync(DATA_FILE).size / 1024 / 1024).toFixed(2);
 
   console.log('');
-  console.log('✅ Coleta Meta concluída! Arquivo: ' + sizeKB + ' KB');
+  console.log('✅ Coleta Meta v2.2 concluída!');
+  console.log('   Arquivo: ' + sizeMB + ' MB (target <15 MB)');
 
   if (output.errors.length > 0) {
     console.log('');
-    console.log('⚠️  ERROS REGISTRADOS (' + output.errors.length + '):');
+    console.log('⚠️  ERROS (' + output.errors.length + '):');
     output.errors.forEach(function (e) {
-      console.log('   [' + e.step + '] act_' + e.account.slice(-4) + ': ' + e.error.slice(0, 120));
+      console.log('   [' + e.step + '] act_' + e.account.slice(-4) + ': ' + e.error.slice(0, 100));
     });
   }
 
@@ -717,8 +778,8 @@ async function main() {
   });
 
   console.log('');
-  console.log('📊 Por mês (últimos 6):');
-  const meses = Object.keys(output.stats.byMonth).sort().slice(-6);
+  console.log('📊 Por mês:');
+  const meses = Object.keys(output.stats.byMonth).sort();
   meses.forEach(function (m) {
     const d = output.stats.byMonth[m];
     console.log('   ' + m + ': R$ ' + d.spend.toFixed(2) +
@@ -727,17 +788,15 @@ async function main() {
   });
 
   console.log('');
-  console.log('🎯 Top 3 campanhas por spend:');
-  output.stats.topCampaignsBySpend.slice(0, 3).forEach(function (c, i) {
+  console.log('🎯 Top 5 campanhas por spend:');
+  output.stats.topCampaignsBySpend.slice(0, 5).forEach(function (c, i) {
     console.log('   ' + (i + 1) + '. ' + c.campaign_name.slice(0, 60) +
                 ' — R$ ' + c.spend.toFixed(2) + ' (ROAS ' + c.roas.toFixed(2) + 'x)');
   });
 
   console.log('');
-  console.log('🎨 Criativos: ' + Object.keys(output.creatives).length);
-  console.log('🎬 Ads com vídeo: ' + output.ads.filter(function (a) {
-    return a.creative && a.creative.video_id;
-  }).length);
+  console.log('🎨 Criativos: ' + Object.keys(output.creatives).length +
+              ' | Ads com vídeo: ' + output.ads.filter(function (a) { return a.has_video; }).length);
 }
 
 main().catch(function (err) {
