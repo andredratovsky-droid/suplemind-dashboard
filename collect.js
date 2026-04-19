@@ -1,12 +1,11 @@
-// collect.js v5.3.1 — Coletor Bling com checkpoint incremental
+// collect.js v5.4 — Coletor Bling com estoques + itens NFe
 //
-// Mudanças vs v5.3:
-//   - NFE_DETAILS_CACHE: arquivo dedicado em data/nfes_cache.json que persiste
-//     detalhes de NFes individualmente. Sobrevive a falhas do workflow.
-//   - Checkpoint a cada 500 detalhes: salva progresso em disco.
-//   - Retomada automática: se cache existir, só busca o que falta.
-//   - Progresso mais verboso (cada 50 ao invés de 100).
-//   - Salva cache mesmo se main() falhar (via try/finally global).
+// Mudanças vs v5.3.1:
+//   - Nova coleta: estoques (endpoint /estoques/saldos) - super rápido
+//   - NFes novas agora salvam itens (quantidade por SKU)
+//   - NFes antigas no cache NÃO são reprocessadas (evita 40min retrabalho)
+//   - Novo arquivo: data/estoques.json
+//   - Itens vão junto no cache em detalhes[id].itens
 
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +18,8 @@ const MODE = (process.env.COLLECT_MODE || 'full').toLowerCase();
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'bling.json');
 const BACKUP_FILE = path.join(DATA_DIR, 'bling_backup_v5.2.json');
-const CACHE_FILE = path.join(DATA_DIR, 'nfes_cache.json');  // NOVO
+const CACHE_FILE = path.join(DATA_DIR, 'nfes_cache.json');
+const ESTOQUES_FILE = path.join(DATA_DIR, 'estoques.json');
 const TOKEN_FILE = path.join(__dirname, '.bling_refresh_token');
 
 const BLING_CLIENT_ID = process.env.BLING_CLIENT_ID;
@@ -31,15 +31,10 @@ const RATE_LIMIT_MS = 400;
 const DETAIL_RATE_LIMIT_MS = 350;
 const MAX_PAGES_FULL = 500;
 const INCREMENTAL_DAYS_BACK = 3;
-const CHECKPOINT_INTERVAL = 500;  // Salvar cache a cada N detalhes
+const CHECKPOINT_INTERVAL = 500;
 
-// ============================================================
-// SITUAÇÕES DE NFe
-// Do log anterior: 6.209 de 6.219 (99.8%) passaram em [5, 6, 7] → códigos OK
-// ============================================================
 const NFE_SITUACOES_VALIDAS = [5, 6, 7];
 const NFE_TIPO_SAIDA = 1;
-const PEDIDO_SITUACOES_PAGAS = [1, 9];
 
 const NFE_SIT_LABELS = {
   1: 'Pendente', 2: 'Cancelada', 3: 'Denegada', 4: 'Aguardando Recibo',
@@ -129,21 +124,22 @@ function apiGet(accessToken, endpoint) {
 }
 
 // ============================================================
-// CHECKPOINT: cache de detalhes NFe
+// Cache de detalhes (com itens agora)
 // ============================================================
 function carregarCacheDetalhes() {
   if (fs.existsSync(CACHE_FILE)) {
     try {
       const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
       const count = Object.keys(cache).length;
-      console.log('📥 Cache de detalhes carregado de ' + path.basename(CACHE_FILE) + ': ' + count + ' NFes');
+      const comItens = Object.values(cache).filter(function (d) { return d.itens && d.itens.length > 0; }).length;
+      console.log('📥 Cache de detalhes: ' + count + ' NFes (' + comItens + ' com itens)');
       return cache;
     } catch (err) {
-      console.log('⚠️  Cache corrompido, ignorando: ' + err.message);
+      console.log('⚠️  Cache corrompido: ' + err.message);
       return {};
     }
   }
-  console.log('📥 Cache de detalhes: nenhum encontrado (começando do zero)');
+  console.log('📥 Cache: nenhum encontrado');
   return {};
 }
 
@@ -151,7 +147,7 @@ function salvarCacheDetalhes(cache) {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache));
   const sizeKB = (fs.statSync(CACHE_FILE).size / 1024).toFixed(1);
-  console.log('   💾 Checkpoint salvo: ' + Object.keys(cache).length + ' detalhes (' + sizeKB + ' KB)');
+  console.log('   💾 Checkpoint: ' + Object.keys(cache).length + ' detalhes (' + sizeKB + ' KB)');
 }
 
 // ============================================================
@@ -260,7 +256,23 @@ function coletarNFesLista(accessToken, opts) {
 }
 
 // ============================================================
-// Enriquecimento COM CHECKPOINT
+// Extrator de itens (NOVO na v5.4)
+// Recebe a resposta completa da NFe e extrai só o essencial dos itens
+// ============================================================
+function extractItens(nfeData) {
+  if (!nfeData || !nfeData.itens || !Array.isArray(nfeData.itens)) return [];
+  return nfeData.itens.map(function (item) {
+    return {
+      codigo: item.codigo || '',
+      descricao: (item.descricao || '').slice(0, 100),
+      quantidade: parseFloat(item.quantidade) || 0,
+      valorUnitario: parseFloat(item.valor) || 0
+    };
+  });
+}
+
+// ============================================================
+// Enriquecimento COM ITENS
 // ============================================================
 function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
   const validas = nfes.filter(function (n) {
@@ -279,7 +291,7 @@ function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
     }
   });
 
-  console.log('\n🔍 Enriquecimento de detalhes (com checkpoint):');
+  console.log('\n🔍 Enriquecimento com itens (v5.4):');
   console.log('   NFes válidas: ' + validas.length);
   console.log('   Em cache: ' + Object.keys(jaTemosDetalhes).length);
   console.log('   A buscar: ' + precisaBuscar.length);
@@ -287,10 +299,8 @@ function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
   if (precisaBuscar.length > 0) {
     const tempoEst = Math.ceil(precisaBuscar.length * DETAIL_RATE_LIMIT_MS / 60000);
     console.log('   Tempo estimado: ~' + tempoEst + ' min');
-    console.log('   Checkpoint a cada ' + CHECKPOINT_INTERVAL + ' NFes salvas em ' + path.basename(CACHE_FILE));
   }
 
-  // Começa cópia do cache existente
   const detalhes = Object.assign({}, cacheDetalhes);
   let processados = 0;
   let novos = 0;
@@ -299,20 +309,19 @@ function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
 
   function buscarProximo(idx) {
     if (idx >= precisaBuscar.length) {
-      // Salva cache final
       if (desdeUltimoCheckpoint > 0) salvarCacheDetalhes(detalhes);
       return Promise.resolve(detalhes);
     }
     const nfe = precisaBuscar[idx];
     return apiGet(accessToken, '/nfe/' + nfe.id).then(function (resp) {
       if (resp && resp.data) {
-        // Salva só os campos que precisamos (economiza memória e disco)
         detalhes[nfe.id] = {
           valorNota: resp.data.valorNota,
           valorFrete: resp.data.valorFrete,
           serie: resp.data.serie,
           numeroPedidoLoja: resp.data.numeroPedidoLoja,
-          chaveAcesso: resp.data.chaveAcesso
+          chaveAcesso: resp.data.chaveAcesso,
+          itens: extractItens(resp.data)   // <--- NOVO na v5.4
         };
         novos += 1;
       }
@@ -324,7 +333,6 @@ function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
         console.log('   📦 ' + processados + '/' + precisaBuscar.length + ' (' + pct + '%) — novos: ' + novos + ' | erros: ' + erros);
       }
 
-      // CHECKPOINT
       if (desdeUltimoCheckpoint >= CHECKPOINT_INTERVAL) {
         salvarCacheDetalhes(detalhes);
         desdeUltimoCheckpoint = 0;
@@ -338,13 +346,10 @@ function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
       if (erros <= 3) console.log('   ⚠️  Erro NFe ' + nfe.id + ': ' + err.message);
       processados += 1;
       desdeUltimoCheckpoint += 1;
-
-      // Mesmo em erro, faz checkpoint periódico
       if (desdeUltimoCheckpoint >= CHECKPOINT_INTERVAL) {
         salvarCacheDetalhes(detalhes);
         desdeUltimoCheckpoint = 0;
       }
-
       return sleep(DETAIL_RATE_LIMIT_MS).then(function () {
         return buscarProximo(idx + 1);
       });
@@ -352,13 +357,13 @@ function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
   }
 
   return buscarProximo(0).then(function () {
-    console.log('✅ Detalhes coletados: ' + Object.keys(detalhes).length + ' (novos nesta rodada: ' + novos + ', erros: ' + erros + ')');
+    console.log('✅ Detalhes coletados: ' + Object.keys(detalhes).length + ' (novos: ' + novos + ', erros: ' + erros + ')');
     return detalhes;
   });
 }
 
 // ============================================================
-// Consolidação: lista + cache → array final
+// Consolidação NFes (agora inclui itens)
 // ============================================================
 function consolidarNFes(nfesLista, detalhesMap) {
   return nfesLista.map(function (n) {
@@ -379,9 +384,11 @@ function consolidarNFes(nfesLista, detalhesMap) {
       base.serie = det.serie;
       base.numeroPedidoLoja = det.numeroPedidoLoja || null;
       base.chaveAcesso = det.chaveAcesso;
+      base.itens = det.itens || [];                // <--- NOVO na v5.4
       base.temDetalhe = true;
     } else {
       base.valorNota = 0;
+      base.itens = [];
       base.temDetalhe = false;
     }
     return base;
@@ -389,34 +396,49 @@ function consolidarNFes(nfesLista, detalhesMap) {
 }
 
 // ============================================================
-// Coleta produtos, contas
+// Coleta estoques (NOVO na v5.4)
+// Endpoint: /estoques/saldos
 // ============================================================
-function coletarProdutos(accessToken) {
-  return coletarPaginado(accessToken, { endpoint: '/produtos', label: 'produtos', maxPages: 10 });
-}
-
-function coletarContas(accessToken, tipo) {
-  const endpoint = tipo === 'pagar' ? '/contas/pagar' : '/contas/receber';
-  return coletarPaginado(accessToken, { endpoint: endpoint, label: 'contas a ' + tipo, maxPages: 10 })
-    .catch(function (err) { console.log('  ⚠️  Erro contas a ' + tipo + ': ' + err.message); return []; });
-}
-
-function mergeById(existentes, novos, label) {
-  const byId = {};
-  for (let i = 0; i < existentes.length; i++) byId[existentes[i].id] = existentes[i];
-  let atualizados = 0, adicionados = 0;
-  for (let i = 0; i < novos.length; i++) {
-    if (byId[novos[i].id]) atualizados += 1; else adicionados += 1;
-    byId[novos[i].id] = novos[i];
+function coletarEstoques(accessToken, produtos) {
+  console.log('\n📦 Coletando estoques...');
+  const productIds = produtos.map(function (p) { return p.id; }).filter(Boolean);
+  if (productIds.length === 0) {
+    console.log('   ⚠️  Sem produtos para buscar estoques');
+    return Promise.resolve([]);
   }
-  const merged = Object.values(byId);
-  merged.sort(function (a, b) {
-    const da = new Date(a.data || a.dataEmissao || 0).getTime();
-    const db = new Date(b.data || b.dataEmissao || 0).getTime();
-    return db - da;
+
+  // API: podemos buscar múltiplos IDs de uma vez com ?idsProdutos[]
+  // Mas como são só 18, fazemos um por um com throttle
+  const resultados = [];
+  let idx = 0;
+
+  function proximo() {
+    if (idx >= productIds.length) return Promise.resolve(resultados);
+    const id = productIds[idx];
+    idx += 1;
+    return apiGet(accessToken, '/estoques/saldos?idsProdutos[]=' + id).then(function (resp) {
+      if (resp && resp.data) {
+        (Array.isArray(resp.data) ? resp.data : [resp.data]).forEach(function (s) {
+          resultados.push({
+            produtoId: id,
+            depositoId: s.deposito && s.deposito.id,
+            saldoFisico: parseFloat(s.saldoFisicoTotal) || 0,
+            saldoVirtual: parseFloat(s.saldoVirtualTotal) || 0
+          });
+        });
+      }
+      if (idx % 5 === 0) console.log('   📊 Estoques: ' + idx + '/' + productIds.length);
+      return sleep(300).then(proximo);
+    }).catch(function (err) {
+      console.log('   ⚠️  Erro estoque prod ' + id + ': ' + err.message);
+      return sleep(300).then(proximo);
+    });
+  }
+
+  return proximo().then(function (all) {
+    console.log('✅ Estoques coletados: ' + all.length + ' registros');
+    return all;
   });
-  console.log('🔀 Merge ' + label + ': +' + adicionados + ' novos, ' + atualizados + ' atualizados, total ' + merged.length);
-  return merged;
 }
 
 // ============================================================
@@ -511,15 +533,12 @@ function computeStats(pedidos, nfes, produtos, contasPagar, contasReceber, conci
            Number(n.tipo) === NFE_TIPO_SAIDA && n.temDetalhe;
   });
 
-  console.log('\n📊 NFes válidas com detalhe completo: ' + nfesValidas.length);
+  console.log('\n📊 NFes válidas: ' + nfesValidas.length);
 
   const nfesB2B = nfesValidas.filter(function (n) { return n.tipoPessoa === 'J'; });
   const nfesDTC = nfesValidas.filter(function (n) { return n.tipoPessoa === 'F'; });
-  const nfesSemTipo = nfesValidas.filter(function (n) { return !n.tipoPessoa; });
 
-  console.log('   B2B (CNPJ): ' + nfesB2B.length);
-  console.log('   DTC (CPF):  ' + nfesDTC.length);
-  console.log('   Sem tipo: ' + nfesSemTipo.length);
+  console.log('   B2B: ' + nfesB2B.length + ' | DTC: ' + nfesDTC.length);
 
   function agregar(lista, desde) {
     const filtradas = desde ? lista.filter(function (n) {
@@ -568,6 +587,44 @@ function computeStats(pedidos, nfes, produtos, contasPagar, contasReceber, conci
 
   const totalFat = nfesValidas.reduce(function (s, n) { return s + (parseFloat(n.valorNota) || 0); }, 0);
 
+  // NOVO v5.4: vendas por SKU
+  const porSku = {};
+  nfesValidas.forEach(function (n) {
+    if (!n.itens || n.itens.length === 0) return;
+    const dataStr = (n.dataEmissao || '').slice(0, 10);
+    const tipo = n.tipoPessoa;  // F = DTC, J = B2B
+    n.itens.forEach(function (item) {
+      const cod = item.codigo || 'SEM_CODIGO';
+      if (!porSku[cod]) {
+        porSku[cod] = {
+          codigo: cod,
+          descricao: item.descricao,
+          totalQtd: 0,
+          totalValor: 0,
+          qtdDTC: 0,
+          qtdB2B: 0,
+          porData: {}
+        };
+      }
+      const qtd = parseFloat(item.quantidade) || 0;
+      const val = qtd * (parseFloat(item.valorUnitario) || 0);
+      porSku[cod].totalQtd += qtd;
+      porSku[cod].totalValor += val;
+      if (tipo === 'F') porSku[cod].qtdDTC += qtd;
+      else if (tipo === 'J') porSku[cod].qtdB2B += qtd;
+      if (dataStr) {
+        if (!porSku[cod].porData[dataStr]) porSku[cod].porData[dataStr] = { qtd: 0, qtdDTC: 0, qtdB2B: 0 };
+        porSku[cod].porData[dataStr].qtd += qtd;
+        if (tipo === 'F') porSku[cod].porData[dataStr].qtdDTC += qtd;
+        else if (tipo === 'J') porSku[cod].porData[dataStr].qtdB2B += qtd;
+      }
+    });
+  });
+
+  const comItens = nfesValidas.filter(function (n) { return n.itens && n.itens.length > 0; }).length;
+  console.log('   Com itens: ' + comItens + ' / ' + nfesValidas.length + ' NFes (' + (comItens / nfesValidas.length * 100).toFixed(1) + '%)');
+  console.log('   SKUs únicos vendidos: ' + Object.keys(porSku).length);
+
   return {
     totalNFesValidas: nfesValidas.length,
     faturamentoTotal: totalFat,
@@ -576,6 +633,8 @@ function computeStats(pedidos, nfes, produtos, contasPagar, contasReceber, conci
     periodo30d: agregar(nfesValidas, d30),
     periodo90d: agregar(nfesValidas, d90),
     porData: porData, porMes: porMes, porAno: porAno, porCanal: porCanal,
+    porSku: porSku,  // <-- NOVO v5.4
+    nfesComItens: comItens,
     faturamentoB2B: nfesB2B.reduce(function (s, n) { return s + (parseFloat(n.valorNota) || 0); }, 0),
     faturamentoDTC: nfesDTC.reduce(function (s, n) { return s + (parseFloat(n.valorNota) || 0); }, 0),
     nfesB2B: nfesB2B.length,
@@ -600,15 +659,41 @@ function fazerBackup() {
   }
 }
 
+function coletarProdutos(accessToken) {
+  return coletarPaginado(accessToken, { endpoint: '/produtos', label: 'produtos', maxPages: 10 });
+}
+
+function coletarContas(accessToken, tipo) {
+  const endpoint = tipo === 'pagar' ? '/contas/pagar' : '/contas/receber';
+  return coletarPaginado(accessToken, { endpoint: endpoint, label: 'contas a ' + tipo, maxPages: 10 })
+    .catch(function (err) { console.log('  ⚠️  Erro contas a ' + tipo + ': ' + err.message); return []; });
+}
+
+function mergeById(existentes, novos, label) {
+  const byId = {};
+  for (let i = 0; i < existentes.length; i++) byId[existentes[i].id] = existentes[i];
+  let atualizados = 0, adicionados = 0;
+  for (let i = 0; i < novos.length; i++) {
+    if (byId[novos[i].id]) atualizados += 1; else adicionados += 1;
+    byId[novos[i].id] = novos[i];
+  }
+  const merged = Object.values(byId);
+  merged.sort(function (a, b) {
+    const da = new Date(a.data || a.dataEmissao || 0).getTime();
+    const db = new Date(b.data || b.dataEmissao || 0).getTime();
+    return db - da;
+  });
+  console.log('🔀 Merge ' + label + ': +' + adicionados + ' novos, ' + atualizados + ' atualizados, total ' + merged.length);
+  return merged;
+}
+
 // ============================================================
 // MAIN
 // ============================================================
 function main() {
-  console.log('🚀 Suplemind Bling Collector v5.3.1 (checkpoint)');
+  console.log('🚀 Suplemind Bling Collector v5.4 (estoques + itens)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
-  console.log('   NFe situações válidas: [' + NFE_SITUACOES_VALIDAS.join(', ') + ']');
-  console.log('   Checkpoint interval: ' + CHECKPOINT_INTERVAL + ' NFes');
   console.log('');
 
   if (!BLING_CLIENT_ID || !BLING_CLIENT_SECRET || !BLING_REFRESH_TOKEN) {
@@ -624,7 +709,7 @@ function main() {
 
     if (MODE === 'incremental') {
       if (!fs.existsSync(DATA_FILE)) {
-        console.log('⚠️  bling.json não existe — forçando modo full');
+        console.log('⚠️  bling.json não existe — forçando full');
         return coletarModoFull(accessToken, cacheDetalhes);
       }
       return coletarModoIncremental(accessToken, cacheDetalhes);
@@ -635,13 +720,19 @@ function main() {
   }).then(function (dados) {
     relatarSituacoes(dados.nfes);
 
-    console.log('\n📊 Calculando conciliação e estatísticas...');
+    // NOVO v5.4: coletar estoques (rápido, ~30s)
+    return coletarEstoques(accessToken, dados.produtos).then(function (estoques) {
+      dados.estoques = estoques;
+      return dados;
+    });
+  }).then(function (dados) {
+    console.log('\n📊 Stats + conciliação...');
     const conciliacao = conciliar(dados.pedidos, dados.nfes);
     const stats = computeStats(dados.pedidos, dados.nfes, dados.produtos, dados.contasPagar, dados.contasReceber, conciliacao);
 
     const output = {
       meta: {
-        version: '5.3.1',
+        version: '5.4',
         collectedAt: new Date().toISOString(),
         mode: MODE,
         nfeSituacoesValidas: NFE_SITUACOES_VALIDAS,
@@ -649,7 +740,10 @@ function main() {
           pedidos: dados.pedidos.length,
           nfes: dados.nfes.length,
           nfesValidas: stats.totalNFesValidas,
+          nfesComItens: stats.nfesComItens,
           produtos: dados.produtos.length,
+          estoques: (dados.estoques || []).length,
+          skusVendidos: Object.keys(stats.porSku).length,
           contasPagar: dados.contasPagar.length,
           contasReceber: dados.contasReceber.length
         }
@@ -659,6 +753,7 @@ function main() {
       pedidos: dados.pedidos,
       nfes: dados.nfes,
       produtos: dados.produtos,
+      estoques: dados.estoques || [],
       contasPagar: dados.contasPagar,
       contasReceber: dados.contasReceber
     };
@@ -666,19 +761,26 @@ function main() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
 
+    // Salva também estoques em arquivo separado (pra consulta rápida)
+    fs.writeFileSync(ESTOQUES_FILE, JSON.stringify({
+      collectedAt: output.meta.collectedAt,
+      estoques: dados.estoques || []
+    }, null, 2));
+
     const sizeKB = (fs.statSync(DATA_FILE).size / 1024).toFixed(1);
     console.log('');
-    console.log('✅ Coleta concluída!');
+    console.log('✅ Coleta v5.4 concluída!');
     console.log('   Pedidos: ' + dados.pedidos.length);
-    console.log('   NFes: ' + dados.nfes.length + ' total, ' + stats.totalNFesValidas + ' válidas');
-    console.log('   Faturamento total (NFes válidas): R$ ' + stats.faturamentoTotal.toFixed(2));
-    console.log('     B2B: R$ ' + stats.faturamentoB2B.toFixed(2) + ' (' + stats.nfesB2B + ' NFes)');
-    console.log('     DTC: R$ ' + stats.faturamentoDTC.toFixed(2) + ' (' + stats.nfesDTC + ' NFes)');
-    console.log('   Arquivo: ' + sizeKB + ' KB');
+    console.log('   NFes: ' + dados.nfes.length + ' (' + stats.nfesComItens + ' com itens)');
+    console.log('   Faturamento: R$ ' + stats.faturamentoTotal.toFixed(2));
+    console.log('     B2B: R$ ' + stats.faturamentoB2B.toFixed(2));
+    console.log('     DTC: R$ ' + stats.faturamentoDTC.toFixed(2));
+    console.log('   Estoques: ' + (dados.estoques || []).length + ' registros');
+    console.log('   SKUs únicos vendidos: ' + Object.keys(stats.porSku).length);
+    console.log('   bling.json: ' + sizeKB + ' KB');
   }).catch(function (err) {
     console.error('❌ ERRO: ' + err.message);
     console.error(err.stack);
-    // Cache já foi salvo incrementalmente — próxima rodada continua de onde parou
     process.exit(1);
   });
 }
@@ -715,22 +817,25 @@ function coletarModoIncremental(accessToken, cacheDetalhes) {
 
   console.log('📥 Incremental desde ' + dataInicial);
 
+  // Em incremental, também precisamos de produtos (caso tenha SKU novo)
   return Promise.all([
     coletarPedidos(accessToken, { dataInicial: dataInicial, maxPages: 20 }),
     coletarNFesLista(accessToken, {
       janelas: [{ inicial: dataInicial, final: dataFinal }],
       maxPages: 20
-    })
+    }),
+    coletarProdutos(accessToken)
   ]).then(function (r) {
     const pedidosNovos = r[0];
     const nfesListaNovas = r[1];
+    const produtosNovos = r[2];
     return enriquecerNFesComDetalhes(accessToken, nfesListaNovas, cacheDetalhes)
       .then(function (detalhesMap) {
         const nfesNovas = consolidarNFes(nfesListaNovas, detalhesMap);
         return {
           pedidos: mergeById(pedidosExistentes, pedidosNovos, 'pedidos'),
           nfes: mergeById(nfesExistentes, nfesNovas, 'NFes'),
-          produtos: existentes.produtos || [],
+          produtos: produtosNovos,  // sempre atualiza produtos (poucos)
           contasPagar: existentes.contasPagar || [],
           contasReceber: existentes.contasReceber || []
         };
