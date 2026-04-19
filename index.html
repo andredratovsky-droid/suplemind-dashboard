@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suplemind Intelligence v5.3</title>
+<title>Suplemind Intelligence v5.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -192,7 +192,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <aside class="sidebar">
   <div class="logo">
     <div class="logo-mark">Suple<span>mind</span></div>
-    <div class="logo-sub">INTELLIGENCE · v5.3</div>
+    <div class="logo-sub">INTELLIGENCE · v5.4</div>
   </div>
   <nav class="nav">
     <div class="nav-section">Visão Geral</div>
@@ -225,6 +225,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
     <div class="nav-item" onclick="go('conciliacao',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg><span>Conciliação</span>
+    </div>
+    <div class="nav-item" onclick="go('estoque',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M9 16l2 2 4-4"/></svg><span>Estoque</span>
     </div>
 
     <div class="nav-section">Financeiro</div>
@@ -374,6 +377,96 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
       <div class="card"><div class="card-head"><div><div class="card-title">NFes sem pedido vinculado</div><div class="card-sub">Provavelmente B2B avulso ou vendas externas</div></div></div><div id="co-tabela-avulsas"></div></div>
       <div class="card"><div class="card-head"><div><div class="card-title">Divergências de valor</div><div class="card-sub">Pedido e NFe com valores diferentes</div></div></div><div id="co-tabela-div"></div></div>
+    </div>
+
+
+    <!-- ESTOQUE -->
+    <div class="module" id="mod-estoque">
+      <div id="est-alerts"></div>
+      <div class="kpi-row cols4">
+        <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Valor em Estoque</div><div class="kpi-value" id="est-valor">R$ 0</div><div class="kpi-meta" id="est-valor-m">-</div></div>
+        <div class="kpi r"><div class="kpi-accent"></div><div class="kpi-label">SKUs Críticos</div><div class="kpi-value mono" id="est-criticos">0</div><div class="kpi-meta" id="est-criticos-m">cobertura &lt; 60 dias</div></div>
+        <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">DIO Médio</div><div class="kpi-value mono" id="est-dio">0</div><div class="kpi-meta">dias de cobertura</div></div>
+        <div class="kpi p"><div class="kpi-accent"></div><div class="kpi-label">Giro Anualizado</div><div class="kpi-value" id="est-giro">0x</div><div class="kpi-meta" id="est-giro-m">vezes ao ano</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Configuração</div>
+            <div class="card-sub">Ajuste premissas para cálculos de reposição</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:12px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">INCLUIR B2B:</span>
+            <div class="scope-btns">
+              <button class="sbtn" id="est-b2b-off" onclick="setEstB2B(false)">Só DTC</button>
+              <button class="sbtn active" id="est-b2b-on" onclick="setEstB2B(true)">DTC + B2B</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">LEAD TIME:</span>
+            <div class="scope-btns">
+              <button class="sbtn" onclick="setEstLead(45,this)">45d</button>
+              <button class="sbtn active" onclick="setEstLead(50,this)">50d</button>
+              <button class="sbtn" onclick="setEstLead(60,this)">60d</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">CONSUMO NÃO-VENDA:</span>
+            <div class="scope-btns">
+              <button class="sbtn" onclick="setEstConsumo(0.05,this)">5%</button>
+              <button class="sbtn active" onclick="setEstConsumo(0.10,this)">10%</button>
+              <button class="sbtn" onclick="setEstConsumo(0.15,this)">15%</button>
+              <button class="sbtn" onclick="setEstConsumo(0.20,this)">20%</button>
+            </div>
+          </div>
+        </div>
+        <div class="hint" id="est-config-status">Padrão: incluir B2B · lead 50d · consumo não-venda 10%</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Pedidos a fazer</div>
+            <div class="card-sub">SKUs que precisam de atenção agora</div>
+          </div>
+          <div class="card-pill" id="est-pedidos-count">0</div>
+        </div>
+        <div id="est-pedidos"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Tabela mestra de SKUs</div>
+            <div class="card-sub">Ordenada por Risk Score · clique para detalhes</div>
+          </div>
+        </div>
+        <div id="est-tabela"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Simulador de cenários</div>
+            <div class="card-sub">Pessimista · Esperado · Otimista (próximos 50 dias)</div>
+          </div>
+        </div>
+        <div id="est-cenarios"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Histórico de vendas · por SKU</div>
+            <div class="card-sub">Selecione um SKU para ver evolução diária</div>
+          </div>
+          <select id="est-sku-sel" onchange="renderEstoqueGrafico()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:11px;font-family:'DM Mono',monospace"></select>
+        </div>
+        <div class="chart-box tall"><canvas id="ch-est-sku"></canvas></div>
+      </div>
     </div>
 
     <!-- FINANCEIRO -->
@@ -677,6 +770,7 @@ var META = {
   marketing:{t:'Marketing · Meta Ads', s:'Performance de aquisição — Bling + Meta'},
   recorrencia:{t:'Recorrência', s:'Recompra e frequência — Bling'},
   conciliacao:{t:'Conciliação', s:'Pedido ↔ NFe — qualidade dos dados'},
+  estoque:{t:'Estoque', s:'Inteligência de estoque, reposição e projeções — Bling'},
   financeiro:{t:'Financeiro / DRE', s:'Contas e saldo — Bling'},
   fluxo:{t:'Fluxo de Caixa', s:'Projeção e vencimentos — Bling'},
   crm:{t:'CRM / WhatsApp', s:'Automações — Reportana'}
@@ -720,6 +814,7 @@ function render(id){
     marketing: renderMarketing,
     recorrencia: renderRecorrencia,
     conciliacao: renderConciliacao,
+    estoque: renderEstoque,
     financeiro: renderFinanceiro,
     fluxo: renderFluxo,
     crm: renderCRM
@@ -1891,6 +1986,482 @@ function renderMktBreakdowns(breakdowns){
 // ================================================================
 // INIT
 // ================================================================
+
+// ================================================================
+// ESTOQUE — Módulo v1.0
+// ================================================================
+
+// Config do módulo (estado local)
+var EST_INCLUDE_B2B = true;
+var EST_LEAD_TIME = 50;        // dias
+var EST_CONSUMO_NV = 0.10;     // % consumo não-venda
+var EST_SAFETY_DAYS = 15;      // dias de estoque segurança
+var EST_SELECTED_SKU = null;
+
+function setEstB2B(inc){
+  EST_INCLUDE_B2B = inc;
+  document.getElementById('est-b2b-on').classList.toggle('active', inc);
+  document.getElementById('est-b2b-off').classList.toggle('active', !inc);
+  renderEstoque();
+}
+function setEstLead(d, btn){
+  EST_LEAD_TIME = d;
+  if(btn){ btn.parentElement.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
+  renderEstoque();
+}
+function setEstConsumo(v, btn){
+  EST_CONSUMO_NV = v;
+  if(btn){ btn.parentElement.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
+  renderEstoque();
+}
+
+// ================================================================
+// Cálculos principais
+// ================================================================
+function buildEstoqueData(){
+  var produtos = DATA.produtos || [];
+  var estoques = DATA.estoques || [];
+  var porSku = gp(DATA,'stats.porSku',{});
+
+  // Estoque atual por produto ID
+  var estoquePorId = {};
+  estoques.forEach(function(s){
+    if(!estoquePorId[s.produtoId]) estoquePorId[s.produtoId] = {fisico:0, virtual:0};
+    estoquePorId[s.produtoId].fisico += s.saldoFisico;
+    estoquePorId[s.produtoId].virtual += s.saldoVirtual;
+  });
+
+  // Cruza produtos com estoque e vendas (por codigo)
+  var items = produtos.map(function(p){
+    var est = estoquePorId[p.id] || {fisico:0, virtual:0};
+    var vendas = porSku[p.codigo] || {};
+
+    // Velocidade em 3 janelas
+    var v7 = calcVelocidade(vendas, 7);
+    var v30 = calcVelocidade(vendas, 30);
+    var v90 = calcVelocidade(vendas, 90);
+
+    // Tendência: compara 30d vs. 60-30d anteriores
+    var vAnterior = calcVelocidade(vendas, 60, 30);  // janela 30-60d atrás
+    var tendencia = vAnterior > 0 ? ((v30 - vAnterior)/vAnterior * 100) : 0;
+
+    // Velocidade escolhida (30d é a referência principal)
+    var velocidadeBase = v30;
+    // Aplica consumo não-venda
+    var velocidadeAjustada = velocidadeBase * (1 + EST_CONSUMO_NV);
+
+    // Cenários para próximos LEAD_TIME dias
+    var pessimistaV = velocidadeAjustada * 0.85;  // -15%
+    var normalV = velocidadeAjustada;
+    var otimistaFactor = Math.max(1, 1 + (tendencia/100));  // nunca menor que 1 em otimista
+    var otimistaV = velocidadeAjustada * otimistaFactor;
+
+    // Cobertura (dias) — usando velocidade ajustada
+    var cobertura = velocidadeAjustada > 0 ? (est.fisico / velocidadeAjustada) : 999;
+
+    // Ponto de reposição (usa lead pessimista de 60d pra ser conservador)
+    var leadConservador = Math.max(EST_LEAD_TIME, 60);
+    var demandaLead = velocidadeAjustada * leadConservador;
+    var estoqueSeguranca = velocidadeAjustada * EST_SAFETY_DAYS;
+    var pontoReposicao = demandaLead + estoqueSeguranca;
+
+    // Quantidade ideal a pedir: cobre lead time + 30 dias de folga
+    var qtdIdeal = Math.ceil(velocidadeAjustada * (EST_LEAD_TIME + 30) + estoqueSeguranca - est.fisico);
+    if(qtdIdeal < 0) qtdIdeal = 0;
+
+    // Status
+    var status;
+    if(velocidadeAjustada === 0){
+      status = 'sem-venda';
+    } else if(est.fisico <= demandaLead){
+      status = 'urgente';
+    } else if(est.fisico <= pontoReposicao){
+      status = 'pedir';
+    } else if(est.fisico < pontoReposicao * 1.5){
+      status = 'planejar';
+    } else if(cobertura > 180){
+      status = 'excesso';
+    } else {
+      status = 'saudavel';
+    }
+
+    // Volatilidade (coef de variação em 30d)
+    var volat = calcVolatilidade(vendas, 30);
+
+    // Preço médio (pra capital)
+    var precoMedio = parseFloat(p.preco) || 0;
+    var valorEstoque = est.fisico * precoMedio;
+    var valorPedido = qtdIdeal * precoMedio;
+
+    // Contribuição de receita (% do total)
+    var totalReceita = Object.values(porSku).reduce(function(s,x){ return s+(x.totalValor||0); }, 0);
+    var contribReceita = totalReceita > 0 ? ((vendas.totalValor||0)/totalReceita) : 0;
+
+    // Risk score (0-100)
+    var riskScore = calcRiskScore({
+      cobertura: cobertura, tendencia: tendencia,
+      volat: volat, contrib: contribReceita
+    });
+
+    return {
+      id: p.id,
+      codigo: p.codigo,
+      nome: p.nome,
+      precoMedio: precoMedio,
+      estoqueFisico: est.fisico,
+      estoqueVirtual: est.virtual,
+      valorEstoque: valorEstoque,
+      v7: v7, v30: v30, v90: v90,
+      velocidadeAjustada: velocidadeAjustada,
+      tendencia: tendencia,
+      cobertura: cobertura,
+      pontoReposicao: pontoReposicao,
+      demandaLead: demandaLead,
+      estoqueSeguranca: estoqueSeguranca,
+      qtdIdeal: qtdIdeal,
+      valorPedido: valorPedido,
+      pessimistaV: pessimistaV,
+      normalV: normalV,
+      otimistaV: otimistaV,
+      status: status,
+      volat: volat,
+      contribReceita: contribReceita,
+      riskScore: riskScore,
+      totalQtdVendida: vendas.totalQtd || 0,
+      qtdDTC: vendas.qtdDTC || 0,
+      qtdB2B: vendas.qtdB2B || 0,
+      porData: vendas.porData || {}
+    };
+  });
+
+  // Ordena por risk score desc
+  items.sort(function(a,b){ return b.riskScore - a.riskScore; });
+  return items;
+}
+
+// Velocidade diária média considerando janela (ou janela offset)
+function calcVelocidade(vendas, days, offset){
+  if(!vendas.porData) return 0;
+  offset = offset || 0;
+  var end = new Date();
+  end.setDate(end.getDate() - offset);
+  var start = new Date(end);
+  start.setDate(start.getDate() - days);
+  var endStr = end.toISOString().slice(0,10);
+  var startStr = start.toISOString().slice(0,10);
+  var totalQtd = 0;
+  Object.keys(vendas.porData).forEach(function(d){
+    if(d >= startStr && d < endStr){
+      var v = vendas.porData[d];
+      var qtd = EST_INCLUDE_B2B ? v.qtd : (v.qtdDTC || 0);
+      totalQtd += qtd;
+    }
+  });
+  return totalQtd / days;
+}
+
+function calcVolatilidade(vendas, days){
+  if(!vendas.porData) return 0;
+  var end = new Date();
+  var start = new Date(end);
+  start.setDate(start.getDate() - days);
+  var endStr = end.toISOString().slice(0,10);
+  var startStr = start.toISOString().slice(0,10);
+  var valores = [];
+  var cur = new Date(start);
+  while(cur < end){
+    var dStr = cur.toISOString().slice(0,10);
+    var v = vendas.porData[dStr];
+    var qtd = v ? (EST_INCLUDE_B2B ? v.qtd : (v.qtdDTC || 0)) : 0;
+    valores.push(qtd);
+    cur.setDate(cur.getDate() + 1);
+  }
+  if(valores.length === 0) return 0;
+  var avg = valores.reduce(function(s,v){return s+v;},0) / valores.length;
+  if(avg === 0) return 0;
+  var variance = valores.reduce(function(s,v){ return s+Math.pow(v-avg,2); },0) / valores.length;
+  var std = Math.sqrt(variance);
+  return std / avg;  // coeficiente de variação
+}
+
+function calcRiskScore(s){
+  var score = 0;
+  // 1. Cobertura (peso 40%)
+  if(s.cobertura < 30) score += 40;
+  else if(s.cobertura < 60) score += 30;
+  else if(s.cobertura < 90) score += 15;
+  // 2. Tendência crescimento (peso 30%)
+  if(s.tendencia > 50) score += 30;
+  else if(s.tendencia > 20) score += 20;
+  else if(s.tendencia > 0) score += 10;
+  // 3. Volatilidade (peso 20%)
+  if(s.volat > 0.6) score += 20;
+  else if(s.volat > 0.4) score += 10;
+  // 4. Importância (peso 10%)
+  if(s.contrib > 0.15) score += 10;
+  else if(s.contrib > 0.08) score += 5;
+  return Math.min(100, score);
+}
+
+// ================================================================
+// RENDER
+// ================================================================
+function renderEstoque(){
+  var items = buildEstoqueData();
+
+  // Status config
+  var cfgMsg = (EST_INCLUDE_B2B ? 'DTC+B2B' : 'Só DTC') +
+               ' · lead ' + EST_LEAD_TIME + 'd' +
+               ' · consumo não-venda ' + Math.round(EST_CONSUMO_NV*100) + '%';
+  document.getElementById('est-config-status').textContent = 'Premissas atuais: ' + cfgMsg;
+
+  // KPIs
+  var valorTotal = items.reduce(function(s,i){ return s + i.valorEstoque; }, 0);
+  var criticos = items.filter(function(i){ return i.status === 'urgente' || i.status === 'pedir'; });
+  var coberturas = items.filter(function(i){ return i.velocidadeAjustada > 0 && i.cobertura < 999; });
+  var dioMedio = coberturas.length > 0 ? (coberturas.reduce(function(s,i){return s+i.cobertura;},0)/coberturas.length) : 0;
+
+  // Giro anual: faturamento anualizado / estoque médio
+  var faturamentoAnualizado = gp(DATA,'stats.periodo30d.faturamento',0) * 12;
+  var giroAnual = valorTotal > 0 ? faturamentoAnualizado / valorTotal : 0;
+
+  document.getElementById('est-valor').textContent = R(valorTotal);
+  document.getElementById('est-valor-m').textContent = N(items.length) + ' SKUs · custo unit. × estoque físico';
+  document.getElementById('est-criticos').textContent = N(criticos.length);
+  document.getElementById('est-criticos-m').textContent = 'URGENTE ou PEDIR AGORA';
+  document.getElementById('est-dio').textContent = Math.round(dioMedio);
+  document.getElementById('est-giro').textContent = giroAnual.toFixed(1) + 'x';
+  document.getElementById('est-giro-m').textContent = giroAnual >= 6 ? 'saudável' : giroAnual >= 4 ? 'mediano' : 'lento';
+
+  // Alertas
+  renderEstoqueAlertas(items);
+
+  // Pedidos a fazer
+  renderEstoquePedidos(items);
+
+  // Tabela mestra
+  renderEstoqueTabela(items);
+
+  // Cenários
+  renderEstoqueCenarios(items);
+
+  // Selector de SKU + gráfico
+  var sel = document.getElementById('est-sku-sel');
+  var currentVal = sel.value;
+  sel.innerHTML = items.filter(function(i){ return i.totalQtdVendida > 0; }).map(function(i){
+    return '<option value="'+i.codigo+'">'+i.codigo+' — '+i.nome.slice(0,40)+'</option>';
+  }).join('');
+  if(currentVal) sel.value = currentVal;
+  if(!EST_SELECTED_SKU) EST_SELECTED_SKU = sel.value || null;
+  renderEstoqueGrafico();
+}
+
+function renderEstoqueAlertas(items){
+  var alertsEl = document.getElementById('est-alerts');
+  var alerts = [];
+
+  var urgentes = items.filter(function(i){ return i.status === 'urgente'; });
+  if(urgentes.length > 0){
+    var lista = urgentes.slice(0,5).map(function(i){ return i.codigo+' ('+Math.round(i.cobertura)+'d)'; }).join(', ');
+    alerts.push('<div class="banner danger"><div class="banner-icon">🚨</div><div><div class="banner-title">'+urgentes.length+' SKU(s) em RUPTURA IMINENTE</div><div class="banner-body">Cobertura abaixo do lead time. Pedir IMEDIATAMENTE: <strong>'+lista+'</strong>'+(urgentes.length>5?' (+'+(urgentes.length-5)+')':'')+'</div></div></div>');
+  }
+
+  var pedir = items.filter(function(i){ return i.status === 'pedir'; });
+  if(pedir.length > 0){
+    alerts.push('<div class="banner warn"><div class="banner-icon">⚠️</div><div><div class="banner-title">'+pedir.length+' SKU(s) para PEDIR AGORA</div><div class="banner-body">Dentro do ponto de reposição. Iniciar processo de compra nos próximos dias.</div></div></div>');
+  }
+
+  var excessos = items.filter(function(i){ return i.status === 'excesso'; });
+  if(excessos.length > 0){
+    alerts.push('<div class="banner info"><div class="banner-icon">💰</div><div><div class="banner-title">'+excessos.length+' SKU(s) com ESTOQUE EM EXCESSO</div><div class="banner-body">Cobertura acima de 180 dias = capital parado. Avaliar promoções ou ajustar compras futuras.</div></div></div>');
+  }
+
+  var disparando = items.filter(function(i){ return i.tendencia > 30 && i.cobertura < 120; });
+  if(disparando.length > 0){
+    var lista2 = disparando.slice(0,3).map(function(i){ return i.codigo+' (+'+Math.round(i.tendencia)+'%)'; }).join(', ');
+    alerts.push('<div class="banner warn"><div class="banner-icon">📈</div><div><div class="banner-title">Demanda crescendo rápido</div><div class="banner-body">'+disparando.length+' SKU(s) com tendência +30% e cobertura &lt;120d: <strong>'+lista2+'</strong>. Considerar pedidos maiores que o histórico.</div></div></div>');
+  }
+
+  if(alerts.length === 0){
+    alerts.push('<div class="banner success"><div class="banner-icon">✅</div><div><div class="banner-title">Situação saudável</div><div class="banner-body">Nenhum SKU em estado crítico. Mantenha monitoramento regular.</div></div></div>');
+  }
+
+  alertsEl.innerHTML = alerts.join('');
+}
+
+function renderEstoquePedidos(items){
+  var pedidos = items.filter(function(i){ return i.status === 'urgente' || i.status === 'pedir' || i.status === 'planejar'; });
+  pedidos.sort(function(a,b){
+    var order = {'urgente':0, 'pedir':1, 'planejar':2};
+    if(order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+    return b.riskScore - a.riskScore;
+  });
+
+  document.getElementById('est-pedidos-count').textContent = pedidos.length + ' pedidos';
+
+  if(pedidos.length === 0){
+    document.getElementById('est-pedidos').innerHTML = '<div class="hint">Nenhum pedido urgente ou programado para fazer. 👍</div>';
+    return;
+  }
+
+  var totalUrgente = pedidos.filter(function(p){ return p.status === 'urgente'; }).reduce(function(s,p){ return s+p.valorPedido; },0);
+  var totalPedir = pedidos.filter(function(p){ return p.status === 'pedir'; }).reduce(function(s,p){ return s+p.valorPedido; },0);
+  var totalPlanejar = pedidos.filter(function(p){ return p.status === 'planejar'; }).reduce(function(s,p){ return s+p.valorPedido; },0);
+
+  var resumoHtml = '<div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;font-size:12px">';
+  if(totalUrgente>0) resumoHtml += '<div class="badge r" style="padding:6px 10px">🚨 URGENTE: '+R(totalUrgente)+'</div>';
+  if(totalPedir>0) resumoHtml += '<div class="badge a" style="padding:6px 10px">⚠️ PEDIR AGORA: '+R(totalPedir)+'</div>';
+  if(totalPlanejar>0) resumoHtml += '<div class="badge b" style="padding:6px 10px">📋 PLANEJAR: '+R(totalPlanejar)+'</div>';
+  resumoHtml += '<div class="badge neutral" style="padding:6px 10px">TOTAL: '+R(totalUrgente+totalPedir+totalPlanejar)+'</div>';
+  resumoHtml += '</div>';
+
+  var rows = pedidos.map(function(p){
+    var statusBadge = statusBadgeHtml(p.status);
+    return '<tr>' +
+      '<td class="strong">'+p.codigo+'<br><span class="mono text-muted" style="font-size:10px">'+p.nome.slice(0,40)+'</span></td>' +
+      '<td class="num mono">'+N(Math.round(p.estoqueFisico))+'</td>' +
+      '<td class="num">'+p.velocidadeAjustada.toFixed(1)+'/dia</td>' +
+      '<td class="num">'+(p.cobertura>900?'∞':Math.round(p.cobertura))+'d</td>' +
+      '<td class="num fw-700">'+N(p.qtdIdeal)+' un.</td>' +
+      '<td class="num">'+R(p.valorPedido)+'</td>' +
+      '<td>'+statusBadge+'</td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('est-pedidos').innerHTML = resumoHtml +
+    '<table class="tbl"><thead><tr><th>SKU</th><th class="text-right">Estoque</th><th class="text-right">Velocidade</th><th class="text-right">Cobertura</th><th class="text-right">Pedir</th><th class="text-right">Valor</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function statusBadgeHtml(status){
+  switch(status){
+    case 'urgente': return '<span class="badge r">🚨 URGENTE</span>';
+    case 'pedir':   return '<span class="badge a">⚠️ PEDIR AGORA</span>';
+    case 'planejar':return '<span class="badge b">📋 PLANEJAR</span>';
+    case 'saudavel':return '<span class="badge g">🟢 Saudável</span>';
+    case 'excesso': return '<span class="badge p">💰 Excesso</span>';
+    case 'sem-venda': return '<span class="badge neutral">— sem venda</span>';
+    default: return '<span class="badge neutral">?</span>';
+  }
+}
+
+function renderEstoqueTabela(items){
+  var rows = items.map(function(i){
+    var tendCls = i.tendencia > 10 ? 'text-green' : i.tendencia < -10 ? 'text-red' : 'text-muted';
+    var tendTxt = (i.tendencia > 0 ? '+' : '') + Math.round(i.tendencia) + '%';
+    var riskCls = i.riskScore >= 70 ? 'r' : i.riskScore >= 40 ? 'a' : 'g';
+    return '<tr>' +
+      '<td class="strong">'+i.codigo+'</td>' +
+      '<td>'+i.nome.slice(0,35)+'</td>' +
+      '<td class="num mono">'+N(Math.round(i.estoqueFisico))+'</td>' +
+      '<td class="num">'+R(i.valorEstoque)+'</td>' +
+      '<td class="num">'+i.v7.toFixed(1)+'</td>' +
+      '<td class="num">'+i.v30.toFixed(1)+'</td>' +
+      '<td class="num">'+i.v90.toFixed(1)+'</td>' +
+      '<td class="num '+tendCls+'">'+tendTxt+'</td>' +
+      '<td class="num">'+(i.cobertura>900?'∞':Math.round(i.cobertura)+'d')+'</td>' +
+      '<td><span class="badge '+riskCls+'">'+i.riskScore+'</span></td>' +
+      '<td>'+statusBadgeHtml(i.status)+'</td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('est-tabela').innerHTML =
+    '<div style="overflow-x:auto"><table class="tbl"><thead><tr>' +
+    '<th>SKU</th><th>Nome</th><th class="text-right">Estoque</th><th class="text-right">Valor</th>' +
+    '<th class="text-right">V7d</th><th class="text-right">V30d</th><th class="text-right">V90d</th>' +
+    '<th class="text-right">Tend.</th><th class="text-right">Cobert.</th><th>Risk</th><th>Status</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function renderEstoqueCenarios(items){
+  // Foca em SKUs com venda e cobertura finita
+  var relevantes = items.filter(function(i){ return i.velocidadeAjustada > 0; });
+
+  function aggCenario(velKey){
+    var totalDemanda = 0, totalCustoPedido = 0, rupturas = 0, pedidosCount = 0;
+    relevantes.forEach(function(i){
+      var v = i[velKey];
+      var demanda50 = v * EST_LEAD_TIME;
+      totalDemanda += demanda50;
+      if(i.estoqueFisico < demanda50){
+        rupturas += 1;
+        var faltante = Math.ceil(demanda50 + (v * EST_SAFETY_DAYS) - i.estoqueFisico);
+        totalCustoPedido += faltante * i.precoMedio;
+        pedidosCount += 1;
+      }
+    });
+    return {
+      demanda: totalDemanda,
+      rupturas: rupturas,
+      pedidos: pedidosCount,
+      capital: totalCustoPedido
+    };
+  }
+
+  var pess = aggCenario('pessimistaV');
+  var norm = aggCenario('normalV');
+  var otim = aggCenario('otimistaV');
+
+  var html = '<div class="grid3">';
+  html += cenarioCard('Pessimista · -15%', pess, 'r', 'Demanda cai 15%');
+  html += cenarioCard('Esperado · normal', norm, 'b', 'Manutenção do ritmo');
+  html += cenarioCard('Otimista · crescendo', otim, 'g', 'Extrapolação da tendência');
+  html += '</div>';
+
+  document.getElementById('est-cenarios').innerHTML = html;
+}
+
+function cenarioCard(titulo, dados, cor, sub){
+  return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px">' +
+    '<div style="font-weight:700;color:var(--text);font-size:12px;margin-bottom:2px">'+titulo+'</div>' +
+    '<div class="card-sub" style="margin-bottom:12px">'+sub+'</div>' +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="mono text-muted" style="font-size:10px">DEMANDA '+EST_LEAD_TIME+'d</span><span class="mono fw-600">'+N(Math.round(dados.demanda))+' un.</span></div>' +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="mono text-muted" style="font-size:10px">SKUS A REPOR</span><span class="badge '+cor+'">'+dados.pedidos+'</span></div>' +
+    '<div style="display:flex;justify-content:space-between"><span class="mono text-muted" style="font-size:10px">CAPITAL NECESSÁRIO</span><span class="mono fw-700 text-'+(cor==='r'?'red':cor==='g'?'green':'blue')+'">'+R(dados.capital)+'</span></div>' +
+  '</div>';
+}
+
+function renderEstoqueGrafico(){
+  var sel = document.getElementById('est-sku-sel');
+  if(!sel.value){ dc('est'); return; }
+  EST_SELECTED_SKU = sel.value;
+
+  var porSku = gp(DATA,'stats.porSku',{});
+  var sku = porSku[EST_SELECTED_SKU];
+  if(!sku || !sku.porData){ dc('est'); return; }
+
+  // Últimos 180 dias
+  var cut = dateAgo(180);
+  var dias = Object.keys(sku.porData).filter(function(d){ return d >= cut; }).sort();
+  var valores = dias.map(function(d){
+    var v = sku.porData[d];
+    return EST_INCLUDE_B2B ? v.qtd : (v.qtdDTC || 0);
+  });
+
+  dc('est');
+  CHARTS['est'] = new Chart(document.getElementById('ch-est-sku'), {
+    type: 'bar',
+    data: {
+      labels: dias.map(function(d){ return d.substring(5); }),
+      datasets: [{
+        label: EST_SELECTED_SKU + ' (unidades/dia)',
+        data: valores,
+        backgroundColor: 'rgba(0,229,160,.3)',
+        borderColor: '#00e5a0',
+        borderWidth: 1,
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { padding: 12, boxWidth: 10, font: { size: 11 } } } },
+      scales: {
+        y: { grid: { color: 'rgba(30,40,48,.8)' }, beginAtZero: true },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 20, maxRotation: 0 } }
+      }
+    }
+  });
+}
+
 loadData();
 </script>
 </body>
