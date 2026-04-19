@@ -1,15 +1,10 @@
-// collect-meta.js v2.0 — Coletor Meta Ads completo (Graph API v23.0)
+// collect-meta.js v2.1 — Coletor Meta Ads (Graph API v23.0)
 //
-// Expansões vs v1.0:
-//   - Campos adicionais: unique_clicks/ctr, inline/outbound clicks, video metrics,
-//     quality rankings, objective, cost_per_action_type
-//   - Breakdowns: age+gender, publisher_platform, platform_position
-//   - Coleta de criativos (endpoint /ads com fields=creative{})
-//   - Endpoint /campaigns e /adsets pra metadados (objective, status)
-//
-// Modos (via env COLLECT_MODE):
-//   - "full"        : 180 dias todos os níveis, 30 dias ad, criativos de ads ativos
-//   - "incremental" : 3 dias em todos os níveis, não refaz criativos
+// Fixes vs v2.0:
+//   - Níveis adset/ad: quebra janela grande em sub-janelas de 30d (evita HTTP 500)
+//   - Retry com backoff em erros 5xx (transitórios)
+//   - Fallback gracioso: se um nível falhar, continua com os outros
+//   - Limite de paginação para evitar loop infinito
 
 const fs = require('fs');
 const path = require('path');
@@ -31,11 +26,15 @@ const META_AD_ACCOUNT_IDS = process.env.META_AD_ACCOUNT_IDS || '';
 const GRAPH_API_VERSION = 'v23.0';
 const GRAPH_HOST = 'graph.facebook.com';
 const RATE_LIMIT_MS = 300;
+const MAX_PAGES_PER_QUERY = 30;  // teto de páginas por request (evita loop)
 
 const DAYS_FULL = 180;
 const DAYS_AD_LEVEL = 30;
 const DAYS_INCREMENTAL = 3;
-const DAYS_BREAKDOWN = 30;  // Breakdowns custam mais, manter em 30d
+const DAYS_BREAKDOWN = 30;
+
+// Janelas menores para níveis granulares (evita HTTP 500 no Meta)
+const CHUNK_DAYS_GRANULAR = 30;  // adset/ad: 180d → 6 chunks de 30d
 
 const ACCOUNT_ALIASES = {
   '929553552297011': 'Principal',
@@ -43,68 +42,35 @@ const ACCOUNT_ALIASES = {
 };
 
 // ============================================================
-// CAMPOS DE INSIGHTS (muito expandidos vs v1.0)
+// CAMPOS
 // ============================================================
 const INSIGHT_FIELDS_BASE = [
-  // Métricas básicas
-  'spend',
-  'impressions',
-  'clicks',
-  'ctr',
-  'cpc',
-  'cpm',
-  'cpp',
-  'reach',
-  'frequency',
-
-  // Cliques granulares
-  'inline_link_clicks',
-  'outbound_clicks',
-  'unique_clicks',
-  'unique_ctr',
-  'unique_inline_link_clicks',
-  'unique_link_clicks_ctr',
-
-  // Custo por tipo
-  'cost_per_inline_link_click',
-  'cost_per_outbound_click',
-  'cost_per_unique_click',
-  'cost_per_unique_inline_link_click',
-
-  // Ações e valores (onde moram purchases, add_to_cart, etc)
-  'actions',
-  'action_values',
-  'unique_actions',
-  'cost_per_action_type',
-  'cost_per_unique_action_type',
-  'conversions',
-  'conversion_values',
-
-  // Engajamento
-  'inline_post_engagement',
-  'social_spend',
-
-  // Vídeo
-  'video_play_actions',
-  'video_thruplay_watched_actions',
-  'video_p25_watched_actions',
-  'video_p50_watched_actions',
-  'video_p75_watched_actions',
-  'video_p100_watched_actions',
-  'video_avg_time_watched_actions',
-  'cost_per_thruplay',
-
-  // Qualidade (só disponível nível ad)
-  'quality_ranking',
-  'engagement_rate_ranking',
-  'conversion_rate_ranking'
+  'spend', 'impressions', 'clicks', 'ctr', 'cpc', 'cpm', 'cpp', 'reach', 'frequency',
+  'inline_link_clicks', 'outbound_clicks', 'unique_clicks', 'unique_ctr',
+  'unique_inline_link_clicks', 'unique_link_clicks_ctr',
+  'cost_per_inline_link_click', 'cost_per_outbound_click',
+  'cost_per_unique_click', 'cost_per_unique_inline_link_click',
+  'actions', 'action_values', 'unique_actions',
+  'cost_per_action_type', 'cost_per_unique_action_type',
+  'conversions', 'conversion_values',
+  'inline_post_engagement', 'social_spend',
+  'video_play_actions', 'video_thruplay_watched_actions',
+  'video_p25_watched_actions', 'video_p50_watched_actions',
+  'video_p75_watched_actions', 'video_p100_watched_actions',
+  'video_avg_time_watched_actions', 'cost_per_thruplay',
+  'quality_ranking', 'engagement_rate_ranking', 'conversion_rate_ranking'
 ].join(',');
 
-// Para nível campaign/adset/account, remover campos só disponíveis em ad
 const INSIGHT_FIELDS_ACCOUNT = INSIGHT_FIELDS_BASE
   .split(',')
   .filter(function (f) { return !['quality_ranking', 'engagement_rate_ranking', 'conversion_rate_ranking'].includes(f); })
   .join(',');
+
+// Conjunto reduzido de campos (fallback quando HTTP 500 mesmo em sub-janelas)
+const INSIGHT_FIELDS_MINIMAL = [
+  'spend', 'impressions', 'clicks', 'ctr', 'reach',
+  'actions', 'action_values', 'inline_link_clicks'
+].join(',');
 
 // ============================================================
 // HTTP helpers
@@ -122,34 +88,50 @@ function httpsGet(pathWithQuery) {
       res.on('end', function () { resolve({ status: res.statusCode, body: body }); });
     });
     req.on('error', reject);
+    req.setTimeout(120000, function () { req.destroy(new Error('Request timeout 120s')); });
     req.end();
   });
 }
 
 function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function safeParse(body) { try { return JSON.parse(body); } catch (e) { return { _raw: body }; } }
 
-function safeParse(body) {
-  try { return JSON.parse(body); } catch (e) { return { _raw: body }; }
-}
-
-function graphGet(endpoint, queryParams) {
+// graphGet com retry automático em 5xx e rate limit
+function graphGet(endpoint, queryParams, retryCount) {
+  retryCount = retryCount || 0;
   const qs = new URLSearchParams(queryParams || {});
   qs.set('access_token', META_SYSTEM_USER_TOKEN);
   const fullPath = '/' + GRAPH_API_VERSION + endpoint + '?' + qs.toString();
 
   return httpsGet(fullPath).then(function (resp) {
     if (resp.status === 200) return safeParse(resp.body);
+
     const err = safeParse(resp.body);
     const errObj = err.error || {};
+
+    // Rate limit
     if (errObj.code === 17 || errObj.code === 613 || errObj.code === 4 || resp.status === 429) {
-      console.log('  ⏳ Rate limit, aguardando 60s...');
-      return sleep(60000).then(function () { return graphGet(endpoint, queryParams); });
+      if (retryCount >= 3) throw new Error('Rate limit persistente após 3 tentativas');
+      console.log('  ⏳ Rate limit (tentativa ' + (retryCount + 1) + '/3), aguardando 60s...');
+      return sleep(60000).then(function () { return graphGet(endpoint, queryParams, retryCount + 1); });
     }
-    // Alguns erros de breakdown em certos níveis — retornar vazio em vez de quebrar
+
+    // Breakdown não suportado: retorna vazio
     if (errObj.code === 100 && errObj.message && errObj.message.indexOf('breakdown') !== -1) {
-      console.log('  ⚠️  Breakdown não suportado neste nível, pulando: ' + errObj.message);
+      console.log('  ⚠️  Breakdown não suportado neste nível, pulando');
       return { data: [] };
     }
+
+    // HTTP 500/502/503 — transitório, retry com backoff
+    if (resp.status >= 500 && resp.status < 600) {
+      if (retryCount >= 2) {
+        throw new Error('Graph ' + endpoint + ' HTTP ' + resp.status + ' persistente após 2 retries: ' + (errObj.message || ''));
+      }
+      const waitMs = 5000 * (retryCount + 1);
+      console.log('  ⏳ HTTP ' + resp.status + ' (tentativa ' + (retryCount + 1) + '/2), aguardando ' + (waitMs / 1000) + 's...');
+      return sleep(waitMs).then(function () { return graphGet(endpoint, queryParams, retryCount + 1); });
+    }
+
     throw new Error('Graph ' + endpoint + ' HTTP ' + resp.status + ': ' + (errObj.message || resp.body.slice(0, 200)));
   });
 }
@@ -160,8 +142,12 @@ function graphPaginate(endpoint, queryParams, label) {
 
   function next(qParams, nextUrl) {
     pageCount += 1;
-    let promise;
+    if (pageCount > MAX_PAGES_PER_QUERY) {
+      console.log('  ⚠️  Limite ' + MAX_PAGES_PER_QUERY + ' páginas em ' + label + ', parando');
+      return Promise.resolve(all);
+    }
 
+    let promise;
     if (nextUrl) {
       const url = new URL(nextUrl);
       const params = new URLSearchParams(url.search || '');
@@ -194,7 +180,93 @@ function graphPaginate(endpoint, queryParams, label) {
 }
 
 // ============================================================
-// Coletas principais
+// Geração de sub-janelas de datas
+// ============================================================
+function gerarJanelas(totalDias, chunkDias) {
+  const janelas = [];
+  const hoje = new Date();
+  let offsetFim = 0;  // dias a partir de hoje
+
+  while (offsetFim < totalDias) {
+    const offsetInicio = Math.min(offsetFim + chunkDias, totalDias);
+    const fim = new Date(hoje.getTime() - offsetFim * 86400000);
+    const inicio = new Date(hoje.getTime() - (offsetInicio - 1) * 86400000);
+    janelas.push({
+      since: inicio.toISOString().slice(0, 10),
+      until: fim.toISOString().slice(0, 10)
+    });
+    offsetFim = offsetInicio;
+  }
+  return janelas.reverse();  // mais antigo primeiro
+}
+
+// ============================================================
+// coletarInsights com chunking automático
+// ============================================================
+async function coletarInsights(accountId, level, days, breakdowns, useMinimalFields) {
+  // Decide se precisa chunkar: níveis granulares com janela > chunk
+  const precisaChunkar = (level === 'adset' || level === 'ad') && days > CHUNK_DAYS_GRANULAR && !breakdowns;
+  const janelas = precisaChunkar
+    ? gerarJanelas(days, CHUNK_DAYS_GRANULAR)
+    : [{
+        since: new Date(Date.now() - days * 86400000).toISOString().slice(0, 10),
+        until: new Date().toISOString().slice(0, 10)
+      }];
+
+  let fields;
+  if (useMinimalFields) fields = INSIGHT_FIELDS_MINIMAL;
+  else if (level === 'ad') fields = INSIGHT_FIELDS_BASE;
+  else fields = INSIGHT_FIELDS_ACCOUNT;
+
+  const bkLabel = breakdowns ? '[' + breakdowns + ']' : '';
+  const chunkLabel = precisaChunkar ? ' [' + janelas.length + ' chunks de ' + CHUNK_DAYS_GRANULAR + 'd]' : '';
+  console.log('  🔹 insights[' + level + bkLabel + '] act_' + accountId.slice(-4) + ' (' + days + 'd)' + chunkLabel);
+
+  const todos = [];
+  for (let i = 0; i < janelas.length; i++) {
+    const j = janelas[i];
+    const params = {
+      fields: fields,
+      level: level,
+      time_range: JSON.stringify({ since: j.since, until: j.until }),
+      limit: '500'
+    };
+    if (breakdowns) {
+      params.breakdowns = breakdowns;
+    } else {
+      params.time_increment = '1';
+    }
+
+    const subLabel = 'insights[' + level + '] ' + j.since + '→' + j.until;
+    if (precisaChunkar) console.log('    🗓️  Chunk ' + (i + 1) + '/' + janelas.length + ': ' + j.since + ' a ' + j.until);
+
+    try {
+      const rows = await graphPaginate('/act_' + accountId + '/insights', params, subLabel);
+      todos.push.apply(todos, rows);
+      if (precisaChunkar) await sleep(RATE_LIMIT_MS);
+    } catch (err) {
+      console.log('    ⚠️  Chunk falhou (' + j.since + '→' + j.until + '): ' + err.message);
+      // Se falhou com campos completos, tentar com campos mínimos
+      if (!useMinimalFields) {
+        console.log('    🔄 Tentando com campos mínimos...');
+        try {
+          const paramsMin = Object.assign({}, params, { fields: INSIGHT_FIELDS_MINIMAL });
+          const rows = await graphPaginate('/act_' + accountId + '/insights', paramsMin, subLabel + ' [min]');
+          todos.push.apply(todos, rows);
+        } catch (err2) {
+          console.log('    ❌ Chunk falhou mesmo com campos mínimos: ' + err2.message);
+          // Continua para próximo chunk
+        }
+      }
+    }
+  }
+
+  console.log('    ✅ ' + level + ': ' + todos.length + ' linhas totais');
+  return todos;
+}
+
+// ============================================================
+// Metadados
 // ============================================================
 function coletarAccountMeta(accountId) {
   return graphGet('/act_' + accountId, {
@@ -202,76 +274,48 @@ function coletarAccountMeta(accountId) {
   });
 }
 
-// Coleta insights com possível breakdown
-function coletarInsights(accountId, level, days, breakdowns) {
-  const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-  const until = new Date().toISOString().slice(0, 10);
-
-  // Fields: usar FIELDS_BASE só em nível ad (para quality_ranking etc)
-  const fields = level === 'ad' ? INSIGHT_FIELDS_BASE : INSIGHT_FIELDS_ACCOUNT;
-
-  const params = {
-    fields: fields,
-    level: level,
-    time_range: JSON.stringify({ since: since, until: until }),
-    limit: '500'
-  };
-
-  // Breakdowns não combinam bem com time_increment
-  // Se tem breakdown, não quebra por dia (cada dimensão multiplica linhas)
-  if (breakdowns) {
-    params.breakdowns = breakdowns;
-  } else {
-    params.time_increment = '1';
-  }
-
-  const bkLabel = breakdowns ? '[' + breakdowns + ']' : '';
-  const label = 'insights[' + level + bkLabel + '] act_' + accountId.slice(-4) + ' (' + days + 'd)';
-  console.log('  🔹 ' + label);
-
-  return graphPaginate('/act_' + accountId + '/insights', params, label);
-}
-
-// Metadados de campanhas (objective, status, orçamento)
 function coletarCampanhas(accountId) {
-  console.log('  📋 Coletando metadados de campanhas...');
+  console.log('  📋 Metadados de campanhas...');
   return graphPaginate('/act_' + accountId + '/campaigns', {
     fields: 'id,name,objective,status,effective_status,buying_type,special_ad_categories,created_time,start_time,stop_time,daily_budget,lifetime_budget',
     limit: '100'
-  }, 'campanhas act_' + accountId.slice(-4));
+  }, 'campanhas act_' + accountId.slice(-4)).catch(function (err) {
+    console.log('    ⚠️  Falhou: ' + err.message);
+    return [];
+  });
 }
 
-// Metadados de adsets (optimization_goal, targeting resumido)
 function coletarAdsets(accountId) {
-  console.log('  📋 Coletando metadados de adsets...');
+  console.log('  📋 Metadados de adsets...');
   return graphPaginate('/act_' + accountId + '/adsets', {
     fields: 'id,name,campaign_id,status,effective_status,optimization_goal,billing_event,bid_strategy,daily_budget,lifetime_budget,attribution_spec,created_time',
     limit: '100'
-  }, 'adsets act_' + accountId.slice(-4));
+  }, 'adsets act_' + accountId.slice(-4)).catch(function (err) {
+    console.log('    ⚠️  Falhou: ' + err.message);
+    return [];
+  });
 }
 
-// Coleta ads ativos + seus criativos (batelada grande)
 function coletarAdsECriativos(accountId, onlyActive) {
-  console.log('  🎨 Coletando ads ' + (onlyActive ? 'ATIVOS' : 'TODOS') + ' com criativos...');
-
-  // Filtrar só ads ativos quando for full scan inicial (economiza muito)
+  console.log('  🎨 Ads ' + (onlyActive ? 'ATIVOS' : 'TODOS') + ' + criativos...');
   let filtering = null;
   if (onlyActive) {
     filtering = JSON.stringify([{ field: 'effective_status', operator: 'IN', value: ['ACTIVE'] }]);
   }
-
   const params = {
     fields: 'id,name,status,effective_status,adset_id,campaign_id,created_time,updated_time,' +
             'creative{id,name,title,body,image_url,thumbnail_url,video_id,object_type,call_to_action_type,instagram_permalink_url,effective_object_story_id}',
     limit: '100'
   };
   if (filtering) params.filtering = filtering;
-
-  return graphPaginate('/act_' + accountId + '/ads', params, 'ads act_' + accountId.slice(-4));
+  return graphPaginate('/act_' + accountId + '/ads', params, 'ads act_' + accountId.slice(-4)).catch(function (err) {
+    console.log('    ⚠️  Falhou: ' + err.message);
+    return [];
+  });
 }
 
 // ============================================================
-// Enriquecimento de linhas de insights
+// Enriquecimento (igual v2.0)
 // ============================================================
 function extractActionValue(list, types) {
   if (!list) return 0;
@@ -285,39 +329,19 @@ function extractActionValue(list, types) {
 function enriquecerInsight(row) {
   const enriched = Object.assign({}, row);
 
-  // Purchases (múltiplos aliases — pixel, CAPI, offsite)
-  const purchaseAliases = [
-    'purchase',
-    'omni_purchase',
-    'offsite_conversion.fb_pixel_purchase',
-    'onsite_web_purchase',
-    'onsite_web_app_purchase'
-  ];
-  const addToCartAliases = [
-    'add_to_cart',
-    'omni_add_to_cart',
-    'offsite_conversion.fb_pixel_add_to_cart'
-  ];
-  const initCheckoutAliases = [
-    'initiate_checkout',
-    'omni_initiated_checkout',
-    'offsite_conversion.fb_pixel_initiate_checkout'
-  ];
-  const viewContentAliases = [
-    'view_content',
-    'omni_view_content',
-    'offsite_conversion.fb_pixel_view_content'
-  ];
+  const purchaseAliases = ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase',
+                           'onsite_web_purchase', 'onsite_web_app_purchase'];
+  const addToCartAliases = ['add_to_cart', 'omni_add_to_cart', 'offsite_conversion.fb_pixel_add_to_cart'];
+  const initCheckoutAliases = ['initiate_checkout', 'omni_initiated_checkout', 'offsite_conversion.fb_pixel_initiate_checkout'];
+  const viewContentAliases = ['view_content', 'omni_view_content', 'offsite_conversion.fb_pixel_view_content'];
 
   enriched.purchases = extractActionValue(row.actions, purchaseAliases);
   enriched.purchaseValue = extractActionValue(row.action_values, purchaseAliases);
   enriched.addToCart = extractActionValue(row.actions, addToCartAliases);
   enriched.initiatedCheckout = extractActionValue(row.actions, initCheckoutAliases);
   enriched.viewContent = extractActionValue(row.actions, viewContentAliases);
-
   enriched.uniquePurchases = extractActionValue(row.unique_actions, purchaseAliases);
 
-  // Métricas numéricas
   enriched.spend = parseFloat(row.spend) || 0;
   enriched.impressions = parseInt(row.impressions) || 0;
   enriched.clicks = parseInt(row.clicks) || 0;
@@ -329,7 +353,6 @@ function enriquecerInsight(row) {
   enriched.uniqueClicks = parseInt(row.unique_clicks) || 0;
   enriched.socialSpend = parseFloat(row.social_spend) || 0;
 
-  // Vídeo — campos vêm como array [{action_type: "video_view", value: "123"}]
   enriched.videoPlays = extractActionValue(row.video_play_actions, ['video_view']);
   enriched.videoThruplay = extractActionValue(row.video_thruplay_watched_actions, ['video_view']);
   enriched.videoP25 = extractActionValue(row.video_p25_watched_actions, ['video_view']);
@@ -337,15 +360,12 @@ function enriquecerInsight(row) {
   enriched.videoP75 = extractActionValue(row.video_p75_watched_actions, ['video_view']);
   enriched.videoP100 = extractActionValue(row.video_p100_watched_actions, ['video_view']);
 
-  // Rankings (só em nível ad)
   if (row.quality_ranking) enriched.qualityRanking = row.quality_ranking;
   if (row.engagement_rate_ranking) enriched.engagementRateRanking = row.engagement_rate_ranking;
   if (row.conversion_rate_ranking) enriched.conversionRateRanking = row.conversion_rate_ranking;
 
-  // Calculados
   enriched.roas = enriched.spend > 0 ? enriched.purchaseValue / enriched.spend : 0;
   enriched.cpa = enriched.purchases > 0 ? enriched.spend / enriched.purchases : 0;
-  enriched.calcCtr = enriched.impressions > 0 ? (enriched.clicks / enriched.impressions) * 100 : 0;
   enriched.linkCtr = enriched.impressions > 0 ? (enriched.inlineLinkClicks / enriched.impressions) * 100 : 0;
   enriched.videoViewRate = enriched.impressions > 0 ? (enriched.videoPlays / enriched.impressions) * 100 : 0;
   enriched.thruplayRate = enriched.videoPlays > 0 ? (enriched.videoThruplay / enriched.videoPlays) * 100 : 0;
@@ -354,18 +374,15 @@ function enriquecerInsight(row) {
 }
 
 // ============================================================
-// Cache de criativos (evita re-baixar toda run)
+// Cache criativos
 // ============================================================
 function carregarCacheCriativos() {
   if (fs.existsSync(CREATIVES_CACHE_FILE)) {
     try {
       const data = JSON.parse(fs.readFileSync(CREATIVES_CACHE_FILE, 'utf-8'));
-      console.log('📥 Cache de criativos carregado: ' + Object.keys(data).length + ' ads');
+      console.log('📥 Cache criativos: ' + Object.keys(data).length + ' ads');
       return data;
-    } catch (e) {
-      console.log('⚠️  Cache criativos corrompido');
-      return {};
-    }
+    } catch (e) { return {}; }
   }
   return {};
 }
@@ -376,7 +393,7 @@ function salvarCacheCriativos(cache) {
 }
 
 // ============================================================
-// Stats consolidadas
+// Stats (igual v2.0)
 // ============================================================
 function computeStats(accountInsights, campaignInsights, adInsights) {
   const hoje = new Date();
@@ -412,7 +429,6 @@ function computeStats(accountInsights, campaignInsights, adInsights) {
     };
   }
 
-  // Por mês (para gráfico evolutivo)
   const byMonth = {};
   accountInsights.forEach(function (r) {
     const m = (r.date_start || '').slice(0, 7);
@@ -423,20 +439,17 @@ function computeStats(accountInsights, campaignInsights, adInsights) {
     byMonth[m].purchaseValue += r.purchaseValue || 0;
   });
   Object.keys(byMonth).forEach(function (m) {
-    const d = byMonth[m];
-    d.roas = d.spend > 0 ? d.purchaseValue / d.spend : 0;
+    byMonth[m].roas = byMonth[m].spend > 0 ? byMonth[m].purchaseValue / byMonth[m].spend : 0;
   });
 
-  // Top campanhas
   const byCampaign = {};
   campaignInsights.forEach(function (r) {
     const id = r.campaign_id || 'unknown';
     if (!byCampaign[id]) {
       byCampaign[id] = {
-        campaign_id: id,
-        campaign_name: r.campaign_name || '(sem nome)',
-        account_id: r.account_id,
-        spend: 0, purchases: 0, purchaseValue: 0, impressions: 0, clicks: 0
+        campaign_id: id, campaign_name: r.campaign_name || '(sem nome)',
+        account_id: r.account_id, spend: 0, purchases: 0, purchaseValue: 0,
+        impressions: 0, clicks: 0
       };
     }
     byCampaign[id].spend += r.spend || 0;
@@ -451,17 +464,13 @@ function computeStats(accountInsights, campaignInsights, adInsights) {
     return c;
   });
 
-  // Top ads (últimos 30d)
   const byAd = {};
   adInsights.forEach(function (r) {
     const id = r.ad_id || 'unknown';
     if (!byAd[id]) {
       byAd[id] = {
-        ad_id: id,
-        ad_name: r.ad_name || '(sem nome)',
-        campaign_id: r.campaign_id,
-        adset_id: r.adset_id,
-        account_id: r.account_id,
+        ad_id: id, ad_name: r.ad_name || '(sem nome)',
+        campaign_id: r.campaign_id, adset_id: r.adset_id, account_id: r.account_id,
         spend: 0, purchases: 0, purchaseValue: 0, impressions: 0,
         videoPlays: 0, videoThruplay: 0,
         qualityRanking: r.qualityRanking,
@@ -506,10 +515,11 @@ function computeStats(accountInsights, campaignInsights, adInsights) {
 // MAIN
 // ============================================================
 async function main() {
-  console.log('🚀 Suplemind Meta Ads Collector v2.0');
+  console.log('🚀 Suplemind Meta Ads Collector v2.1');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('   Graph API: ' + GRAPH_API_VERSION);
+  console.log('   Chunk size granular: ' + CHUNK_DAYS_GRANULAR + 'd');
   console.log('');
 
   if (!META_APP_ID || !META_APP_SECRET || !META_SYSTEM_USER_TOKEN || !META_AD_ACCOUNT_IDS) {
@@ -518,7 +528,6 @@ async function main() {
 
   const accountIds = META_AD_ACCOUNT_IDS.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
   console.log('📋 Ad Accounts: ' + accountIds.length);
-  console.log('');
 
   const daysMain = MODE === 'incremental' ? DAYS_INCREMENTAL : DAYS_FULL;
   const daysAd = MODE === 'incremental' ? DAYS_INCREMENTAL : DAYS_AD_LEVEL;
@@ -528,49 +537,42 @@ async function main() {
 
   const output = {
     meta: {
-      version: '2.0',
+      version: '2.1',
       collectedAt: new Date().toISOString(),
       mode: MODE,
       graphApiVersion: GRAPH_API_VERSION,
       windows: { main: daysMain, ad: daysAd, breakdown: daysBreakdown }
     },
     accounts: {},
-    insights: {
-      account: [],
-      campaign: [],
-      adset: [],
-      ad: []
-    },
-    breakdowns: {
-      byAgeGender: [],
-      byPublisherPlatform: [],
-      byPlatformPosition: []
-    },
-    campaigns: [],
-    adsets: [],
-    ads: [],
-    creatives: {}
+    insights: { account: [], campaign: [], adset: [], ad: [] },
+    breakdowns: { byAgeGender: [], byPublisherPlatform: [], byPlatformPosition: [] },
+    campaigns: [], adsets: [], ads: [], creatives: {},
+    errors: []  // NOVO: registra o que falhou
   };
 
-  // Loop por conta
   for (const accId of accountIds) {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('📊 act_' + accId + ' (' + (ACCOUNT_ALIASES[accId] || 'n/a') + ')');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-    // Metadata
-    const meta = await coletarAccountMeta(accId);
-    output.accounts['act_' + accId] = {
-      id: meta.id, account_id: meta.account_id, name: meta.name,
-      business_name: meta.business_name, currency: meta.currency,
-      timezone: meta.timezone_name, account_status: meta.account_status,
-      amount_spent_total: meta.amount_spent, spend_cap: meta.spend_cap,
-      alias: ACCOUNT_ALIASES[accId] || ('Conta ' + accId.slice(-4))
-    };
-    console.log('  ✅ ' + meta.name);
+    try {
+      const meta = await coletarAccountMeta(accId);
+      output.accounts['act_' + accId] = {
+        id: meta.id, account_id: meta.account_id, name: meta.name,
+        business_name: meta.business_name, currency: meta.currency,
+        timezone: meta.timezone_name, account_status: meta.account_status,
+        amount_spent_total: meta.amount_spent, spend_cap: meta.spend_cap,
+        alias: ACCOUNT_ALIASES[accId] || ('Conta ' + accId.slice(-4))
+      };
+      console.log('  ✅ ' + meta.name);
+    } catch (err) {
+      console.log('  ❌ Metadata falhou: ' + err.message);
+      output.errors.push({ account: accId, step: 'metadata', error: err.message });
+      continue;
+    }
     await sleep(RATE_LIMIT_MS);
 
-    // Insights 4 níveis
+    // Insights 4 níveis — cada um em try/catch independente
     const levels = [
       { name: 'account', days: daysMain },
       { name: 'campaign', days: daysMain },
@@ -578,80 +580,94 @@ async function main() {
       { name: 'ad', days: daysAd }
     ];
     for (const lv of levels) {
-      const raw = await coletarInsights(accId, lv.name, lv.days, null);
-      const enriched = raw.map(enriquecerInsight).map(function (r) { r.account_id = accId; return r; });
-      output.insights[lv.name].push.apply(output.insights[lv.name], enriched);
-      console.log('    ✅ ' + lv.name + ': ' + enriched.length + ' linhas');
+      try {
+        const raw = await coletarInsights(accId, lv.name, lv.days, null, false);
+        const enriched = raw.map(enriquecerInsight).map(function (r) { r.account_id = accId; return r; });
+        output.insights[lv.name].push.apply(output.insights[lv.name], enriched);
+      } catch (err) {
+        console.log('  ❌ insights[' + lv.name + '] falhou: ' + err.message);
+        output.errors.push({ account: accId, step: 'insights_' + lv.name, error: err.message });
+      }
       await sleep(RATE_LIMIT_MS);
     }
 
-    // Breakdowns (só em full mode, e só 30d)
+    // Breakdowns (só full)
     if (MODE === 'full') {
-      console.log('  🎯 Coletando breakdowns (30d)...');
-      const breakdownConfigs = [
+      console.log('  🎯 Breakdowns (30d)...');
+      const bkConfigs = [
         { name: 'byAgeGender', bk: 'age,gender' },
         { name: 'byPublisherPlatform', bk: 'publisher_platform' },
         { name: 'byPlatformPosition', bk: 'publisher_platform,platform_position' }
       ];
-      for (const bc of breakdownConfigs) {
-        const raw = await coletarInsights(accId, 'account', daysBreakdown, bc.bk);
-        const enriched = raw.map(enriquecerInsight).map(function (r) { r.account_id = accId; return r; });
-        output.breakdowns[bc.name].push.apply(output.breakdowns[bc.name], enriched);
-        console.log('    ✅ ' + bc.name + ': ' + enriched.length + ' linhas');
+      for (const bc of bkConfigs) {
+        try {
+          const raw = await coletarInsights(accId, 'account', daysBreakdown, bc.bk, false);
+          const enriched = raw.map(enriquecerInsight).map(function (r) { r.account_id = accId; return r; });
+          output.breakdowns[bc.name].push.apply(output.breakdowns[bc.name], enriched);
+          console.log('    ✅ ' + bc.name + ': ' + enriched.length + ' linhas');
+        } catch (err) {
+          console.log('    ⚠️  ' + bc.name + ': ' + err.message);
+          output.errors.push({ account: accId, step: 'bk_' + bc.name, error: err.message });
+        }
         await sleep(RATE_LIMIT_MS);
       }
     }
 
-    // Metadados de campanhas e adsets
-    const campaigns = await coletarCampanhas(accId);
-    campaigns.forEach(function (c) { c.account_id = accId; });
-    output.campaigns.push.apply(output.campaigns, campaigns);
-    console.log('  ✅ Campanhas: ' + campaigns.length);
+    // Metadados
+    try {
+      const campaigns = await coletarCampanhas(accId);
+      campaigns.forEach(function (c) { c.account_id = accId; });
+      output.campaigns.push.apply(output.campaigns, campaigns);
+      console.log('  ✅ Campanhas: ' + campaigns.length);
+    } catch (err) {
+      output.errors.push({ account: accId, step: 'campaigns', error: err.message });
+    }
     await sleep(RATE_LIMIT_MS);
 
-    const adsets = await coletarAdsets(accId);
-    adsets.forEach(function (a) { a.account_id = accId; });
-    output.adsets.push.apply(output.adsets, adsets);
-    console.log('  ✅ Adsets: ' + adsets.length);
+    try {
+      const adsets = await coletarAdsets(accId);
+      adsets.forEach(function (a) { a.account_id = accId; });
+      output.adsets.push.apply(output.adsets, adsets);
+      console.log('  ✅ Adsets: ' + adsets.length);
+    } catch (err) {
+      output.errors.push({ account: accId, step: 'adsets', error: err.message });
+    }
     await sleep(RATE_LIMIT_MS);
 
-    // Criativos (em full mode, só ads ativos; em incremental, não refaz)
+    // Criativos
     if (MODE === 'full') {
-      const ads = await coletarAdsECriativos(accId, true);
-      ads.forEach(function (a) {
-        a.account_id = accId;
-        output.ads.push(a);
-        if (a.creative) {
-          output.creatives[a.id] = {
-            ad_id: a.id,
-            creative_id: a.creative.id,
-            name: a.creative.name || a.name,
-            title: a.creative.title,
-            body: a.creative.body,
-            image_url: a.creative.image_url,
-            thumbnail_url: a.creative.thumbnail_url,
-            video_id: a.creative.video_id,
-            object_type: a.creative.object_type,
-            call_to_action_type: a.creative.call_to_action_type,
-            instagram_permalink_url: a.creative.instagram_permalink_url,
-            collectedAt: new Date().toISOString()
-          };
-          creativesCache[a.id] = output.creatives[a.id];
-        }
-      });
-      console.log('  ✅ Ads ativos + criativos: ' + ads.length);
+      try {
+        const ads = await coletarAdsECriativos(accId, true);
+        ads.forEach(function (a) {
+          a.account_id = accId;
+          output.ads.push(a);
+          if (a.creative) {
+            output.creatives[a.id] = {
+              ad_id: a.id, creative_id: a.creative.id,
+              name: a.creative.name || a.name,
+              title: a.creative.title, body: a.creative.body,
+              image_url: a.creative.image_url, thumbnail_url: a.creative.thumbnail_url,
+              video_id: a.creative.video_id, object_type: a.creative.object_type,
+              call_to_action_type: a.creative.call_to_action_type,
+              instagram_permalink_url: a.creative.instagram_permalink_url,
+              collectedAt: new Date().toISOString()
+            };
+            creativesCache[a.id] = output.creatives[a.id];
+          }
+        });
+        console.log('  ✅ Ads ativos + criativos: ' + ads.length);
+      } catch (err) {
+        output.errors.push({ account: accId, step: 'ads_criativos', error: err.message });
+      }
       await sleep(RATE_LIMIT_MS);
     } else {
-      // Em incremental, reutilizar cache
       Object.assign(output.creatives, creativesCache);
-      console.log('  📥 Criativos reutilizados do cache: ' + Object.keys(creativesCache).length);
+      console.log('  📥 Criativos do cache: ' + Object.keys(creativesCache).length);
     }
   }
 
-  // Salvar cache de criativos
   if (Object.keys(output.creatives).length > 0) salvarCacheCriativos(output.creatives);
 
-  // Stats
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📊 Calculando estatísticas...');
@@ -670,7 +686,8 @@ async function main() {
     creatives: Object.keys(output.creatives).length,
     breakdownAgeGender: output.breakdowns.byAgeGender.length,
     breakdownPlatform: output.breakdowns.byPublisherPlatform.length,
-    breakdownPosition: output.breakdowns.byPlatformPosition.length
+    breakdownPosition: output.breakdowns.byPlatformPosition.length,
+    errors: output.errors.length
   };
 
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -679,6 +696,15 @@ async function main() {
 
   console.log('');
   console.log('✅ Coleta Meta concluída! Arquivo: ' + sizeKB + ' KB');
+
+  if (output.errors.length > 0) {
+    console.log('');
+    console.log('⚠️  ERROS REGISTRADOS (' + output.errors.length + '):');
+    output.errors.forEach(function (e) {
+      console.log('   [' + e.step + '] act_' + e.account.slice(-4) + ': ' + e.error.slice(0, 120));
+    });
+  }
+
   console.log('');
   console.log('📈 RESUMO CONSOLIDADO:');
   ['7d', '30d', '90d', 'total'].forEach(function (p) {
@@ -708,14 +734,14 @@ async function main() {
   });
 
   console.log('');
-  console.log('🎨 Criativos coletados: ' + Object.keys(output.creatives).length);
+  console.log('🎨 Criativos: ' + Object.keys(output.creatives).length);
   console.log('🎬 Ads com vídeo: ' + output.ads.filter(function (a) {
     return a.creative && a.creative.video_id;
   }).length);
 }
 
 main().catch(function (err) {
-  console.error('❌ ERRO: ' + err.message);
+  console.error('❌ ERRO FATAL: ' + err.message);
   console.error(err.stack);
   process.exit(1);
 });
