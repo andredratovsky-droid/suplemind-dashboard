@@ -33,7 +33,7 @@ const MAX_PAGES_PER_QUERY = 30;
 
 const DAYS_FULL = 180;
 const DAYS_AD_LEVEL = 30;
-const DAYS_INCREMENTAL = 3;
+const DAYS_INCREMENTAL = 7;  // v2.4: aumentado de 3 para cobrir gap de fim de semana
 const DAYS_BREAKDOWN = 30;
 const CHUNK_DAYS_GRANULAR = 30;
 
@@ -563,7 +563,7 @@ function computeStats(accountInsights, campaignInsights, adInsights, campaignsMe
 // MAIN
 // ============================================================
 async function main() {
-  console.log('🚀 Suplemind Meta Ads Collector v2.3 (SLIM)');
+  console.log('🚀 Suplemind Meta Ads Collector v2.4 (SLIM)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('   Target: <15 MB em meta.json');
@@ -584,7 +584,7 @@ async function main() {
 
   const output = {
     meta: {
-      version: '2.3-slim',
+      version: '2.4-slim',
       collectedAt: new Date().toISOString(),
       mode: MODE,
       graphApiVersion: GRAPH_API_VERSION,
@@ -758,12 +758,119 @@ async function main() {
   };
 
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+  // ============================================================
+  // v2.4: MERGE incremental
+  // No modo incremental, junta com dados existentes preservando histórico
+  // ============================================================
+  if (MODE === 'incremental' && fs.existsSync(DATA_FILE)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+      console.log('🔀 Merge incremental: preservando histórico anterior...');
+
+      // Merge insights por chave única (date+ad_id+campaign_id+...)
+      function mergeInsights(oldArr, newArr, keyFn) {
+        if (!Array.isArray(oldArr)) oldArr = [];
+        if (!Array.isArray(newArr)) newArr = [];
+        const map = {};
+        oldArr.forEach(function(r){ map[keyFn(r)] = r; });
+        newArr.forEach(function(r){ map[keyFn(r)] = r; });  // novos sobrescrevem antigos
+        return Object.values(map);
+      }
+
+      // Account: chave = date + acc
+      output.insights.account = mergeInsights(
+        existing.insights ? existing.insights.account : [],
+        output.insights.account,
+        function(r){ return (r.d||'') + '|' + (r.acc||''); }
+      );
+      // Campaign: chave = date + cid
+      output.insights.campaign = mergeInsights(
+        existing.insights ? existing.insights.campaign : [],
+        output.insights.campaign,
+        function(r){ return (r.d||'') + '|' + (r.cid||''); }
+      );
+      // Adset: chave = date + asid
+      output.insights.adset = mergeInsights(
+        existing.insights ? existing.insights.adset : [],
+        output.insights.adset,
+        function(r){ return (r.d||'') + '|' + (r.asid||''); }
+      );
+      // Ad: chave = date + aid
+      output.insights.ad = mergeInsights(
+        existing.insights ? existing.insights.ad : [],
+        output.insights.ad,
+        function(r){ return (r.d||'') + '|' + (r.aid||''); }
+      );
+
+      // Breakdowns também
+      output.breakdowns.byAgeGender = mergeInsights(
+        existing.breakdowns ? existing.breakdowns.byAgeGender : [],
+        output.breakdowns.byAgeGender,
+        function(r){ return (r.d||'') + '|' + (r.acc||'') + '|' + (r.age||'') + '|' + (r.gnd||''); }
+      );
+      output.breakdowns.byPublisherPlatform = mergeInsights(
+        existing.breakdowns ? existing.breakdowns.byPublisherPlatform : [],
+        output.breakdowns.byPublisherPlatform,
+        function(r){ return (r.d||'') + '|' + (r.acc||'') + '|' + (r.pp||''); }
+      );
+      output.breakdowns.byPlatformPosition = mergeInsights(
+        existing.breakdowns ? existing.breakdowns.byPlatformPosition : [],
+        output.breakdowns.byPlatformPosition,
+        function(r){ return (r.d||'') + '|' + (r.acc||'') + '|' + (r.pp||'') + '|' + (r.pos||''); }
+      );
+
+      // Mantém metadados/criativos do que vier mais recente
+      output.creatives = Object.assign({}, existing.creatives || {}, output.creatives);
+
+      // Merge campaigns/adsets/ads por id (novos sobrescrevem)
+      function mergeById(oldArr, newArr) {
+        if (!Array.isArray(oldArr)) oldArr = [];
+        if (!Array.isArray(newArr)) newArr = [];
+        const map = {};
+        oldArr.forEach(function(x){ if(x.id) map[x.id] = x; });
+        newArr.forEach(function(x){ if(x.id) map[x.id] = x; });
+        return Object.values(map);
+      }
+      output.campaigns = mergeById(existing.campaigns, output.campaigns);
+      output.adsets = mergeById(existing.adsets, output.adsets);
+      output.ads = mergeById(existing.ads, output.ads);
+
+      // Recomputa stats com dados merged
+      output.stats = computeStats(output.insights.account, output.insights.campaign, output.insights.ad, output.campaigns);
+
+      // Atualiza counts pós-merge
+      output.meta.counts = {
+        accounts: Object.keys(output.accounts).length,
+        accountInsights: output.insights.account.length,
+        campaignInsights: output.insights.campaign.length,
+        adsetInsights: output.insights.adset.length,
+        adInsights: output.insights.ad.length,
+        campaigns: output.campaigns.length,
+        adsets: output.adsets.length,
+        ads: output.ads.length,
+        creatives: Object.keys(output.creatives).length,
+        breakdownAgeGender: output.breakdowns.byAgeGender.length,
+        breakdownPlatform: output.breakdowns.byPublisherPlatform.length,
+        breakdownPosition: output.breakdowns.byPlatformPosition.length,
+        errors: output.errors.length
+      };
+
+      console.log('   📦 Account insights: ' + output.insights.account.length);
+      console.log('   📦 Campaign insights: ' + output.insights.campaign.length);
+      console.log('   📦 Ad insights: ' + output.insights.ad.length);
+    } catch (mergeErr) {
+      console.log('⚠️  Merge falhou: ' + mergeErr.message);
+      console.log('   Salvando apenas dados desta run (sem histórico)');
+    }
+  }
+
   // SALVAR COMPACTO (sem pretty-print!)
   fs.writeFileSync(DATA_FILE, JSON.stringify(output));
   const sizeMB = (fs.statSync(DATA_FILE).size / 1024 / 1024).toFixed(2);
 
   console.log('');
-  console.log('✅ Coleta Meta v2.2 concluída!');
+  console.log('✅ Coleta Meta v2.4 concluída!');
   console.log('   Arquivo: ' + sizeMB + ' MB (target <15 MB)');
 
   if (output.errors.length > 0) {
