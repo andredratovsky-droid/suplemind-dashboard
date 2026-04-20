@@ -259,6 +259,31 @@ function coletarNFesLista(accessToken, opts) {
 // Extrator de itens (NOVO na v5.4)
 // Recebe a resposta completa da NFe e extrai só o essencial dos itens
 // ============================================================
+function extractFormasPagamento(nfeData) {
+  if (!nfeData) return [];
+  var formas = [];
+  if (nfeData.parcelas && Array.isArray(nfeData.parcelas)) {
+    nfeData.parcelas.forEach(function(p) {
+      if (p.formaPagamento) {
+        formas.push({
+          descricao: p.formaPagamento.descricao || p.formaPagamento.nome || 'Desconhecida',
+          codigo: p.formaPagamento.codigoFiscal || p.formaPagamento.id || null,
+          valor: parseFloat(p.valor) || 0
+        });
+      }
+    });
+  }
+  if (formas.length === 0 && nfeData.formaPagamento) {
+    var fp = nfeData.formaPagamento;
+    formas.push({
+      descricao: fp.descricao || fp.nome || 'Desconhecida',
+      codigo: fp.codigoFiscal || fp.id || null,
+      valor: parseFloat(nfeData.valorNota) || 0
+    });
+  }
+  return formas;
+}
+
 function extractItens(nfeData) {
   if (!nfeData || !nfeData.itens || !Array.isArray(nfeData.itens)) return [];
   return nfeData.itens.map(function (item) {
@@ -321,7 +346,8 @@ function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
           serie: resp.data.serie,
           numeroPedidoLoja: resp.data.numeroPedidoLoja,
           chaveAcesso: resp.data.chaveAcesso,
-          itens: extractItens(resp.data)   // <--- NOVO na v5.4
+          itens: extractItens(resp.data),  // v5.4
+          formasPagamento: extractFormasPagamento(resp.data)  // v5.5
         };
         novos += 1;
       }
@@ -384,11 +410,13 @@ function consolidarNFes(nfesLista, detalhesMap) {
       base.serie = det.serie;
       base.numeroPedidoLoja = det.numeroPedidoLoja || null;
       base.chaveAcesso = det.chaveAcesso;
-      base.itens = det.itens || [];                // <--- NOVO na v5.4
+      base.itens = det.itens || [];                       // v5.4
+      base.formasPagamento = det.formasPagamento || [];   // v5.5
       base.temDetalhe = true;
     } else {
       base.valorNota = 0;
       base.itens = [];
+      base.formasPagamento = [];
       base.temDetalhe = false;
     }
     return base;
@@ -691,7 +719,7 @@ function mergeById(existentes, novos, label) {
 // MAIN
 // ============================================================
 function main() {
-  console.log('🚀 Suplemind Bling Collector v5.4 (estoques + itens)');
+  console.log('🚀 Suplemind Bling Collector v5.5 (estoques + itens + formas pgto)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('');
@@ -732,7 +760,7 @@ function main() {
 
     const output = {
       meta: {
-        version: '5.4',
+        version: '5.5',
         collectedAt: new Date().toISOString(),
         mode: MODE,
         nfeSituacoesValidas: NFE_SITUACOES_VALIDAS,
