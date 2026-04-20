@@ -83,6 +83,31 @@ function apiGet(accessToken, endpoint) {
   });
 }
 
+function extractFormasPagamento(nfeData) {
+  if (!nfeData) return [];
+  var formas = [];
+  if (nfeData.parcelas && Array.isArray(nfeData.parcelas)) {
+    nfeData.parcelas.forEach(function(p) {
+      if (p.formaPagamento) {
+        formas.push({
+          descricao: p.formaPagamento.descricao || p.formaPagamento.nome || 'Desconhecida',
+          codigo: p.formaPagamento.codigoFiscal || p.formaPagamento.id || null,
+          valor: parseFloat(p.valor) || 0
+        });
+      }
+    });
+  }
+  if (formas.length === 0 && nfeData.formaPagamento) {
+    var fp = nfeData.formaPagamento;
+    formas.push({
+      descricao: fp.descricao || fp.nome || 'Desconhecida',
+      codigo: fp.codigoFiscal || fp.id || null,
+      valor: parseFloat(nfeData.valorNota) || 0
+    });
+  }
+  return formas;
+}
+
 function extractItens(nfeData) {
   if (!nfeData || !nfeData.itens || !Array.isArray(nfeData.itens)) return [];
   return nfeData.itens.map(function (item) {
@@ -103,7 +128,7 @@ function salvarCache(cache) {
 }
 
 async function main() {
-  console.log('🚀 Enrich Items v1.0');
+  console.log('🚀 Enrich Items v1.1 (itens + formas pgto)');
   console.log('   Timeout: ' + MAX_MINUTES + ' min');
   console.log('');
 
@@ -154,8 +179,10 @@ async function main() {
       const resp = await apiGet(accessToken, '/nfe/' + id);
       if (resp && resp.data) {
         const itens = extractItens(resp.data);
+        const formas = extractFormasPagamento(resp.data);
         cache[id].itens = itens;
-        if (itens.length > 0) sucessos += 1;
+        cache[id].formasPagamento = formas;  // v1.1: forma pgto
+        if (itens.length > 0 || formas.length > 0) sucessos += 1;
       }
     } catch (err) {
       erros += 1;
