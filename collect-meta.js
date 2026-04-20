@@ -56,6 +56,7 @@ const INSIGHT_FIELDS_BASE = [
   'video_play_actions', 'video_thruplay_watched_actions',
   'video_p25_watched_actions', 'video_p50_watched_actions',
   'video_p75_watched_actions', 'video_p100_watched_actions',
+  'video_3_sec_watched_actions', 'video_avg_time_watched_actions',
   // Nomes (bug fix da v2.1)
   'campaign_id', 'campaign_name',
   'adset_id', 'adset_name',
@@ -394,6 +395,11 @@ function slimInsight(row, accountId) {
   const videoP50 = extractActionValue(row.video_p50_watched_actions, ['video_view']);
   const videoP75 = extractActionValue(row.video_p75_watched_actions, ['video_view']);
   const videoP100 = extractActionValue(row.video_p100_watched_actions, ['video_view']);
+  const video3sec = extractActionValue(row.video_3_sec_watched_actions, ['video_view']);
+  // Avg time watched é retornado como número direto (segundos), não action array
+  const videoAvgTime = row.video_avg_time_watched_actions && row.video_avg_time_watched_actions.length > 0
+    ? parseFloat(row.video_avg_time_watched_actions[0].value) || 0
+    : 0;
 
   if (videoPlays > 0) slim.vp = videoPlays;
   if (videoThruplay > 0) slim.vtp = videoThruplay;
@@ -401,6 +407,8 @@ function slimInsight(row, accountId) {
   if (videoP50 > 0) slim.vp50 = videoP50;
   if (videoP75 > 0) slim.vp75 = videoP75;
   if (videoP100 > 0) slim.vp100 = videoP100;
+  if (video3sec > 0) slim.v3s = video3sec;
+  if (videoAvgTime > 0) slim.vat = Math.round(videoAvgTime * 10) / 10;
 
   // Rankings (só em ad)
   if (row.quality_ranking && row.quality_ranking !== 'UNKNOWN') slim.qr = row.quality_ranking;
@@ -555,7 +563,7 @@ function computeStats(accountInsights, campaignInsights, adInsights, campaignsMe
 // MAIN
 // ============================================================
 async function main() {
-  console.log('🚀 Suplemind Meta Ads Collector v2.2 (SLIM)');
+  console.log('🚀 Suplemind Meta Ads Collector v2.3 (SLIM)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('   Target: <15 MB em meta.json');
@@ -576,7 +584,7 @@ async function main() {
 
   const output = {
     meta: {
-      version: '2.2-slim',
+      version: '2.3-slim',
       collectedAt: new Date().toISOString(),
       mode: MODE,
       graphApiVersion: GRAPH_API_VERSION,
@@ -590,7 +598,7 @@ async function main() {
         lc: 'inline_link_clicks', oc: 'outbound_clicks',
         pu: 'purchases', pv: 'purchase_value',
         atc: 'add_to_cart', ic: 'initiate_checkout', vc: 'view_content',
-        vp: 'video_plays', vtp: 'video_thruplay',
+        vp: 'video_plays', vtp: 'video_thruplay', v3s: 'video_3sec_views', vat: 'video_avg_time_sec',
         vp25: 'video_p25', vp50: 'video_p50', vp75: 'video_p75', vp100: 'video_p100',
         qr: 'quality_ranking', err: 'engagement_rate_ranking', crr: 'conversion_rate_ranking',
         age: 'age', gnd: 'gender', pp: 'publisher_platform', pos: 'platform_position',
