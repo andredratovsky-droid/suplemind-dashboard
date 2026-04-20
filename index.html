@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suplemind Intelligence v5.5</title>
+<title>Suplemind Intelligence v5.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -305,6 +305,133 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .daily-alert-sub { color: var(--text2); font-size: 11.5px; }
 .daily-alert-action { margin-top: 6px; font-size: 11px; color: var(--text3); font-style: italic; }
 
+
+/* Criativo Intelligence */
+.crv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+.crv-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .15s, border-color .2s;
+}
+.crv-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border2);
+}
+.crv-thumb-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 75%; /* 4:3 */
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  background: var(--bg4);
+}
+.crv-thumb {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.crv-thumb-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
+  font-size: 10px;
+  text-align: center;
+  padding: 10px;
+}
+.crv-ces-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(0,0,0,.75);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.crv-ces-badge.gold { background: linear-gradient(135deg, #ffb340 0%, #c87a00 100%); border-color: #ffd280; }
+.crv-ces-badge.silver { background: rgba(100,120,130,.85); }
+.crv-ces-badge.bronze { background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%); }
+.crv-ces-badge.red { background: rgba(255,69,96,.85); }
+.crv-video-pill {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0,0,0,.7);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+}
+.crv-name {
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.3;
+  height: 28px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.crv-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.crv-tag {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: .3px;
+  font-weight: 600;
+}
+.crv-tag.strategy { background: var(--blue-dim); color: var(--blue); }
+.crv-tag.product { background: var(--green-dim); color: var(--green); }
+.crv-tag.creator { background: var(--purple-dim); color: var(--purple); }
+.crv-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  font-size: 10.5px;
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.crv-metrics span.label { color: var(--text3); font-size: 9.5px; }
+.crv-metric-val { color: var(--text); font-weight: 600; }
+.crv-lifecycle-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+.crv-lifecycle-pill.rising { background: var(--green-dim); color: var(--green); }
+.crv-lifecycle-pill.peaking { background: var(--blue-dim); color: var(--blue); }
+.crv-lifecycle-pill.declining { background: var(--amber-dim); color: var(--amber); }
+.crv-lifecycle-pill.dead { background: var(--red-dim); color: var(--red); }
+.crv-lifecycle-pill.new { background: var(--purple-dim); color: var(--purple); }
+
 </style>
 </head>
 <body>
@@ -319,7 +446,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <aside class="sidebar">
   <div class="logo">
     <div class="logo-mark">Suple<span>mind</span></div>
-    <div class="logo-sub">INTELLIGENCE · v5.5</div>
+    <div class="logo-sub">INTELLIGENCE · v5.6</div>
   </div>
   <nav class="nav">
     <div class="nav-section">Visão Geral</div>
@@ -347,6 +474,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="nav-section">Marketing</div>
     <div class="nav-item" onclick="go('marketing',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span>Marketing · Meta</span>
+    </div>
+    <div class="nav-item" onclick="go('criativo',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Criativo Intelligence</span>
     </div>
 
     <div class="nav-section">Operações</div>
@@ -646,8 +776,180 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="card"><div class="card-head"><div><div class="card-title">Mensal · Spend × Receita Bling</div><div class="card-sub">Visão executiva</div></div></div><div id="mkt-mensal"></div></div>
       </div>
       <div class="card"><div class="card-head"><div><div class="card-title">Top campanhas</div><div class="card-sub">Últimos 30 dias · ordenado por spend</div></div><div class="card-pill" id="mkt-camp-count">0</div></div><div id="mkt-campanhas"></div></div>
-      <div class="card"><div class="card-head"><div><div class="card-title">Top criativos</div><div class="card-sub">Últimos 30 dias · maior spend com ROAS e fadiga</div></div></div><div id="mkt-criativos"></div></div>
+      <div class="card"><div class="card-head"><div><div class="card-title">Top criativos</div><div class="card-sub">Últimos 30 dias · maior spend com ROAS e fadiga</div></div><button class="refresh-btn" onclick="go('criativo', document.querySelector('.nav-item[onclick*=criativo]'))" style="background:var(--purple-dim);color:var(--purple);border-color:rgba(167,139,250,.3)">🧠 Abrir Criativo Intelligence →</button></div><div id="mkt-criativos"></div></div>
       <div class="card"><div class="card-head"><div><div class="card-title">Breakdowns — Plataforma e Posição</div><div class="card-sub">Últimos 30 dias</div></div></div><div id="mkt-breakdowns"></div></div>
+    </div>
+
+
+    <!-- CRIATIVO INTELLIGENCE -->
+    <div class="module" id="mod-criativo">
+      <div id="crv-status"></div>
+
+      <!-- KPIs de topo -->
+      <div class="kpi-row cols4">
+        <div class="kpi g"><div class="kpi-accent"></div>
+          <div class="kpi-label">Criativos Rankeados</div>
+          <div class="kpi-value mono" id="crv-total">0</div>
+          <div class="kpi-meta" id="crv-total-m">com spend suficiente</div>
+        </div>
+        <div class="kpi b"><div class="kpi-accent"></div>
+          <div class="kpi-label">CES Médio</div>
+          <div class="kpi-value mono" id="crv-ces-avg">0</div>
+          <div class="kpi-meta">Creative Efficiency Score</div>
+        </div>
+        <div class="kpi a"><div class="kpi-accent"></div>
+          <div class="kpi-label">Hook Rate Médio</div>
+          <div class="kpi-value mono" id="crv-hook">0%</div>
+          <div class="kpi-meta">3s views / impressions</div>
+        </div>
+        <div class="kpi p"><div class="kpi-accent"></div>
+          <div class="kpi-label">ThruPlay Médio</div>
+          <div class="kpi-value mono" id="crv-thru">0%</div>
+          <div class="kpi-meta">retenção de vídeo</div>
+        </div>
+      </div>
+
+      <!-- Toggles de janela -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Configuração de análise</div>
+            <div class="card-sub">Janela analisada e volume mínimo</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:12px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">JANELA:</span>
+            <div class="scope-btns">
+              <button class="sbtn" onclick="setCrvWindow(7,this)">7d</button>
+              <button class="sbtn" onclick="setCrvWindow(14,this)">14d</button>
+              <button class="sbtn active" onclick="setCrvWindow(30,this)">30d</button>
+              <button class="sbtn" onclick="setCrvWindow(90,this)">90d</button>
+              <button class="sbtn" onclick="setCrvWindow(0,this)">Tudo</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">SPEND MÍNIMO:</span>
+            <div class="scope-btns">
+              <button class="sbtn" onclick="setCrvMinSpend(20,this)">R$20</button>
+              <button class="sbtn active" onclick="setCrvMinSpend(50,this)">R$50</button>
+              <button class="sbtn" onclick="setCrvMinSpend(100,this)">R$100</button>
+              <button class="sbtn" onclick="setCrvMinSpend(500,this)">R$500</button>
+            </div>
+          </div>
+        </div>
+        <div class="hint" id="crv-config-status">Analisando últimos 30 dias · exige spend ≥ R$50 e impressions ≥ 1000</div>
+      </div>
+
+      <!-- Aprendizados consolidados -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🧠 Aprendizados automáticos</div>
+            <div class="card-sub">Padrões que emergem dos dados</div>
+          </div>
+        </div>
+        <div id="crv-insights"></div>
+      </div>
+
+      <div class="grid-eq">
+        <!-- Hall of Fame -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">🏆 Hall of Fame · Top 10</div>
+              <div class="card-sub">Maior CES no período</div>
+            </div>
+          </div>
+          <div id="crv-fame"></div>
+        </div>
+
+        <!-- Hall of Shame -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">🚫 Pausar · 10 piores</div>
+              <div class="card-sub">Menor CES com spend relevante</div>
+            </div>
+          </div>
+          <div id="crv-shame"></div>
+        </div>
+      </div>
+
+      <!-- Matriz visual de criativos -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🎨 Matriz visual dos criativos</div>
+            <div class="card-sub">Bate o olho e identifica padrões · ordenado por CES</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">EXIBIR:</span>
+            <div class="scope-btns">
+              <button class="sbtn active" onclick="setCrvGridSize(20,this)">20</button>
+              <button class="sbtn" onclick="setCrvGridSize(50,this)">50</button>
+              <button class="sbtn" onclick="setCrvGridSize(100,this)">100</button>
+            </div>
+          </div>
+        </div>
+        <div id="crv-grid"></div>
+      </div>
+
+      <!-- Performance por Creator -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🎤 Performance por Creator</div>
+            <div class="card-sub">Agrupado pelo nome extraído da nomenclatura</div>
+          </div>
+        </div>
+        <div id="crv-creators"></div>
+      </div>
+
+      <!-- Performance por Produto -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">📦 Performance por Produto</div>
+            <div class="card-sub">Qual produto "vende melhor" nos criativos</div>
+          </div>
+        </div>
+        <div id="crv-produtos"></div>
+      </div>
+
+      <!-- Combinações Strategy + Product + Creator -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🔀 Melhores combinações</div>
+            <div class="card-sub">Strategy × Product × Creator · mínimo 2 criativos por combo</div>
+          </div>
+        </div>
+        <div id="crv-combos"></div>
+      </div>
+
+      <!-- Análise de vídeo -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🎬 Análise de vídeo · Hook vs Retenção</div>
+            <div class="card-sub">Só criativos com vídeo · bolha = spend</div>
+          </div>
+        </div>
+        <div class="chart-box tall"><canvas id="ch-crv-video"></canvas></div>
+        <div id="crv-video-insights" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Ciclo de vida -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">📊 Ciclo de vida dos criativos</div>
+            <div class="card-sub">Compara últimos 7d vs performance histórica</div>
+          </div>
+        </div>
+        <div id="crv-lifecycle"></div>
+      </div>
     </div>
 
     <!-- RECORRÊNCIA -->
@@ -1063,6 +1365,7 @@ var META = {
   produtos:{t:'Produtos', s:'Catálogo completo — Bling'},
   clientes:{t:'Clientes', s:'Base ativa e LTV — Bling'},
   marketing:{t:'Marketing · Meta Ads', s:'Performance de aquisição — Bling + Meta'},
+  criativo:{t:'Criativo Intelligence', s:'Ranking, padrões e ciclo de vida dos criativos Meta'},
   recorrencia:{t:'Recorrência', s:'Recompra e frequência — Bling'},
   conciliacao:{t:'Conciliação', s:'Pedido ↔ NFe — qualidade dos dados'},
   estoque:{t:'Estoque', s:'Inteligência de estoque, reposição e projeções — Bling'},
@@ -1108,6 +1411,7 @@ function render(id){
     produtos: renderProdutos,
     clientes: renderClientes,
     marketing: renderMarketing,
+    criativo: renderCriativo,
     recorrencia: renderRecorrencia,
     conciliacao: renderConciliacao,
     estoque: renderEstoque,
@@ -3374,6 +3678,774 @@ function toggleCheckItem(idx) {
     setChecklist(list);
     renderDailyChecklist();
   }
+}
+
+
+// ================================================================
+// CRIATIVO INTELLIGENCE — Módulo
+// ================================================================
+
+// Estado
+var _CRV_ITEMS = [];
+var CRV_WINDOW = 30;        // dias (0 = tudo)
+var CRV_MIN_SPEND = 50;     // R$
+var CRV_MIN_IMPRESSIONS = 1000;
+var CRV_GRID_SIZE = 20;
+
+function setCrvWindow(d, btn){
+  CRV_WINDOW = d;
+  if(btn){ btn.parentElement.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
+  renderCriativo();
+}
+function setCrvMinSpend(v, btn){
+  CRV_MIN_SPEND = v;
+  if(btn){ btn.parentElement.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
+  renderCriativo();
+}
+function setCrvGridSize(n, btn){
+  CRV_GRID_SIZE = n;
+  if(btn){ btn.parentElement.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
+  renderCriativoGrid(_CRV_ITEMS || []);
+}
+
+// ================================================================
+// Agregação por ad_id
+// ================================================================
+function buildCriativoData(){
+  if(!META_DATA || !META_DATA.insights || !META_DATA.insights.ad){
+    return { items: [], total: 0 };
+  }
+
+  var cut = CRV_WINDOW > 0 ? dateAgo(CRV_WINDOW) : null;
+  var adInsights = META_DATA.insights.ad;
+  var ads = META_DATA.ads || [];
+  var creatives = META_DATA.creatives || {};
+  var campaigns = META_DATA.campaigns || [];
+
+  var adNameById = {};
+  ads.forEach(function(a){ adNameById[a.id] = a.name; });
+  var campNameById = {};
+  campaigns.forEach(function(c){ campNameById[c.id] = c.name; });
+
+  // Agregar no período selecionado
+  var byAd = {};
+  adInsights.forEach(function(r){
+    if(!r.aid) return;
+    if(cut && r.d < cut) return;
+    if(!byAd[r.aid]){
+      byAd[r.aid] = {
+        id: r.aid,
+        name: r.anm || adNameById[r.aid] || '(sem nome)',
+        campaignId: r.cid,
+        campaignName: r.cnm || campNameById[r.cid] || '',
+        spend:0, impressions:0, clicks:0, linkClicks:0,
+        purchases:0, purchaseValue:0,
+        videoPlays:0, videoThruplay:0, videoP25:0, videoP50:0, videoP75:0, videoP100:0,
+        video3sec:0, videoAvgTime:0, videoAvgTimeCount:0,
+        insightsCount:0, firstDate:null, lastDate:null,
+        insights: []  // pra calcular lifecycle depois
+      };
+    }
+    var a = byAd[r.aid];
+    a.insights.push(r);
+    a.spend += r.sp || 0;
+    a.impressions += r.im || 0;
+    a.clicks += r.cl || 0;
+    a.linkClicks += r.lc || 0;
+    a.purchases += r.pu || 0;
+    a.purchaseValue += r.pv || 0;
+    a.videoPlays += r.vp || 0;
+    a.videoThruplay += r.vtp || 0;
+    a.videoP25 += r.vp25 || 0;
+    a.videoP50 += r.vp50 || 0;
+    a.videoP75 += r.vp75 || 0;
+    a.videoP100 += r.vp100 || 0;
+    a.video3sec += r.v3s || 0;
+    if(r.vat){ a.videoAvgTime += r.vat; a.videoAvgTimeCount += 1; }
+    a.insightsCount += 1;
+    if(!a.firstDate || r.d < a.firstDate) a.firstDate = r.d;
+    if(!a.lastDate || r.d > a.lastDate) a.lastDate = r.d;
+  });
+
+  var arr = Object.values(byAd);
+
+  // Calcular métricas derivadas
+  arr.forEach(function(a){
+    // Anexar criativo
+    var cr = creatives[a.id] || {};
+    a.thumbnail = cr.thumbnail_url || null;
+    a.videoId = cr.video_id || null;
+    a.hasVideo = !!a.videoId;
+    a.creativeName = cr.name || '';
+
+    // Parse campaign name
+    var p = parseCampName(a.campaignName);
+    a.strategy = p.strategy;
+    a.product = p.product;
+    a.creator = p.creator;
+
+    // Ratios
+    a.ctr = a.impressions > 0 ? (a.clicks/a.impressions*100) : 0;
+    a.cpc = a.clicks > 0 ? a.spend/a.clicks : 0;
+    a.cpm = a.impressions > 0 ? (a.spend/a.impressions*1000) : 0;
+    a.roas = a.spend > 0 ? a.purchaseValue/a.spend : 0;
+    a.cpa = a.purchases > 0 ? a.spend/a.purchases : 0;
+    a.convRate = a.linkClicks > 0 ? (a.purchases/a.linkClicks*100) : 0;
+
+    // Vídeo
+    if(a.hasVideo){
+      // Hook rate preferencial: 3sec / impressions. Fallback: p25 / impressions
+      a.hookRate = a.impressions > 0 ?
+        ((a.video3sec || a.videoP25) / a.impressions * 100) : 0;
+      a.thruplayRate = a.videoPlays > 0 ? (a.videoThruplay/a.videoPlays*100) : 0;
+      a.retention50 = a.videoPlays > 0 ? (a.videoP50/a.videoPlays*100) : 0;
+      a.avgTimeSec = a.videoAvgTimeCount > 0 ? a.videoAvgTime/a.videoAvgTimeCount : 0;
+    } else {
+      a.hookRate = 0;
+      a.thruplayRate = 0;
+      a.retention50 = 0;
+      a.avgTimeSec = 0;
+    }
+
+    // Lifecycle stage
+    a.lifecycle = calcLifecycle(a);
+  });
+
+  // Filtros de volume mínimo
+  var eligible = arr.filter(function(a){
+    return a.spend >= CRV_MIN_SPEND && a.impressions >= CRV_MIN_IMPRESSIONS;
+  });
+
+  // Calcular CES baseado nos elegíveis
+  if(eligible.length > 0){
+    // Normalização z-score → 0-100
+    var fields = ['roas', 'ctr'];
+    // Adiciona métricas de vídeo apenas se houver vídeos
+    var hasVideos = eligible.some(function(a){ return a.hasVideo; });
+    if(hasVideos){ fields.push('hookRate', 'thruplayRate'); }
+
+    var stats = {};
+    fields.forEach(function(f){
+      var vals = eligible.filter(function(a){ return a.hasVideo || !['hookRate','thruplayRate'].includes(f); }).map(function(a){ return a[f]; });
+      var mean = vals.reduce(function(s,v){return s+v;},0) / (vals.length || 1);
+      var sd = Math.sqrt(vals.reduce(function(s,v){return s+Math.pow(v-mean,2);},0) / (vals.length || 1));
+      stats[f] = {mean:mean, sd:sd || 1};
+    });
+
+    // Peso diferente se tem vídeo
+    var weights = hasVideos ?
+      { roas: 0.40, ctr: 0.20, hookRate: 0.20, thruplayRate: 0.20 } :
+      { roas: 0.60, ctr: 0.40 };
+
+    eligible.forEach(function(a){
+      var score = 0;
+      Object.keys(weights).forEach(function(f){
+        if(!stats[f]) return;
+        if(['hookRate','thruplayRate'].includes(f) && !a.hasVideo) return;
+        var z = (a[f] - stats[f].mean) / stats[f].sd;
+        // Converter z-score em 0-100 com cap
+        var norm = 50 + (z * 16.67);  // ±3sd = 0-100
+        norm = Math.max(0, Math.min(100, norm));
+        score += norm * weights[f];
+      });
+      // Se não tem vídeo, normaliza com pesos reduzidos
+      if(!a.hasVideo && hasVideos){
+        // Recalcula com pesos só de roas+ctr proporcionais
+        var wTotal = weights.roas + weights.ctr;
+        score = 0;
+        ['roas','ctr'].forEach(function(f){
+          var z = (a[f] - stats[f].mean) / stats[f].sd;
+          var norm = 50 + (z * 16.67);
+          norm = Math.max(0, Math.min(100, norm));
+          score += norm * (weights[f]/wTotal);
+        });
+      }
+      a.ces = Math.round(score);
+    });
+
+    // Ordena por CES desc
+    eligible.sort(function(a,b){ return b.ces - a.ces; });
+  }
+
+  return { items: eligible, total: arr.length, eligibleCount: eligible.length };
+}
+
+// ================================================================
+// Lifecycle: compara últimos 7d com histórico
+// ================================================================
+function calcLifecycle(ad){
+  if(!ad.insights || ad.insights.length < 2) return 'new';
+
+  var ins = ad.insights.slice().sort(function(a,b){ return (a.d||'').localeCompare(b.d||''); });
+  var cut7 = dateAgo(7);
+  var last7 = ins.filter(function(r){ return r.d >= cut7; });
+  var before7 = ins.filter(function(r){ return r.d < cut7; });
+
+  if(last7.length === 0) return 'dead';
+  if(before7.length === 0) return 'new';  // criativo jovem, menos de 7d de histórico
+
+  function agg(arr){
+    var spend = 0, pv = 0;
+    arr.forEach(function(r){ spend += r.sp||0; pv += r.pv||0; });
+    return { spend:spend, roas: spend>0 ? pv/spend : 0 };
+  }
+
+  var recent = agg(last7);
+  var older = agg(before7);
+
+  if(recent.spend === 0) return 'dead';
+  if(older.roas === 0) return recent.roas > 0 ? 'rising' : 'new';
+
+  var roasRatio = recent.roas / older.roas;
+
+  if(roasRatio < 0.5) return 'dead';
+  if(roasRatio < 0.7) return 'declining';
+  if(roasRatio < 1.0) return 'peaking';
+  return 'rising';
+}
+
+// ================================================================
+// RENDER
+// ================================================================
+function renderCriativo(){
+  if(!META_DATA){
+    document.getElementById('crv-status').innerHTML =
+      '<div class="banner warn"><div class="banner-icon">⚠️</div><div><div class="banner-title">Meta Ads indisponível</div><div class="banner-body">O arquivo <code>data/meta.json</code> não foi carregado. Aguarde o próximo run do workflow <strong>Update Meta Ads Data</strong>.</div></div></div>';
+    return;
+  }
+  document.getElementById('crv-status').innerHTML = '';
+
+  var data = buildCriativoData();
+  var items = data.items;
+  _CRV_ITEMS = items; // para re-render sem recalcular
+
+  // Config status
+  var windowLabel = CRV_WINDOW === 0 ? 'todo histórico' : 'últimos ' + CRV_WINDOW + ' dias';
+  document.getElementById('crv-config-status').textContent =
+    'Analisando ' + windowLabel + ' · exige spend ≥ R$ ' + CRV_MIN_SPEND + ' e impressions ≥ ' + N(CRV_MIN_IMPRESSIONS);
+
+  // KPIs topo
+  document.getElementById('crv-total').textContent = N(items.length);
+  document.getElementById('crv-total-m').textContent = 'de ' + N(data.total) + ' totais · spend ≥ R$' + CRV_MIN_SPEND;
+
+  var cesAvg = items.length > 0 ? items.reduce(function(s,i){return s+i.ces;},0)/items.length : 0;
+  document.getElementById('crv-ces-avg').textContent = Math.round(cesAvg);
+
+  var vids = items.filter(function(i){ return i.hasVideo; });
+  var hookAvg = vids.length > 0 ? vids.reduce(function(s,i){return s+i.hookRate;},0)/vids.length : 0;
+  var thruAvg = vids.length > 0 ? vids.reduce(function(s,i){return s+i.thruplayRate;},0)/vids.length : 0;
+  document.getElementById('crv-hook').textContent = hookAvg.toFixed(1) + '%';
+  document.getElementById('crv-thru').textContent = thruAvg.toFixed(1) + '%';
+
+  // Sub-renders
+  renderCriativoInsights(items);
+  renderCriativoFameShame(items);
+  renderCriativoGrid(items);
+  renderCriativoCreators(items);
+  renderCriativoProdutos(items);
+  renderCriativoCombos(items);
+  renderCriativoVideo(items);
+  renderCriativoLifecycle(items);
+}
+
+// ================================================================
+// Insights automáticos
+// ================================================================
+function renderCriativoInsights(items){
+  var el = document.getElementById('crv-insights');
+  if(items.length < 5){
+    el.innerHTML = '<div class="hint">Dados insuficientes para gerar insights. Reduza o spend mínimo ou aguarde mais dados.</div>';
+    return;
+  }
+
+  var insights = [];
+  var cesAvg = items.reduce(function(s,i){return s+i.ces;},0)/items.length;
+
+  // 1. Top Creator
+  var byCreator = {};
+  items.filter(function(i){ return i.creator && i.creator !== '?'; }).forEach(function(i){
+    if(!byCreator[i.creator]) byCreator[i.creator] = {name:i.creator, count:0, cesSum:0, spend:0, pv:0};
+    byCreator[i.creator].count += 1;
+    byCreator[i.creator].cesSum += i.ces;
+    byCreator[i.creator].spend += i.spend;
+    byCreator[i.creator].pv += i.purchaseValue;
+  });
+  var creatorArr = Object.values(byCreator).filter(function(c){ return c.count >= 2; });
+  creatorArr.forEach(function(c){
+    c.cesAvg = c.cesSum/c.count;
+    c.roas = c.spend>0 ? c.pv/c.spend : 0;
+  });
+  if(creatorArr.length > 1){
+    var topC = creatorArr.sort(function(a,b){ return b.cesAvg-a.cesAvg; })[0];
+    var pctBetter = ((topC.cesAvg - cesAvg)/cesAvg*100);
+    if(pctBetter > 10){
+      insights.push({
+        icon: '🏆', type: 'success',
+        text: '<strong>' + topC.name + '</strong> é o creator com maior CES médio: <strong>' + Math.round(topC.cesAvg) + '</strong> (' + (pctBetter>0?'+':'') + pctBetter.toFixed(0) + '% vs média geral) · ROAS ' + topC.roas.toFixed(2) + 'x em ' + topC.count + ' criativos'
+      });
+    }
+  }
+
+  // 2. Top Produto
+  var byProd = {};
+  items.filter(function(i){ return i.product && i.product !== '?'; }).forEach(function(i){
+    if(!byProd[i.product]) byProd[i.product] = {name:i.product, count:0, cesSum:0, spend:0, pv:0};
+    byProd[i.product].count += 1;
+    byProd[i.product].cesSum += i.ces;
+    byProd[i.product].spend += i.spend;
+    byProd[i.product].pv += i.purchaseValue;
+  });
+  var prodArr = Object.values(byProd).filter(function(p){ return p.count >= 2; });
+  prodArr.forEach(function(p){ p.cesAvg = p.cesSum/p.count; p.roas = p.spend>0?p.pv/p.spend:0; });
+  if(prodArr.length > 1){
+    var topP = prodArr.sort(function(a,b){ return b.cesAvg-a.cesAvg; })[0];
+    insights.push({
+      icon: '📦', type: 'info',
+      text: 'Produto <strong>' + topP.name + '</strong> tem melhor CES médio (<strong>' + Math.round(topP.cesAvg) + '</strong>) · ROAS ' + topP.roas.toFixed(2) + 'x'
+    });
+  }
+
+  // 3. Vídeo vs Imagem
+  var withVid = items.filter(function(i){ return i.hasVideo; });
+  var withoutVid = items.filter(function(i){ return !i.hasVideo; });
+  if(withVid.length >= 3 && withoutVid.length >= 3){
+    var vidCes = withVid.reduce(function(s,i){return s+i.ces;},0)/withVid.length;
+    var imgCes = withoutVid.reduce(function(s,i){return s+i.ces;},0)/withoutVid.length;
+    if(Math.abs(vidCes - imgCes) > 5){
+      var vencedor = vidCes > imgCes ? 'Vídeo' : 'Imagem';
+      var diff = Math.abs(vidCes - imgCes).toFixed(0);
+      insights.push({
+        icon: '🎬', type: 'info',
+        text: '<strong>' + vencedor + '</strong> supera o outro formato por ' + diff + ' pontos de CES (' + N(withVid.length) + ' vídeos vs ' + N(withoutVid.length) + ' imagens)'
+      });
+    }
+  }
+
+  // 4. Hook rate baixo identificado
+  var vidsLowHook = withVid.filter(function(i){ return i.hookRate < 15 && i.spend > 100; });
+  if(vidsLowHook.length >= 2){
+    insights.push({
+      icon: '⚠️', type: 'warn',
+      text: '<strong>' + vidsLowHook.length + ' vídeos</strong> com hook rate abaixo de 15% e spend relevante. O primeiro frame não está segurando atenção · priorizar refazer aberturas'
+    });
+  }
+
+  // 5. Retorno decrescente em gastar mais
+  var totalSpend = items.reduce(function(s,i){return s+i.spend;},0);
+  var topSpendersCES = items.slice().sort(function(a,b){return b.spend-a.spend;}).slice(0, Math.ceil(items.length*0.2));
+  var tailSpendersCES = items.slice().sort(function(a,b){return a.spend-b.spend;}).slice(0, Math.ceil(items.length*0.2));
+  if(topSpendersCES.length >= 3 && tailSpendersCES.length >= 3){
+    var topCES = topSpendersCES.reduce(function(s,i){return s+i.ces;},0)/topSpendersCES.length;
+    var tailCES = tailSpendersCES.reduce(function(s,i){return s+i.ces;},0)/tailSpendersCES.length;
+    if(tailCES > topCES + 8){
+      insights.push({
+        icon: '💡', type: 'info',
+        text: 'Criativos com <strong>menor spend</strong> têm CES médio <strong>' + Math.round(tailCES) + '</strong> vs <strong>' + Math.round(topCES) + '</strong> dos top spenders. Pode haver oportunidade de re-balancear orçamento.'
+      });
+    }
+  }
+
+  // 6. Lifecycle: muitos em declining
+  var declining = items.filter(function(i){ return i.lifecycle === 'declining' || i.lifecycle === 'dead'; });
+  if(declining.length > items.length * 0.3){
+    insights.push({
+      icon: '📉', type: 'warn',
+      text: '<strong>' + declining.length + '</strong> criativos em declínio/mortos (' + (declining.length/items.length*100).toFixed(0) + '% do total). Pipeline de novos criativos precisa acelerar.'
+    });
+  }
+
+  // 7. Oportunidade: rising com baixo spend
+  var risingLowSpend = items.filter(function(i){ return i.lifecycle === 'rising' && i.spend < 300 && i.roas >= 5; });
+  if(risingLowSpend.length > 0){
+    var top = risingLowSpend.sort(function(a,b){return b.ces-a.ces;})[0];
+    insights.push({
+      icon: '🚀', type: 'success',
+      text: '<strong>Oportunidade:</strong> ' + (top.creator !== '?' ? top.creator + ' · ' : '') + (top.product !== '?' ? top.product : '') + ' está em <strong>rising</strong> com apenas R$' + top.spend.toFixed(0) + ' gastos e ROAS ' + top.roas.toFixed(2) + 'x. Avaliar escalar.'
+    });
+  }
+
+  if(insights.length === 0){
+    insights.push({ icon: '🔍', type:'info', text: 'Ainda sem padrões claros. Acumule mais dados (maior janela temporal ou mais criativos ativos).' });
+  }
+
+  var iconMap = {success:'success', info:'info', warn:'warn'};
+  el.innerHTML = insights.map(function(ins){
+    return '<div class="banner ' + iconMap[ins.type] + '" style="margin-bottom:8px">' +
+      '<div class="banner-icon">' + ins.icon + '</div>' +
+      '<div><div class="banner-body">' + ins.text + '</div></div>' +
+    '</div>';
+  }).join('');
+}
+
+// ================================================================
+// Hall of Fame / Shame (tabelas compactas)
+// ================================================================
+function renderCriativoFameShame(items){
+  if(items.length < 2){
+    document.getElementById('crv-fame').innerHTML = '<div class="hint">Dados insuficientes.</div>';
+    document.getElementById('crv-shame').innerHTML = '<div class="hint">Dados insuficientes.</div>';
+    return;
+  }
+  var fame = items.slice(0, 10);
+  var shame = items.slice(-Math.min(10, items.length)).reverse();
+
+  function row(a, idx, isShame){
+    var cesCls = a.ces >= 70 ? 'g' : a.ces >= 50 ? 'a' : 'r';
+    var roasCls = a.roas >= 5 ? 'text-green' : a.roas >= 2 ? 'text-amber' : 'text-red';
+    var tags = '';
+    if(a.creator && a.creator !== '?') tags += '<span class="crv-tag creator">' + a.creator + '</span> ';
+    if(a.product && a.product !== '?') tags += '<span class="crv-tag product">' + a.product + '</span>';
+    return '<tr>' +
+      '<td class="mono text-muted">' + (idx+1) + '</td>' +
+      '<td>' +
+        '<div class="strong" style="font-size:11px;line-height:1.3">' + a.name.slice(0,40) + (a.name.length>40?'…':'') + '</div>' +
+        '<div style="margin-top:3px">' + tags + '</div>' +
+      '</td>' +
+      '<td class="num"><span class="badge ' + cesCls + '" style="font-size:11px">' + a.ces + '</span></td>' +
+      '<td class="num mono ' + roasCls + '">' + a.roas.toFixed(2) + 'x</td>' +
+      '<td class="num mono">' + R(a.spend) + '</td>' +
+    '</tr>';
+  }
+
+  var headers = '<thead><tr><th>#</th><th>Criativo</th><th class="text-right">CES</th><th class="text-right">ROAS</th><th class="text-right">Spend</th></tr></thead>';
+
+  document.getElementById('crv-fame').innerHTML =
+    '<table class="tbl">' + headers + '<tbody>' +
+    fame.map(function(a,i){ return row(a, i, false); }).join('') +
+    '</tbody></table>';
+
+  document.getElementById('crv-shame').innerHTML =
+    '<table class="tbl">' + headers + '<tbody>' +
+    shame.map(function(a,i){ return row(a, i, true); }).join('') +
+    '</tbody></table>';
+}
+
+// ================================================================
+// Grid visual
+// ================================================================
+function renderCriativoGrid(items){
+  var el = document.getElementById('crv-grid');
+  if(items.length === 0){ el.innerHTML = '<div class="hint">Nenhum criativo atende aos critérios.</div>'; return; }
+
+  var toShow = items.slice(0, CRV_GRID_SIZE);
+
+  var html = '<div class="crv-grid">';
+  toShow.forEach(function(a){
+    // CES badge
+    var cesClass = a.ces >= 80 ? 'gold' : a.ces >= 60 ? 'silver' : a.ces >= 40 ? 'bronze' : 'red';
+
+    html += '<div class="crv-card">';
+    html += '<div class="crv-thumb-wrap">';
+    if(a.thumbnail){
+      html += '<div class="crv-thumb" style="background-image:url(\'' + a.thumbnail + '\')"></div>';
+    } else {
+      html += '<div class="crv-thumb-empty">Sem thumbnail<br>' + (a.hasVideo ? '(vídeo)' : '(imagem)') + '</div>';
+    }
+    html += '<div class="crv-ces-badge ' + cesClass + '">' + a.ces + '</div>';
+    if(a.hasVideo){
+      html += '<div class="crv-video-pill">🎬 ' + (a.avgTimeSec > 0 ? a.avgTimeSec.toFixed(0) + 's' : 'Vídeo') + '</div>';
+    }
+    html += '</div>'; // thumb-wrap
+
+    html += '<div class="crv-name">' + a.name.slice(0,60) + '</div>';
+
+    // Tags (strategy/product/creator)
+    html += '<div class="crv-tags">';
+    if(a.strategy && a.strategy !== '?') html += '<span class="crv-tag strategy">' + a.strategy + '</span>';
+    if(a.product && a.product !== '?') html += '<span class="crv-tag product">' + a.product + '</span>';
+    if(a.creator && a.creator !== '?') html += '<span class="crv-tag creator">' + a.creator.slice(0,12) + '</span>';
+    html += '<span class="crv-lifecycle-pill ' + a.lifecycle + '">' + a.lifecycle + '</span>';
+    html += '</div>';
+
+    // Métricas
+    html += '<div class="crv-metrics">';
+    html += '<span class="label">Spend</span><span class="crv-metric-val">' + R(a.spend) + '</span>';
+    html += '<span class="label">ROAS</span><span class="crv-metric-val">' + a.roas.toFixed(2) + 'x</span>';
+    html += '<span class="label">CTR</span><span class="crv-metric-val">' + a.ctr.toFixed(2) + '%</span>';
+    if(a.hasVideo){
+      html += '<span class="label">Hook</span><span class="crv-metric-val">' + a.hookRate.toFixed(1) + '%</span>';
+      html += '<span class="label">ThruPlay</span><span class="crv-metric-val">' + a.thruplayRate.toFixed(1) + '%</span>';
+      html += '<span class="label">Compras</span><span class="crv-metric-val">' + N(a.purchases) + '</span>';
+    } else {
+      html += '<span class="label">CPM</span><span class="crv-metric-val">' + R_full(a.cpm) + '</span>';
+      html += '<span class="label">Compras</span><span class="crv-metric-val">' + N(a.purchases) + '</span>';
+    }
+    html += '</div>';
+    html += '</div>'; // card
+  });
+  html += '</div>';
+
+  if(items.length > CRV_GRID_SIZE){
+    html += '<div class="hint text-center" style="margin-top:12px">Exibindo ' + CRV_GRID_SIZE + ' de ' + items.length + ' criativos.</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ================================================================
+// Performance por Creator
+// ================================================================
+function renderCriativoCreators(items){
+  var byCreator = {};
+  items.filter(function(i){ return i.creator && i.creator !== '?'; }).forEach(function(i){
+    if(!byCreator[i.creator]){
+      byCreator[i.creator] = {name:i.creator, count:0, cesSum:0, spend:0, pv:0, impressions:0, clicks:0, purchases:0};
+    }
+    var c = byCreator[i.creator];
+    c.count += 1; c.cesSum += i.ces; c.spend += i.spend;
+    c.pv += i.purchaseValue; c.impressions += i.impressions;
+    c.clicks += i.clicks; c.purchases += i.purchases;
+  });
+
+  var arr = Object.values(byCreator).filter(function(c){ return c.count >= 1; });
+  if(arr.length === 0){
+    document.getElementById('crv-creators').innerHTML = '<div class="hint">Nenhum creator identificado nos nomes das campanhas.</div>';
+    return;
+  }
+  arr.forEach(function(c){
+    c.cesAvg = c.cesSum / c.count;
+    c.roas = c.spend>0 ? c.pv/c.spend : 0;
+    c.ctr = c.impressions>0 ? c.clicks/c.impressions*100 : 0;
+    c.cpa = c.purchases>0 ? c.spend/c.purchases : 0;
+  });
+  arr.sort(function(a,b){ return b.cesAvg - a.cesAvg; });
+
+  var rows = arr.map(function(c, i){
+    var cesCls = c.cesAvg >= 70 ? 'g' : c.cesAvg >= 50 ? 'a' : 'r';
+    return '<tr>' +
+      '<td class="mono text-muted">' + (i+1) + '</td>' +
+      '<td class="strong">' + c.name + '</td>' +
+      '<td class="num">' + c.count + '</td>' +
+      '<td class="num"><span class="badge ' + cesCls + '">' + Math.round(c.cesAvg) + '</span></td>' +
+      '<td class="num">' + R(c.spend) + '</td>' +
+      '<td class="num">' + c.roas.toFixed(2) + 'x</td>' +
+      '<td class="num">' + c.ctr.toFixed(2) + '%</td>' +
+      '<td class="num">' + N(c.purchases) + '</td>' +
+      '<td class="num">' + R_full(c.cpa) + '</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('crv-creators').innerHTML =
+    '<table class="tbl"><thead><tr><th>#</th><th>Creator</th><th class="text-right">Ads</th><th class="text-right">CES</th><th class="text-right">Spend</th><th class="text-right">ROAS</th><th class="text-right">CTR</th><th class="text-right">Compras</th><th class="text-right">CPA</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// ================================================================
+// Performance por Produto
+// ================================================================
+function renderCriativoProdutos(items){
+  var byProd = {};
+  items.filter(function(i){ return i.product && i.product !== '?'; }).forEach(function(i){
+    if(!byProd[i.product]) byProd[i.product] = {name:i.product, count:0, cesSum:0, spend:0, pv:0, purchases:0, impressions:0, clicks:0};
+    var p = byProd[i.product];
+    p.count += 1; p.cesSum += i.ces; p.spend += i.spend;
+    p.pv += i.purchaseValue; p.purchases += i.purchases;
+    p.impressions += i.impressions; p.clicks += i.clicks;
+  });
+
+  var arr = Object.values(byProd);
+  if(arr.length === 0){
+    document.getElementById('crv-produtos').innerHTML = '<div class="hint">Nenhum produto identificado nos nomes das campanhas.</div>';
+    return;
+  }
+  arr.forEach(function(p){
+    p.cesAvg = p.cesSum/p.count;
+    p.roas = p.spend>0 ? p.pv/p.spend : 0;
+    p.ctr = p.impressions>0 ? p.clicks/p.impressions*100 : 0;
+    p.cpa = p.purchases>0 ? p.spend/p.purchases : 0;
+  });
+  arr.sort(function(a,b){ return b.cesAvg - a.cesAvg; });
+
+  var rows = arr.map(function(p, i){
+    var cesCls = p.cesAvg >= 70 ? 'g' : p.cesAvg >= 50 ? 'a' : 'r';
+    return '<tr>' +
+      '<td class="mono text-muted">' + (i+1) + '</td>' +
+      '<td class="strong">' + p.name + '</td>' +
+      '<td class="num">' + p.count + '</td>' +
+      '<td class="num"><span class="badge ' + cesCls + '">' + Math.round(p.cesAvg) + '</span></td>' +
+      '<td class="num">' + R(p.spend) + '</td>' +
+      '<td class="num">' + p.roas.toFixed(2) + 'x</td>' +
+      '<td class="num">' + p.ctr.toFixed(2) + '%</td>' +
+      '<td class="num">' + N(p.purchases) + '</td>' +
+      '<td class="num">' + R_full(p.cpa) + '</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('crv-produtos').innerHTML =
+    '<table class="tbl"><thead><tr><th>#</th><th>Produto</th><th class="text-right">Ads</th><th class="text-right">CES</th><th class="text-right">Spend</th><th class="text-right">ROAS</th><th class="text-right">CTR</th><th class="text-right">Compras</th><th class="text-right">CPA</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// ================================================================
+// Combinações Strategy × Product × Creator
+// ================================================================
+function renderCriativoCombos(items){
+  var byCombo = {};
+  items.forEach(function(i){
+    var key = (i.strategy||'?') + ' · ' + (i.product||'?') + ' · ' + (i.creator||'?');
+    if(!byCombo[key]) byCombo[key] = {name:key, count:0, cesSum:0, spend:0, pv:0, purchases:0};
+    var c = byCombo[key];
+    c.count += 1; c.cesSum += i.ces; c.spend += i.spend;
+    c.pv += i.purchaseValue; c.purchases += i.purchases;
+  });
+  var arr = Object.values(byCombo).filter(function(c){ return c.count >= 2; });
+  if(arr.length === 0){
+    document.getElementById('crv-combos').innerHTML = '<div class="hint">Sem combinações com 2+ criativos ainda.</div>';
+    return;
+  }
+  arr.forEach(function(c){
+    c.cesAvg = c.cesSum/c.count;
+    c.roas = c.spend>0 ? c.pv/c.spend : 0;
+    c.cpa = c.purchases>0 ? c.spend/c.purchases : 0;
+  });
+  arr.sort(function(a,b){ return b.cesAvg - a.cesAvg; });
+
+  var rows = arr.slice(0, 20).map(function(c, i){
+    var cesCls = c.cesAvg >= 70 ? 'g' : c.cesAvg >= 50 ? 'a' : 'r';
+    return '<tr>' +
+      '<td class="mono text-muted">' + (i+1) + '</td>' +
+      '<td class="strong">' + c.name + '</td>' +
+      '<td class="num">' + c.count + '</td>' +
+      '<td class="num"><span class="badge ' + cesCls + '">' + Math.round(c.cesAvg) + '</span></td>' +
+      '<td class="num">' + R(c.spend) + '</td>' +
+      '<td class="num">' + c.roas.toFixed(2) + 'x</td>' +
+      '<td class="num">' + N(c.purchases) + '</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('crv-combos').innerHTML =
+    '<table class="tbl"><thead><tr><th>#</th><th>Strategy · Product · Creator</th><th class="text-right">Ads</th><th class="text-right">CES</th><th class="text-right">Spend</th><th class="text-right">ROAS</th><th class="text-right">Compras</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// ================================================================
+// Scatter plot de vídeo (Hook × ThruPlay)
+// ================================================================
+function renderCriativoVideo(items){
+  var vids = items.filter(function(i){ return i.hasVideo && i.videoPlays > 10; });
+  if(vids.length < 3){
+    document.getElementById('crv-video-insights').innerHTML = '<div class="hint">Dados insuficientes de vídeo.</div>';
+    dc('crvVid');
+    return;
+  }
+
+  dc('crvVid');
+  CHARTS['crvVid'] = new Chart(document.getElementById('ch-crv-video'), {
+    type: 'bubble',
+    data: {
+      datasets: [{
+        label: 'Criativos de vídeo',
+        data: vids.map(function(v){
+          // Bolha proporcional ao spend (raio 4-20px)
+          var maxSpend = Math.max.apply(null, vids.map(function(a){return a.spend;}));
+          var r = 4 + ((v.spend / maxSpend) * 16);
+          var colorByCES = v.ces >= 70 ? 'rgba(0,229,160,.6)' :
+                           v.ces >= 50 ? 'rgba(61,154,255,.6)' :
+                           v.ces >= 30 ? 'rgba(255,179,64,.6)' : 'rgba(255,69,96,.6)';
+          return { x: v.hookRate, y: v.thruplayRate, r: r, _ad: v, _color: colorByCES };
+        }),
+        backgroundColor: function(ctx){
+          return ctx.raw._color;
+        },
+        borderColor: '#1a2228',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx){
+              var a = ctx.raw._ad;
+              return [
+                a.name.slice(0,50),
+                'Hook: ' + a.hookRate.toFixed(1) + '% · ThruPlay: ' + a.thruplayRate.toFixed(1) + '%',
+                'Spend: ' + R(a.spend) + ' · ROAS: ' + a.roas.toFixed(2) + 'x · CES ' + a.ces
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Hook Rate % (3s / impressions)', color: 'var(--text2)', font:{size:11} },
+          grid: { color: 'rgba(30,40,48,.6)' },
+          ticks: { callback: function(v){ return v + '%'; } }
+        },
+        y: {
+          title: { display: true, text: 'ThruPlay Rate % (retenção)', color: 'var(--text2)', font:{size:11} },
+          grid: { color: 'rgba(30,40,48,.6)' },
+          ticks: { callback: function(v){ return v + '%'; } }
+        }
+      }
+    }
+  });
+
+  // Insights de vídeo
+  var ins = [];
+  var lowHookHighThru = vids.filter(function(v){ return v.hookRate < 15 && v.thruplayRate > 25; });
+  if(lowHookHighThru.length > 0){
+    ins.push('🎯 <strong>' + lowHookHighThru.length + ' vídeos</strong> têm <strong>retenção boa mas hook fraco</strong> · quem assiste converte, mas não está chamando atenção. Priorizar novos primeiros 3 segundos.');
+  }
+  var highHookLowThru = vids.filter(function(v){ return v.hookRate > 25 && v.thruplayRate < 10; });
+  if(highHookLowThru.length > 0){
+    ins.push('📉 <strong>' + highHookLowThru.length + ' vídeos</strong> têm <strong>hook forte mas retenção baixa</strong> · segura atenção mas o conteúdo não converte. Rever mid-roll/CTA.');
+  }
+  var bothGood = vids.filter(function(v){ return v.hookRate > 25 && v.thruplayRate > 25; });
+  if(bothGood.length > 0){
+    ins.push('✅ <strong>' + bothGood.length + ' vídeos</strong> têm hook <strong>E</strong> retenção fortes · use como referência para novos criativos.');
+  }
+  document.getElementById('crv-video-insights').innerHTML = ins.length > 0 ?
+    ins.map(function(i){ return '<div style="padding:6px 0;font-size:12px">' + i + '</div>'; }).join('') :
+    '<div class="hint">Vídeos distribuídos · sem padrões críticos.</div>';
+}
+
+// ================================================================
+// Ciclo de vida
+// ================================================================
+function renderCriativoLifecycle(items){
+  var stages = ['rising', 'peaking', 'declining', 'dead', 'new'];
+  var labels = { rising:'🟢 Rising', peaking:'🔵 Peaking', declining:'🟡 Declining', dead:'🔴 Dead', new:'🟣 Novos' };
+  var counts = {}, spends = {}, roasSum = {};
+  stages.forEach(function(s){ counts[s]=0; spends[s]=0; roasSum[s]=0; });
+  items.forEach(function(i){
+    if(counts[i.lifecycle] !== undefined){
+      counts[i.lifecycle] += 1;
+      spends[i.lifecycle] += i.spend;
+      roasSum[i.lifecycle] += i.roas;
+    }
+  });
+
+  // Cards de resumo
+  var cards = stages.map(function(s){
+    var roasAvg = counts[s] > 0 ? roasSum[s]/counts[s] : 0;
+    var cls = s === 'rising' ? 'g' : s === 'peaking' ? 'b' : s === 'declining' ? 'a' : s === 'dead' ? 'r' : 'p';
+    return '<div class="kpi ' + cls + '"><div class="kpi-accent"></div>' +
+      '<div class="kpi-label">' + labels[s] + '</div>' +
+      '<div class="kpi-value mono">' + counts[s] + '</div>' +
+      '<div class="kpi-meta">spend ' + R(spends[s]) + ' · ROAS méd ' + roasAvg.toFixed(2) + 'x</div></div>';
+  }).join('');
+
+  // Lista de ações sugeridas
+  var actions = [];
+  var deadWithSpend = items.filter(function(i){ return i.lifecycle === 'dead' && i.spend > 100; });
+  if(deadWithSpend.length > 0){
+    actions.push({icon:'🚫', text:'<strong>Pausar imediatamente:</strong> ' + deadWithSpend.length + ' criativos "dead" ainda consumindo spend. Total: ' + R(deadWithSpend.reduce(function(s,i){return s+i.spend;},0))});
+  }
+  var declining = items.filter(function(i){ return i.lifecycle === 'declining'; });
+  if(declining.length > 0){
+    actions.push({icon:'⚠️', text:'<strong>Revisar ' + declining.length + ' declining:</strong> reduzir orçamento gradualmente ou refrescar com novos ângulos'});
+  }
+  var rising = items.filter(function(i){ return i.lifecycle === 'rising' && i.roas >= 3; });
+  if(rising.length > 0){
+    actions.push({icon:'📈', text:'<strong>Escalar ' + rising.length + ' rising com ROAS ≥ 3x:</strong> aumentar orçamento em 15-20% por semana'});
+  }
+
+  var html = '<div class="kpi-row" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">' + cards + '</div>';
+  if(actions.length > 0){
+    html += '<div style="display:flex;flex-direction:column;gap:8px">' +
+      actions.map(function(a){
+        return '<div class="banner info"><div class="banner-icon">' + a.icon + '</div><div><div class="banner-body">' + a.text + '</div></div></div>';
+      }).join('') +
+    '</div>';
+  }
+  document.getElementById('crv-lifecycle').innerHTML = html;
 }
 
 loadData();
