@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suplemind Intelligence v5.4</title>
+<title>Suplemind Intelligence v5.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -178,6 +178,133 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   .content{padding:16px}
   .kpi-row.cols4,.kpi-row.cols3{grid-template-columns:1fr}
 }
+
+/* Gestão Diária */
+.metas-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 4px;
+  transition: border-color .15s;
+}
+.metas-input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.daily-pacing-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.daily-pacing-row:last-child { border-bottom: none; }
+.daily-pacing-label {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
+}
+.daily-pacing-bar-wrap {
+  min-width: 140px;
+}
+.daily-pacing-bar {
+  height: 6px;
+  background: var(--bg4);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.daily-pacing-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .4s;
+}
+.daily-pacing-values {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text2);
+  min-width: 130px;
+  text-align: right;
+}
+.daily-pacing-proj {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 55px;
+  text-align: right;
+}
+
+.daily-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .15s;
+  user-select: none;
+}
+.daily-checklist-item:last-child { border-bottom: none; }
+.daily-checklist-item:hover { background: var(--bg3); padding-left:6px; padding-right:6px; border-radius:4px }
+.daily-check-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.daily-checklist-item.done .daily-check-box {
+  background: var(--green);
+  border-color: var(--green);
+}
+.daily-checklist-item.done .daily-check-box::after {
+  content: '✓';
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: bold;
+}
+.daily-checklist-item.done .daily-check-text {
+  color: var(--text3);
+  text-decoration: line-through;
+}
+.daily-check-text {
+  font-size: 12.5px;
+  color: var(--text);
+  flex: 1;
+}
+
+.daily-alert-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border: 1px solid;
+  font-size: 12px;
+}
+.daily-alert-row:last-child { margin-bottom: 0; }
+.daily-alert-row.urgent { background: var(--red-dim); border-color: rgba(255,69,96,.3); }
+.daily-alert-row.warn { background: var(--amber-dim); border-color: rgba(255,179,64,.25); }
+.daily-alert-row.info { background: var(--blue-dim); border-color: rgba(61,154,255,.2); }
+.daily-alert-row.good { background: var(--green-dim); border-color: rgba(0,229,160,.25); }
+.daily-alert-icon { font-size: 18px; flex-shrink: 0; line-height: 1; }
+.daily-alert-body { flex: 1; line-height: 1.5; }
+.daily-alert-title { color: var(--text); font-weight: 600; margin-bottom: 2px; }
+.daily-alert-sub { color: var(--text2); font-size: 11.5px; }
+.daily-alert-action { margin-top: 6px; font-size: 11px; color: var(--text3); font-style: italic; }
+
 </style>
 </head>
 <body>
@@ -192,11 +319,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <aside class="sidebar">
   <div class="logo">
     <div class="logo-mark">Suple<span>mind</span></div>
-    <div class="logo-sub">INTELLIGENCE · v5.4</div>
+    <div class="logo-sub">INTELLIGENCE · v5.5</div>
   </div>
   <nav class="nav">
     <div class="nav-section">Visão Geral</div>
-    <div class="nav-item active" onclick="go('home',this)">
+    <div class="nav-item active" onclick="go('daily',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg><span>Gestão Diária</span>
+    </div>
+    <div class="nav-item" onclick="go('home',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span>
     </div>
 
@@ -276,8 +406,172 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <!-- Content -->
   <div class="content">
 
+
+    <!-- GESTÃO DIÁRIA -->
+    <div class="module" id="mod-daily">
+      <!-- Saudação + data -->
+      <div class="card" style="background:linear-gradient(135deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--border2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+          <div>
+            <div class="card-title" style="font-size:20px" id="daily-greet">Bom dia, André</div>
+            <div class="card-sub" id="daily-date">-</div>
+          </div>
+          <div style="text-align:right">
+            <div class="kpi-label" style="margin-bottom:4px">HORA LOCAL</div>
+            <div class="mono" style="font-size:18px;color:var(--text);font-weight:600" id="daily-time">--:--</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alertas acionáveis -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🔔 Alertas que precisam de ação hoje</div>
+            <div class="card-sub">Estoque + Marketing + Operacional · consolidados</div>
+          </div>
+          <div class="card-pill" id="daily-alerts-count">0</div>
+        </div>
+        <div id="daily-alerts"></div>
+      </div>
+
+      <!-- Ontem: KPIs com comparativos -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">📈 Desempenho ontem</div>
+            <div class="card-sub">Comparado a anteontem · mesmo dia semana passada · média últimos 7 dias</div>
+          </div>
+        </div>
+        <div class="kpi-row cols4">
+          <div class="kpi g"><div class="kpi-accent"></div>
+            <div class="kpi-label">Faturamento DTC</div>
+            <div class="kpi-value" id="dly-fat">R$ 0</div>
+            <div class="kpi-meta" id="dly-fat-m">-</div>
+          </div>
+          <div class="kpi b"><div class="kpi-accent"></div>
+            <div class="kpi-label">Pedidos/NFes</div>
+            <div class="kpi-value mono" id="dly-ped">0</div>
+            <div class="kpi-meta" id="dly-ped-m">-</div>
+          </div>
+          <div class="kpi a"><div class="kpi-accent"></div>
+            <div class="kpi-label">Ticket Médio</div>
+            <div class="kpi-value" id="dly-tkt">R$ 0</div>
+            <div class="kpi-meta" id="dly-tkt-m">-</div>
+          </div>
+          <div class="kpi p"><div class="kpi-accent"></div>
+            <div class="kpi-label">Spend Meta</div>
+            <div class="kpi-value" id="dly-spend">R$ 0</div>
+            <div class="kpi-meta" id="dly-spend-m">-</div>
+          </div>
+        </div>
+        <div id="dly-roas-line" class="hint text-center" style="padding:8px 0;margin-top:-4px;border-top:1px solid var(--border);font-size:12px">
+          -
+        </div>
+      </div>
+
+      <!-- Pacing do mês com metas editáveis -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🎯 Metas do mês · progresso e projeção</div>
+            <div class="card-sub" id="daily-month-sub">-</div>
+          </div>
+          <button class="refresh-btn" onclick="toggleMetasEdit()" id="daily-metas-btn">✎ Editar metas</button>
+        </div>
+        <div id="daily-pacing"></div>
+      </div>
+
+      <!-- Editor de metas (oculto por padrão) -->
+      <div class="card" id="daily-metas-editor" style="display:none;border-color:var(--blue)">
+        <div class="card-head">
+          <div>
+            <div class="card-title">✎ Editar metas mensais</div>
+            <div class="card-sub">Salvo no seu navegador · afeta só este dispositivo</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+          <div>
+            <div class="kpi-label">Faturamento DTC (R$)</div>
+            <input type="number" id="meta-fat" class="metas-input" placeholder="175000">
+          </div>
+          <div>
+            <div class="kpi-label">Pedidos</div>
+            <input type="number" id="meta-ped" class="metas-input" placeholder="1000">
+          </div>
+          <div>
+            <div class="kpi-label">Ticket médio (R$)</div>
+            <input type="number" id="meta-tkt" class="metas-input" placeholder="175">
+          </div>
+          <div>
+            <div class="kpi-label">Spend Meta (R$)</div>
+            <input type="number" id="meta-spend" class="metas-input" placeholder="35000">
+          </div>
+          <div>
+            <div class="kpi-label">Taxa recompra (%)</div>
+            <input type="number" id="meta-rec" class="metas-input" placeholder="35">
+          </div>
+          <div>
+            <div class="kpi-label">MER bruto alvo</div>
+            <input type="number" id="meta-mer" class="metas-input" placeholder="3" step="0.1">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+          <button class="refresh-btn" onclick="toggleMetasEdit()">Cancelar</button>
+          <button class="refresh-btn" style="background:var(--green-dim);color:var(--green);border-color:rgba(0,229,160,.3)" onclick="salvarMetas()">Salvar metas</button>
+        </div>
+      </div>
+
+      <div class="grid-eq">
+        <!-- Top 3 do dia -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">🔥 Top produtos ontem</div>
+              <div class="card-sub">Unidades vendidas</div>
+            </div>
+          </div>
+          <div id="daily-top-produtos"></div>
+        </div>
+
+        <!-- Canais ontem -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">📊 Canais ontem</div>
+              <div class="card-sub">Distribuição de receita</div>
+            </div>
+          </div>
+          <div id="daily-canais"></div>
+        </div>
+      </div>
+
+      <!-- Últimos pedidos -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">📬 Últimos 10 pedidos</div>
+            <div class="card-sub">Feed mais recente</div>
+          </div>
+        </div>
+        <div id="daily-feed"></div>
+      </div>
+
+      <!-- Checklist de rotina -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">✅ Checklist de rotina</div>
+            <div class="card-sub">Suas tarefas diárias · salvas no navegador · resetam toda madrugada</div>
+          </div>
+          <button class="refresh-btn" onclick="resetarChecklist()">↻ Resetar hoje</button>
+        </div>
+        <div id="daily-checklist"></div>
+      </div>
+    </div>
+
     <!-- HOME -->
-    <div class="module active" id="mod-home">
+    <div class="module" id="mod-home">
       <div id="home-alerts"></div>
       <div class="kpi-row cols4">
         <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Faturamento</div><div class="kpi-value" id="h-fat">R$ 0</div><div class="kpi-meta" id="h-fat-m">-</div></div>
@@ -553,7 +847,7 @@ var DATA = null;          // bling.json
 var META_DATA = null;     // meta.json (Meta Ads)
 var PERIOD = 30;          // dias (0 = TUDO)
 var SCOPE = 'DTC';        // DTC | B2B | ALL
-var ACTIVE = 'home';
+var ACTIVE = 'daily';
 var TODAY = new Date().toISOString().slice(0,10);
 var CHARTS = {};
 
@@ -762,6 +1056,7 @@ function initDashboard(){
 // NAVEGAÇÃO
 // ================================================================
 var META = {
+  daily:{t:'Gestão Diária', s:'Painel operacional — alertas, pacing, rotina'},
   home:{t:'Home', s:'Resumo executivo — Bling + Meta Ads'},
   vendas:{t:'Vendas', s:'Faturamento e NFes — Bling'},
   canais:{t:'Canais de Venda', s:'Distribuição por canal — Bling'},
@@ -806,6 +1101,7 @@ function setScope(scope, btn){
 function render(id){
   if(!DATA) return;
   var fns = {
+    daily: renderDaily,
     home: renderHome,
     vendas: renderVendas,
     canais: renderCanais,
@@ -2460,6 +2756,624 @@ function renderEstoqueGrafico(){
       }
     }
   });
+}
+
+
+// ================================================================
+// GESTÃO DIÁRIA — Módulo
+// ================================================================
+
+// Defaults das metas (se nunca editadas)
+var METAS_DEFAULT = {
+  fat: 175000,
+  ped: 1000,
+  tkt: 175,
+  spend: 35000,
+  rec: 35,
+  mer: 3
+};
+
+var CHECKLIST_DEFAULT = [
+  'Revisar alertas de estoque críticos',
+  'Conferir campanhas Meta (pausar com ROAS baixo, escalar oportunidades)',
+  'Responder tickets WhatsApp pendentes',
+  'Revisar pedidos B2B do dia',
+  'Verificar carrinhos abandonados recuperáveis',
+  'Conferir conta bancária e vencimentos de hoje',
+  'Planejar conteúdo/criativos da semana'
+];
+
+function getMetas() {
+  try {
+    var saved = localStorage.getItem('suplemind_metas');
+    if (saved) return Object.assign({}, METAS_DEFAULT, JSON.parse(saved));
+  } catch(e) {}
+  return METAS_DEFAULT;
+}
+function setMetas(m) {
+  try { localStorage.setItem('suplemind_metas', JSON.stringify(m)); } catch(e) {}
+}
+
+function getChecklist() {
+  try {
+    var today = TODAY;
+    var saved = localStorage.getItem('suplemind_checklist_' + today);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return CHECKLIST_DEFAULT.map(function(t){ return {text:t, done:false}; });
+}
+function setChecklist(list) {
+  try { localStorage.setItem('suplemind_checklist_' + TODAY, JSON.stringify(list)); } catch(e) {}
+}
+function resetarChecklist() {
+  setChecklist(CHECKLIST_DEFAULT.map(function(t){ return {text:t, done:false}; }));
+  renderDaily();
+}
+
+// ================================================================
+// Helpers de data/tempo
+// ================================================================
+function hoje() { return new Date().toISOString().slice(0,10); }
+function ontem() {
+  var d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0,10);
+}
+function daysAgo(n) {
+  var d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0,10);
+}
+function inicioDoMes() {
+  var d = new Date();
+  d.setDate(1);
+  return d.toISOString().slice(0,10);
+}
+function diasNoMesAtual() {
+  var d = new Date();
+  return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+}
+function diaDoMes() { return new Date().getDate(); }
+
+// ================================================================
+// Agregadores de dados para o dia
+// ================================================================
+function getFatPorData(dataStr, incluirB2B) {
+  var nfes = validNfes();
+  if (!incluirB2B) nfes = nfes.filter(function(n){ return n.tipoPessoa === 'F'; });
+  var do_dia = nfes.filter(function(n){ return (n.dataEmissao||'').slice(0,10) === dataStr; });
+  var fat = do_dia.reduce(function(s,n){ return s + (parseFloat(n.valorNota)||0); }, 0);
+  return { nfes: do_dia.length, fat: fat, ticket: do_dia.length > 0 ? fat/do_dia.length : 0 };
+}
+
+function getFatPorPeriodo(startStr, endStr, incluirB2B) {
+  var nfes = validNfes();
+  if (!incluirB2B) nfes = nfes.filter(function(n){ return n.tipoPessoa === 'F'; });
+  var no_per = nfes.filter(function(n){
+    var d = (n.dataEmissao||'').slice(0,10);
+    return d >= startStr && d <= endStr;
+  });
+  var fat = no_per.reduce(function(s,n){ return s + (parseFloat(n.valorNota)||0); }, 0);
+  return { nfes: no_per.length, fat: fat, ticket: no_per.length > 0 ? fat/no_per.length : 0 };
+}
+
+function getSpendPorData(dataStr) {
+  if (!META_DATA || !META_DATA.insights || !META_DATA.insights.account) return 0;
+  return META_DATA.insights.account
+    .filter(function(r){ return r.d === dataStr; })
+    .reduce(function(s,r){ return s + (r.sp||0); }, 0);
+}
+
+function getSpendPorPeriodo(startStr, endStr) {
+  if (!META_DATA || !META_DATA.insights || !META_DATA.insights.account) return 0;
+  return META_DATA.insights.account
+    .filter(function(r){ return r.d >= startStr && r.d <= endStr; })
+    .reduce(function(s,r){ return s + (r.sp||0); }, 0);
+}
+
+// ================================================================
+// Delta comparativo
+// ================================================================
+function calcDelta(atual, anterior) {
+  if (!anterior || anterior === 0) return null;
+  return (atual - anterior) / anterior * 100;
+}
+function formatDelta(delta, reverse) {
+  if (delta === null || delta === undefined) return '<span class="text-muted">-</span>';
+  var isUp = delta >= 0;
+  var isPositive = reverse ? !isUp : isUp;
+  var cls = isPositive ? 'text-green' : 'text-red';
+  var arrow = isUp ? '↑' : '↓';
+  return '<span class="' + cls + '">' + arrow + ' ' + Math.abs(delta).toFixed(1) + '%</span>';
+}
+
+// ================================================================
+// Render principal
+// ================================================================
+function renderDaily() {
+  // Greeting
+  var now = new Date();
+  var hora = now.getHours();
+  var greet;
+  if (hora < 12) greet = 'Bom dia, André ☀️';
+  else if (hora < 18) greet = 'Boa tarde, André';
+  else greet = 'Boa noite, André 🌙';
+  document.getElementById('daily-greet').textContent = greet;
+
+  var dias_sem = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  var meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  document.getElementById('daily-date').textContent =
+    dias_sem[now.getDay()] + ' · ' + now.getDate() + ' de ' + meses[now.getMonth()] + ' de ' + now.getFullYear();
+  document.getElementById('daily-time').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+  // Mês sub
+  var diaAtual = diaDoMes();
+  var totalDias = diasNoMesAtual();
+  document.getElementById('daily-month-sub').textContent =
+    'Dia ' + diaAtual + ' de ' + totalDias + ' · faltam ' + (totalDias - diaAtual) + ' dias';
+
+  renderDailyKPIs();
+  renderDailyAlerts();
+  renderDailyPacing();
+  renderDailyTopProdutos();
+  renderDailyCanais();
+  renderDailyFeed();
+  renderDailyChecklist();
+}
+
+// ================================================================
+// KPIs do dia
+// ================================================================
+function renderDailyKPIs() {
+  var d1 = ontem();
+  var d2 = daysAgo(2);
+  var d7 = daysAgo(8);  // mesmo dia semana passada
+
+  // DTC apenas (mais previsível)
+  var ontm = getFatPorData(d1, false);
+  var anteO = getFatPorData(d2, false);
+  var semPas = getFatPorData(d7, false);
+
+  // Média últimos 7 dias
+  var start7 = daysAgo(7);
+  var end7 = daysAgo(1);
+  var media7 = getFatPorPeriodo(start7, end7, false);
+  var mediaFat = media7.nfes > 0 ? media7.fat / 7 : 0;
+  var mediaPed = media7.nfes / 7;
+  var mediaTkt = media7.nfes > 0 ? media7.fat / media7.nfes : 0;
+
+  // Faturamento
+  document.getElementById('dly-fat').textContent = R(ontm.fat);
+  document.getElementById('dly-fat-m').innerHTML =
+    formatDelta(calcDelta(ontm.fat, anteO.fat)) + ' anteontem · ' +
+    formatDelta(calcDelta(ontm.fat, semPas.fat)) + ' sem. pass.';
+
+  // Pedidos
+  document.getElementById('dly-ped').textContent = N(ontm.nfes);
+  document.getElementById('dly-ped-m').innerHTML =
+    formatDelta(calcDelta(ontm.nfes, anteO.nfes)) + ' anteontem · ' +
+    formatDelta(calcDelta(ontm.nfes, mediaPed)) + ' vs méd.7d';
+
+  // Ticket
+  document.getElementById('dly-tkt').textContent = R_full(ontm.ticket);
+  document.getElementById('dly-tkt-m').innerHTML =
+    formatDelta(calcDelta(ontm.ticket, anteO.ticket)) + ' anteontem · ' +
+    formatDelta(calcDelta(ontm.ticket, mediaTkt)) + ' vs méd.7d';
+
+  // Spend Meta
+  var spendO = getSpendPorData(d1);
+  var spendAnteO = getSpendPorData(d2);
+  var spendSemPas = getSpendPorData(d7);
+  document.getElementById('dly-spend').textContent = R(spendO);
+  document.getElementById('dly-spend-m').innerHTML =
+    formatDelta(calcDelta(spendO, spendAnteO), true) + ' anteontem · ' +
+    formatDelta(calcDelta(spendO, spendSemPas), true) + ' sem. pass.';
+
+  // ROAS do dia (MER bruto) — fatura DTC / spend Meta
+  var roasDia = spendO > 0 ? ontm.fat / spendO : 0;
+  var roasAnteO = spendAnteO > 0 ? anteO.fat / spendAnteO : 0;
+  var roasClass = roasDia >= 3 ? 'text-green' : roasDia >= 2 ? 'text-amber' : 'text-red';
+  var roasLabel = roasDia >= 3 ? 'saudável' : roasDia >= 2 ? 'atenção' : 'crítico';
+
+  var linhaRoas = 'MER bruto ontem: <span class="' + roasClass + ' fw-700">' + roasDia.toFixed(2) + 'x</span> <span class="text-muted">(' + roasLabel + ')</span>';
+  if (roasAnteO > 0) {
+    linhaRoas += ' · ' + formatDelta(calcDelta(roasDia, roasAnteO)) + ' anteontem';
+  }
+  document.getElementById('dly-roas-line').innerHTML = linhaRoas;
+}
+
+// ================================================================
+// Alertas consolidados
+// ================================================================
+function renderDailyAlerts() {
+  var alerts = [];
+
+  // --- ALERTAS DE ESTOQUE ---
+  try {
+    var itemsEst = buildEstoqueData();
+    var urgentes = itemsEst.filter(function(i){ return i.status === 'urgente'; });
+    var pedir = itemsEst.filter(function(i){ return i.status === 'pedir'; });
+    var disparando = itemsEst.filter(function(i){ return i.tendencia > 30 && i.cobertura < 120 && i.velocidadeAjustada > 0; });
+    var excessos = itemsEst.filter(function(i){ return i.status === 'excesso'; });
+
+    urgentes.forEach(function(i){
+      alerts.push({
+        prio: 1, cls: 'urgent', icon: '🚨',
+        title: i.codigo + ' — ruptura em ' + Math.round(i.cobertura) + ' dias',
+        sub: 'Estoque: ' + N(Math.round(i.estoqueFisico)) + ' un · velocidade ' + i.velocidadeAjustada.toFixed(1) + '/dia · lead ' + EST_LEAD_TIME + 'd',
+        action: 'Fazer pedido de ' + N(i.qtdIdeal) + ' unidades (' + R(i.valorPedido) + ')'
+      });
+    });
+
+    pedir.forEach(function(i){
+      alerts.push({
+        prio: 2, cls: 'warn', icon: '⚠️',
+        title: i.codigo + ' — dentro do ponto de reposição',
+        sub: 'Cobertura ' + Math.round(i.cobertura) + ' dias · pedir na próxima compra',
+        action: 'Incluir no próximo pedido: ' + N(i.qtdIdeal) + ' un (' + R(i.valorPedido) + ')'
+      });
+    });
+
+    disparando.slice(0, 3).forEach(function(i){
+      alerts.push({
+        prio: 3, cls: 'info', icon: '📈',
+        title: i.codigo + ' — demanda +' + Math.round(i.tendencia) + '%',
+        sub: 'Venda acelerando · cobertura atual ' + Math.round(i.cobertura) + 'd',
+        action: 'Considerar pedido maior que histórico'
+      });
+    });
+
+    if (excessos.length > 0 && excessos.length <= 3) {
+      excessos.forEach(function(i){
+        alerts.push({
+          prio: 4, cls: 'info', icon: '💰',
+          title: i.codigo + ' — excesso de estoque (' + Math.round(i.cobertura) + 'd)',
+          sub: 'Capital parado em ' + R(i.valorEstoque),
+          action: 'Avaliar promoção ou adiar próximo pedido'
+        });
+      });
+    }
+  } catch(e) { /* módulo estoque ainda não disponível */ }
+
+  // --- ALERTAS DE MARKETING ---
+  if (META_DATA && META_DATA.insights) {
+    var cut7 = daysAgo(7);
+    var campInsights = META_DATA.insights.campaign || [];
+    var byCamp = {};
+    campInsights.filter(function(r){ return r.d >= cut7; }).forEach(function(r){
+      if (!r.cid) return;
+      if (!byCamp[r.cid]) byCamp[r.cid] = {name: r.cnm||'(sem nome)', spend:0, pv:0, pu:0};
+      byCamp[r.cid].spend += r.sp||0;
+      byCamp[r.cid].pv += r.pv||0;
+      byCamp[r.cid].pu += r.pu||0;
+    });
+
+    // ROAS ruim + spend alto = pausar
+    Object.values(byCamp).forEach(function(c){
+      if (c.spend > 500 && c.pv/c.spend < 1.5) {
+        alerts.push({
+          prio: 2, cls: 'warn', icon: '🚫',
+          title: 'Campanha com ROAS crítico nos últimos 7d',
+          sub: c.name.slice(0,55) + ' · ROAS ' + (c.spend>0?(c.pv/c.spend).toFixed(2):'0') + 'x · gastou ' + R(c.spend),
+          action: 'Revisar, otimizar criativo ou pausar'
+        });
+      }
+    });
+
+    // ROAS excelente + spend baixo = escalar
+    Object.values(byCamp).forEach(function(c){
+      if (c.spend >= 100 && c.spend < 500 && c.pv/c.spend >= 10) {
+        alerts.push({
+          prio: 3, cls: 'good', icon: '💡',
+          title: 'Oportunidade de escalar',
+          sub: c.name.slice(0,55) + ' · ROAS ' + (c.pv/c.spend).toFixed(2) + 'x · só R$ ' + (c.spend/100).toFixed(0) + '00 gastos',
+          action: 'Avaliar aumentar orçamento'
+        });
+      }
+    });
+  }
+
+  // --- ALERTAS DE PEDIDOS ---
+  var d1 = ontem();
+  var d2 = daysAgo(2);
+  var ontm = getFatPorData(d1, false);
+  var anteO = getFatPorData(d2, false);
+  if (anteO.fat > 0 && ontm.fat < anteO.fat * 0.6) {
+    alerts.push({
+      prio: 1, cls: 'urgent', icon: '📉',
+      title: 'Queda brusca de faturamento ontem',
+      sub: 'R$ ' + Math.round(ontm.fat/1000) + 'k vs R$ ' + Math.round(anteO.fat/1000) + 'k anteontem (-' + Math.round((1-ontm.fat/anteO.fat)*100) + '%)',
+      action: 'Verificar site, estoque disponível, campanhas ativas'
+    });
+  }
+
+  // --- ALERTAS FINANCEIROS ---
+  var contasProx = (DATA.contasPagar || []).filter(function(c){
+    var v = (c.vencimento||'').slice(0,10);
+    return v >= TODAY && v <= daysAgo(-3);  // próximos 3 dias
+  });
+  if (contasProx.length > 0) {
+    var totalProx = contasProx.reduce(function(s,c){ return s + (parseFloat(c.valor)||0); }, 0);
+    alerts.push({
+      prio: 2, cls: 'warn', icon: '💸',
+      title: contasProx.length + ' conta(s) a pagar nos próximos 3 dias',
+      sub: 'Total: ' + R(totalProx),
+      action: 'Verificar saldo em conta e aprovar pagamentos'
+    });
+  }
+
+  // Ordena por prioridade
+  alerts.sort(function(a,b){ return a.prio - b.prio; });
+
+  var el = document.getElementById('daily-alerts');
+  document.getElementById('daily-alerts-count').textContent = alerts.length + (alerts.length===1?' alerta':' alertas');
+
+  if (alerts.length === 0) {
+    el.innerHTML = '<div class="daily-alert-row good"><div class="daily-alert-icon">✅</div><div class="daily-alert-body"><div class="daily-alert-title">Tudo tranquilo por aqui</div><div class="daily-alert-sub">Nenhum alerta crítico no momento. Pode focar no estratégico hoje.</div></div></div>';
+    return;
+  }
+
+  el.innerHTML = alerts.slice(0, 15).map(function(a){
+    return '<div class="daily-alert-row ' + a.cls + '">' +
+      '<div class="daily-alert-icon">' + a.icon + '</div>' +
+      '<div class="daily-alert-body">' +
+        '<div class="daily-alert-title">' + a.title + '</div>' +
+        '<div class="daily-alert-sub">' + a.sub + '</div>' +
+        (a.action ? '<div class="daily-alert-action">→ ' + a.action + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ================================================================
+// Pacing do mês
+// ================================================================
+function renderDailyPacing() {
+  var metas = getMetas();
+  var inicio = inicioDoMes();
+  var ontem_ = ontem();
+  var diaAtual = diaDoMes();
+  var totalDias = diasNoMesAtual();
+  var progressoEsperado = diaAtual / totalDias;
+
+  // Faturamento mês (DTC)
+  var mesDTC = getFatPorPeriodo(inicio, ontem_, false);
+  // Pedidos mês
+  var mesPed = mesDTC.nfes;
+  // Ticket médio mês
+  var mesTkt = mesDTC.ticket;
+  // Spend Meta mês
+  var mesSpend = getSpendPorPeriodo(inicio, ontem_);
+  // MER mês
+  var mesMer = mesSpend > 0 ? mesDTC.fat / mesSpend : 0;
+
+  // Projeções lineares pra fim do mês
+  function projetar(atual) {
+    if (diaAtual === 0) return 0;
+    return (atual / diaAtual) * totalDias;
+  }
+  var projFat = projetar(mesDTC.fat);
+  var projPed = projetar(mesPed);
+  var projSpend = projetar(mesSpend);
+
+  function rowHtml(label, atual, meta, proj, formatterAtual, formatterMeta, reverse) {
+    formatterAtual = formatterAtual || function(v){ return R(v); };
+    formatterMeta = formatterMeta || formatterAtual;
+    var pct = meta > 0 ? (atual/meta*100) : 0;
+    var pctProj = meta > 0 ? (proj/meta*100) : 0;
+    var barW = Math.min(100, pct);
+    var cor;
+    if (reverse) {
+      // spend: menos é melhor
+      cor = pctProj <= 100 ? 'var(--green)' : pctProj <= 115 ? 'var(--amber)' : 'var(--red)';
+    } else {
+      cor = pctProj >= 100 ? 'var(--green)' : pctProj >= progressoEsperado*100 ? 'var(--amber)' : 'var(--red)';
+    }
+    var projCls = reverse ?
+      (pctProj <= 100 ? 'text-green' : pctProj <= 115 ? 'text-amber' : 'text-red') :
+      (pctProj >= 100 ? 'text-green' : pctProj >= progressoEsperado*100 ? 'text-amber' : 'text-red');
+    var sinal = reverse ? '' : '';  // poderia adicionar ✓/⚠
+
+    return '<div class="daily-pacing-row">' +
+      '<div class="daily-pacing-label">' + label + '</div>' +
+      '<div class="daily-pacing-bar-wrap">' +
+        '<div class="daily-pacing-bar"><div class="daily-pacing-bar-fill" style="width:' + barW + '%;background:' + cor + '"></div></div>' +
+      '</div>' +
+      '<div class="daily-pacing-values">' + formatterAtual(atual) + ' / ' + formatterMeta(meta) + '</div>' +
+      '<div class="daily-pacing-proj ' + projCls + '">proj ' + pctProj.toFixed(0) + '%</div>' +
+    '</div>';
+  }
+
+  var html = '';
+  html += rowHtml('Faturamento DTC', mesDTC.fat, metas.fat, projFat);
+  html += rowHtml('Pedidos', mesPed, metas.ped, projPed, function(v){ return N(Math.round(v)); });
+  html += rowHtml('Ticket médio', mesTkt, metas.tkt, mesTkt, function(v){ return R_full(v); });
+  html += rowHtml('Spend Meta', mesSpend, metas.spend, projSpend, null, null, true);
+  html += rowHtml('MER bruto', mesMer, metas.mer, mesMer, function(v){ return v.toFixed(2)+'x'; });
+
+  document.getElementById('daily-pacing').innerHTML = html;
+
+  // Preenche editor de metas
+  document.getElementById('meta-fat').value = metas.fat;
+  document.getElementById('meta-ped').value = metas.ped;
+  document.getElementById('meta-tkt').value = metas.tkt;
+  document.getElementById('meta-spend').value = metas.spend;
+  document.getElementById('meta-rec').value = metas.rec;
+  document.getElementById('meta-mer').value = metas.mer;
+}
+
+function toggleMetasEdit() {
+  var el = document.getElementById('daily-metas-editor');
+  var btn = document.getElementById('daily-metas-btn');
+  if (el.style.display === 'none') {
+    el.style.display = '';
+    btn.textContent = '× Fechar editor';
+  } else {
+    el.style.display = 'none';
+    btn.textContent = '✎ Editar metas';
+  }
+}
+
+function salvarMetas() {
+  var m = {
+    fat: parseFloat(document.getElementById('meta-fat').value) || METAS_DEFAULT.fat,
+    ped: parseInt(document.getElementById('meta-ped').value) || METAS_DEFAULT.ped,
+    tkt: parseFloat(document.getElementById('meta-tkt').value) || METAS_DEFAULT.tkt,
+    spend: parseFloat(document.getElementById('meta-spend').value) || METAS_DEFAULT.spend,
+    rec: parseFloat(document.getElementById('meta-rec').value) || METAS_DEFAULT.rec,
+    mer: parseFloat(document.getElementById('meta-mer').value) || METAS_DEFAULT.mer
+  };
+  setMetas(m);
+  toggleMetasEdit();
+  renderDaily();
+}
+
+// ================================================================
+// Top produtos ontem
+// ================================================================
+function renderDailyTopProdutos() {
+  var d1 = ontem();
+  var nfesOntem = validNfes().filter(function(n){
+    return (n.dataEmissao||'').slice(0,10) === d1 && n.tipoPessoa === 'F';
+  });
+  var porSku = {};
+  nfesOntem.forEach(function(n){
+    if (!n.itens) return;
+    n.itens.forEach(function(i){
+      var cod = i.codigo || 'SEM_CODIGO';
+      if (!porSku[cod]) porSku[cod] = {codigo:cod, descricao:i.descricao, qtd:0, valor:0};
+      porSku[cod].qtd += parseFloat(i.quantidade)||0;
+      porSku[cod].valor += (parseFloat(i.quantidade)||0) * (parseFloat(i.valorUnitario)||0);
+    });
+  });
+  var ordered = Object.values(porSku).sort(function(a,b){ return b.qtd - a.qtd; }).slice(0, 5);
+
+  var el = document.getElementById('daily-top-produtos');
+  if (ordered.length === 0) {
+    el.innerHTML = '<div class="hint">Sem vendas ontem ou sem itens enriquecidos.</div>';
+    return;
+  }
+  var rows = ordered.map(function(p, i){
+    return '<tr>' +
+      '<td class="mono text-muted">' + (i+1) + '</td>' +
+      '<td class="strong">' + p.codigo + '<br><span class="mono text-muted" style="font-size:10px">' + (p.descricao||'').slice(0,40) + '</span></td>' +
+      '<td class="num fw-600">' + N(Math.round(p.qtd)) + '</td>' +
+      '<td class="num">' + R(p.valor) + '</td>' +
+    '</tr>';
+  }).join('');
+  el.innerHTML = '<table class="tbl"><thead><tr><th>#</th><th>SKU</th><th class="text-right">Un.</th><th class="text-right">Receita</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// ================================================================
+// Canais ontem
+// ================================================================
+function renderDailyCanais() {
+  var d1 = ontem();
+  var nfesOntem = validNfes().filter(function(n){
+    return (n.dataEmissao||'').slice(0,10) === d1;
+  });
+
+  var groups = {};
+  nfesOntem.forEach(function(n){
+    var lojaId = n.loja && n.loja.id ? String(n.loja.id) : null;
+    var group;
+    if (!lojaId) {
+      group = n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal';
+    } else {
+      group = getChannelGroup(lojaId);
+    }
+    if (!groups[group]) groups[group] = {n:0, v:0};
+    groups[group].n += 1;
+    groups[group].v += parseFloat(n.valorNota)||0;
+  });
+
+  var total = Object.values(groups).reduce(function(s,g){ return s+g.v; }, 0);
+  var ordered = Object.keys(groups).sort(function(a,b){ return groups[b].v - groups[a].v; });
+
+  var el = document.getElementById('daily-canais');
+  if (ordered.length === 0) {
+    el.innerHTML = '<div class="hint">Sem vendas ontem.</div>';
+    return;
+  }
+
+  el.innerHTML = ordered.map(function(name){
+    var g = groups[name];
+    var share = total > 0 ? (g.v/total*100) : 0;
+    var cor = getChannelColor(name);
+    return '<div style="margin-bottom:10px">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px">' +
+        '<span class="strong"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + cor + ';margin-right:5px"></span>' + name + '</span>' +
+        '<span class="mono">' + R(g.v) + ' · ' + N(g.n) + ' NFes · ' + share.toFixed(1) + '%</span>' +
+      '</div>' +
+      '<div class="daily-pacing-bar"><div class="daily-pacing-bar-fill" style="width:' + share + '%;background:' + cor + '"></div></div>' +
+    '</div>';
+  }).join('');
+}
+
+// ================================================================
+// Feed últimos pedidos
+// ================================================================
+function renderDailyFeed() {
+  var nfes = validNfes().slice().sort(function(a,b){
+    return (b.dataEmissao||'').localeCompare(a.dataEmissao||'');
+  }).slice(0, 10);
+
+  var el = document.getElementById('daily-feed');
+  if (nfes.length === 0) {
+    el.innerHTML = '<div class="hint">Sem pedidos recentes.</div>';
+    return;
+  }
+
+  var rows = nfes.map(function(n){
+    var data = (n.dataEmissao||'').slice(0,10);
+    var hora = (n.dataEmissao||'').slice(11,16);
+    var cliente = (n.contato && n.contato.nome ? n.contato.nome : '-').slice(0,35);
+    var lojaId = n.loja && n.loja.id ? String(n.loja.id) : null;
+    var canal = lojaId ? getChannelGroup(lojaId) : (n.tipoPessoa === 'J' ? 'B2B' : '-');
+    var tipo = n.tipoPessoa === 'J' ? '<span class="badge p" style="font-size:9px">CNPJ</span>' : '<span class="badge b" style="font-size:9px">CPF</span>';
+
+    return '<tr>' +
+      '<td class="mono text-muted" style="white-space:nowrap">' + data.substring(5) + ' ' + (hora||'--:--') + '</td>' +
+      '<td class="strong">' + cliente + '</td>' +
+      '<td>' + tipo + '</td>' +
+      '<td class="text-muted">' + canal + '</td>' +
+      '<td class="num fw-600">' + R_full(parseFloat(n.valorNota)||0) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  el.innerHTML = '<table class="tbl"><thead><tr><th>Data/Hora</th><th>Cliente</th><th>Tipo</th><th>Canal</th><th class="text-right">Valor</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// ================================================================
+// Checklist
+// ================================================================
+function renderDailyChecklist() {
+  var list = getChecklist();
+  var el = document.getElementById('daily-checklist');
+  var done = list.filter(function(i){ return i.done; }).length;
+  var total = list.length;
+
+  el.innerHTML =
+    '<div style="margin-bottom:10px;font-size:11px;color:var(--text2)">' +
+      done + ' de ' + total + ' concluídos' +
+      '<div class="daily-pacing-bar" style="margin-top:6px;max-width:200px"><div class="daily-pacing-bar-fill" style="width:' + (total>0?done/total*100:0) + '%;background:var(--green)"></div></div>' +
+    '</div>' +
+    list.map(function(item, idx){
+      return '<div class="daily-checklist-item ' + (item.done?'done':'') + '" onclick="toggleCheckItem(' + idx + ')">' +
+        '<div class="daily-check-box"></div>' +
+        '<div class="daily-check-text">' + item.text + '</div>' +
+      '</div>';
+    }).join('');
+}
+
+function toggleCheckItem(idx) {
+  var list = getChecklist();
+  if (list[idx]) {
+    list[idx].done = !list[idx].done;
+    setChecklist(list);
+    renderDailyChecklist();
+  }
 }
 
 loadData();
