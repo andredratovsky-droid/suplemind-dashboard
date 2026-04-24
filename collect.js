@@ -317,7 +317,8 @@ function extractItens(nfeData) {
       codigo: item.codigo || '',
       descricao: (item.descricao || '').slice(0, 100),
       quantidade: parseFloat(item.quantidade) || 0,
-      valorUnitario: parseFloat(item.valor) || 0
+      valorUnitario: parseFloat(item.valor) || 0,
+      cfop: item.cfop || null  // v5.7: CFOP por item (pra filtrar venda vs remessa)
     };
   });
 }
@@ -415,6 +416,45 @@ function enriquecerNFesComDetalhes(accessToken, nfes, cacheDetalhes) {
 }
 
 // ============================================================
+// v5.7: Helper pra detectar se NFe é venda (vs remessa/devolução/outros)
+// ============================================================
+// CFOPs de VENDA (válidos pra contabilizar faturamento):
+// 5101, 5102, 5103, 5104, 5115, 5116, 5117, 5118, 5119, 5120, 5122, 5123
+// 5401, 5402, 5403, 5405 (venda substituição tributária)
+// 5501, 5502 (exportação - venda)
+// 6101, 6102, 6103, 6104, 6107, 6108, 6115, 6116, 6117, 6118, 6119, 6120, 6122, 6123
+// 6401, 6402, 6403, 6404, 6405 (venda ST interestadual)
+// 6501, 6502, 7101, 7102 (exportação)
+//
+// CFOPs que NÃO são venda (devem ser EXCLUÍDOS):
+// 5152, 5409 (transferência), 5201, 5202 (devolução), 5910, 5912, 5913 (remessa/bonificação/demo)
+// 5915, 5916, 5917 (remessa pra conserto, demonstração), 5949 (outra saída não especificada)
+// 6152, 6201, 6202, 6910, 6913, 6915, 6917 etc (mesmas operações interestaduais)
+//
+// finalidade 4 = Devolução (não é venda)
+function isVenda(nfe) {
+  // Entrada (E) nunca é venda, sempre descarta
+  if (nfe.tipoOperacao === 'E' || nfe.tipo === 'E') return false;
+  // Finalidade 4 = devolução. 2 = complementar (ok se da venda). 3 = ajuste.
+  if (nfe.finalidade === 4 || nfe.finalidade === '4') return false;
+  // Se não tem CFOP ainda coletado (NFe sem detalhe), dar benefício da dúvida
+  if (!nfe.cfopPrimeiroItem && (!nfe.cfops || nfe.cfops.length === 0)) return true;
+  // Testar CFOP. Venda: prefixo 5.1xx, 5.4xx, 5.5xx, 6.1xx, 6.4xx, 6.5xx, 7.1xx
+  // Checa o primeiro item (geralmente o da operação principal)
+  const cfop = String(nfe.cfopPrimeiroItem || (nfe.cfops && nfe.cfops[0]) || '');
+  if (!cfop) return true;  // Sem CFOP: dar benefício da dúvida
+  // Filtro positivo: CFOPs que são explicitamente de VENDA
+  const vendaPrefixes = ['510', '540', '550', '610', '640', '650', '710'];
+  const naoVendaPrefixes = ['515', '520', '591', '594', '615', '620', '691', '694'];
+  const prefix3 = cfop.slice(0, 3);
+  if (naoVendaPrefixes.indexOf(prefix3) >= 0) return false;
+  if (vendaPrefixes.indexOf(prefix3) >= 0) return true;
+  // Fallback: qualquer CFOP começando com 5 ou 6 que não foi classificado → dar benefício da dúvida
+  // (a maioria das operações comerciais brasileiras)
+  return cfop.charAt(0) === '5' || cfop.charAt(0) === '6' || cfop.charAt(0) === '7';
+}
+
+// ============================================================
 // Consolidação NFes (agora inclui itens)
 // ============================================================
 function consolidarNFes(nfesLista, detalhesMap) {
@@ -438,7 +478,14 @@ function consolidarNFes(nfesLista, detalhesMap) {
       base.chaveAcesso = det.chaveAcesso;
       base.itens = det.itens || [];                       // v5.4
       base.formasPagamento = det.formasPagamento || [];   // v5.5
+      // v5.7: campos fiscais pra filtrar só vendas
+      base.naturezaOperacao = det.naturezaOperacao || null;
+      base.finalidade = det.finalidade || null;
+      base.tipoOperacao = det.tipoOperacao || n.tipo || null;
+      base.cfopPrimeiroItem = det.cfopPrimeiroItem || null;
+      base.cfops = det.cfops || [];
       base.temDetalhe = true;
+      base.ehVenda = isVenda(base);  // v5.7: true se é NFe de venda real
     } else {
       base.valorNota = 0;
       base.itens = [];
@@ -582,12 +629,30 @@ function computeStats(pedidos, nfes, produtos, contasPagar, contasReceber, conci
   const d30 = new Date(hoje.getTime() - 30 * 86400000);
   const d90 = new Date(hoje.getTime() - 90 * 86400000);
 
-  const nfesValidas = nfes.filter(function (n) {
+  // v5.7: NFes válidas = situação ok + saída + com detalhe + é VENDA (não remessa/devolução)
+  const nfesComDetalhe = nfes.filter(function (n) {
     return NFE_SITUACOES_VALIDAS.indexOf(Number(n.situacao)) !== -1 &&
            Number(n.tipo) === NFE_TIPO_SAIDA && n.temDetalhe;
   });
+  const nfesValidas = nfesComDetalhe.filter(function (n) {
+    return n.ehVenda !== false;  // true ou undefined (sem info) passa
+  });
+  const nfesExcluidas = nfesComDetalhe.length - nfesValidas.length;
 
-  console.log('\n📊 NFes válidas: ' + nfesValidas.length);
+  console.log('\n📊 NFes com detalhe: ' + nfesComDetalhe.length);
+  console.log('📊 NFes VÁLIDAS (vendas): ' + nfesValidas.length);
+  if (nfesExcluidas > 0) {
+    console.log('🚫 Excluídas (remessa/devolução/outros): ' + nfesExcluidas);
+    // Listar CFOPs mais comuns das excluídas pra auditoria
+    const cfopsExcluidos = {};
+    nfesComDetalhe.filter(function(n){ return n.ehVenda === false; })
+      .forEach(function(n){
+        const cfop = n.cfopPrimeiroItem || 'sem-cfop';
+        cfopsExcluidos[cfop] = (cfopsExcluidos[cfop] || 0) + 1;
+      });
+    const topExcluidos = Object.entries(cfopsExcluidos).sort(function(a,b){return b[1]-a[1];}).slice(0, 5);
+    console.log('   Top CFOPs excluídos: ' + topExcluidos.map(function(e){ return e[0]+' ('+e[1]+')'; }).join(', '));
+  }
 
   const nfesB2B = nfesValidas.filter(function (n) { return n.tipoPessoa === 'J'; });
   const nfesDTC = nfesValidas.filter(function (n) { return n.tipoPessoa === 'F'; });
