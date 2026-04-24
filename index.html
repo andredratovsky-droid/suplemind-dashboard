@@ -16,7 +16,7 @@
   --red:#ff4560;--red-dim:rgba(255,69,96,.08);
   --amber:#ffb340;--amber-dim:rgba(255,179,64,.08);
   --blue:#3d9aff;--blue-dim:rgba(61,154,255,.08);
-  --purple:#a78bfa;--purple-dim:rgba(20, 18, 24, 0.08);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,.08);
   --r:10px;--r2:6px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -525,8 +525,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
       <div class="period-btns">
         <button class="pbtn" onclick="setPeriod(1,this)">HOJE</button>
+        <button class="pbtn active" onclick="setPeriod(-1,this)" title="Do dia 1 do mês corrente até hoje">MÊS</button>
         <button class="pbtn" onclick="setPeriod(7,this)">7D</button>
-        <button class="pbtn active" onclick="setPeriod(30,this)">30D</button>
+        <button class="pbtn" onclick="setPeriod(30,this)">30D</button>
         <button class="pbtn" onclick="setPeriod(90,this)">90D</button>
         <button class="pbtn" onclick="setPeriod(0,this)">TUDO</button>
         <button class="pbtn" onclick="openCustomDateRange()" title="Período customizado">📅</button>
@@ -764,6 +765,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
           <div id="v-clitipo"></div>
         </div>
       </div>
+
+      <div class="card"><div class="card-head"><div><div class="card-title">📦 Vendas por produto</div><div class="card-sub">Top 10 no período</div></div></div>
+        <div class="chart-box"><canvas id="ch-v-prods"></canvas></div>
+      </div>
+
+      <div class="card"><div class="card-head"><div><div class="card-title">📈 Evolução mensal por produto</div><div class="card-sub">Top 6 produtos · últimos 12 meses</div></div></div>
+        <div class="chart-box tall"><canvas id="ch-v-prods-evo"></canvas></div>
+      </div>
+
+      <div class="card"><div class="card-head"><div><div class="card-title">💰 Evolução mensal do ticket médio</div><div class="card-sub">Últimos 12 meses</div></div></div>
+        <div class="chart-box"><canvas id="ch-v-ticket-evo"></canvas></div>
+      </div>
     </div>
 
     <!-- CANAIS -->
@@ -774,6 +787,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="card"><div class="card-head"><div><div class="card-title">Volume por canal</div><div class="card-sub">NFes emitidas</div></div></div><div class="chart-box"><canvas id="ch-canais-vol"></canvas></div></div>
       </div>
       <div class="card"><div class="card-head"><div><div class="card-title">Comparativo de canais</div><div class="card-sub">Performance detalhada</div></div></div><div id="canais-tabela"></div></div>
+
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">📈 Evolução mensal por canal</div><div class="card-sub">Últimos 12 meses · receita absoluta</div></div></div>
+        <div class="chart-box tall"><canvas id="ch-canais-evo"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">🥧 Representatividade mensal</div><div class="card-sub">% de cada canal no faturamento mensal (últimos 12 meses)</div></div></div>
+        <div class="chart-box tall"><canvas id="ch-canais-rep"></canvas></div>
+      </div>
     </div>
 
     <!-- PRODUTOS -->
@@ -810,9 +833,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="card"><div class="card-head"><div><div class="card-title">Performance por dimensão</div><div class="card-sub">Extraído da nomenclatura</div></div></div><div id="mkt-dimensoes"></div></div>
         <div class="card"><div class="card-head"><div><div class="card-title">Mensal · Spend × Receita Bling</div><div class="card-sub">Visão executiva</div></div></div><div id="mkt-mensal"></div></div>
       </div>
-      <div class="card"><div class="card-head"><div><div class="card-title">Top campanhas</div><div class="card-sub">Últimos 30 dias · ordenado por spend</div></div><div class="card-pill" id="mkt-camp-count">0</div></div><div id="mkt-campanhas"></div></div>
-      <div class="card"><div class="card-head"><div><div class="card-title">Top criativos</div><div class="card-sub">Últimos 30 dias · maior spend com ROAS e fadiga</div></div><button class="refresh-btn" onclick="go('criativo', document.querySelector('.nav-item[onclick*=criativo]'))" style="background:var(--purple-dim);color:var(--purple);border-color:rgba(167,139,250,.3)">🧠 Abrir Criativo Intelligence →</button></div><div id="mkt-criativos"></div></div>
-      <div class="card"><div class="card-head"><div><div class="card-title">Breakdowns — Plataforma e Posição</div><div class="card-sub">Últimos 30 dias</div></div></div><div id="mkt-breakdowns"></div></div>
+      <div class="card"><div class="card-head"><div><div class="card-title">Top campanhas</div><div class="card-sub" id="mkt-camp-sub">Últimos 30 dias · ordenado por spend</div></div><div class="card-pill" id="mkt-camp-count">0</div></div><div id="mkt-campanhas"></div></div>
+      <div class="card"><div class="card-head"><div><div class="card-title">Top criativos</div><div class="card-sub" id="mkt-crit-sub">Últimos 30 dias · maior spend com ROAS e fadiga</div></div><button class="refresh-btn" onclick="go('criativo', document.querySelector('.nav-item[onclick*=criativo]'))" style="background:var(--purple-dim);color:var(--purple);border-color:rgba(167,139,250,.3)">🧠 Abrir Criativo Intelligence →</button></div><div id="mkt-criativos"></div></div>
+      <div class="card"><div class="card-head"><div><div class="card-title">Breakdowns — Plataforma e Posição</div><div class="card-sub" id="mkt-brk-sub">Últimos 30 dias</div></div></div><div id="mkt-breakdowns"></div></div>
     </div>
 
 
@@ -858,8 +881,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
             <div class="scope-btns">
               <button class="sbtn" onclick="setCrvWindow(7,this)">7d</button>
               <button class="sbtn" onclick="setCrvWindow(14,this)">14d</button>
-              <button class="sbtn active" onclick="setCrvWindow(30,this)">30d</button>
+              <button class="sbtn" onclick="setCrvWindow(30,this)">30d</button>
               <button class="sbtn" onclick="setCrvWindow(90,this)">90d</button>
+              <button class="sbtn active" onclick="setCrvWindow(180,this)">180d</button>
               <button class="sbtn" onclick="setCrvWindow(0,this)">Tudo</button>
             </div>
           </div>
@@ -873,7 +897,29 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
             </div>
           </div>
         </div>
-        <div class="hint" id="crv-config-status">Analisando últimos 30 dias · exige spend ≥ R$50 e impressions ≥ 1000</div>
+        <div class="hint" id="crv-config-status">Analisando últimos 180 dias · exige spend ≥ R$50 e impressions ≥ 1000</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">TIPO:</span>
+            <div class="scope-btns">
+              <button class="sbtn active" onclick="setCrvTipo('all',this)">Todos</button>
+              <button class="sbtn" onclick="setCrvTipo('video',this)">Só Vídeo</button>
+              <button class="sbtn" onclick="setCrvTipo('image',this)">Só Imagem</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">PRODUTO:</span>
+            <select id="crv-filter-product" onchange="applyCrvFilters()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:11px;font-family:'DM Mono',monospace">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">CREATOR:</span>
+            <select id="crv-filter-creator" onchange="applyCrvFilters()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:11px;font-family:'DM Mono',monospace">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <!-- Aprendizados consolidados -->
@@ -1159,6 +1205,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Saldo (30d proj.)</div><div class="kpi-value" id="fl-l">R$ 0</div></div>
       </div>
       <div class="card"><div class="card-head"><div><div class="card-title">Receita diária (últimos 30d)</div><div class="card-sub">Base para projeção</div></div></div><div class="chart-box"><canvas id="ch-fl"></canvas></div></div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">📊 Projeção integrada · receitas × vencimentos × saldo</div>
+          <div class="card-sub">Últimos 30d realizado + próximos 60d projetado. Saldo considera contas a receber e a pagar por vencimento.</div></div>
+        </div>
+        <div class="chart-box tall"><canvas id="ch-fl-proj"></canvas></div>
+        <div class="hint" style="margin-top:8px" id="fl-proj-hint">Barras verdes = receitas (realizadas + a receber por vencimento) · barras vermelhas = contas a pagar por vencimento · linha amarela = saldo acumulado projetado</div>
+      </div>
       <div class="card"><div class="card-head"><div><div class="card-title">Calendário de vencimentos (próx 30d)</div></div></div><div id="fl-cal"></div></div>
     </div>
 
@@ -1215,7 +1270,9 @@ var PERFORMANCE_PCT = 0.55;
 // ================================================================
 var DATA = null;          // bling.json
 var META_DATA = null;     // meta.json (Meta Ads)
-var PERIOD = 30;          // dias (0 = TUDO)
+var PERIOD = -1;          // v5.8: default é ESTE MÊS
+var cutC = '1900-01-01';  // v5.8: filtro global Marketing/Breakdowns (atualizado em renderMarketing)
+var cutCEnd = '9999-12-31';
 var SCOPE = 'DTC';        // DTC | B2B | ALL
 var ACTIVE = 'daily';
 var TODAY = new Date().toISOString().slice(0,10);
@@ -1382,6 +1439,23 @@ function dateAgo(days){
   return d.toISOString().slice(0,10);
 }
 
+// v5.8: Helper unificado pra retornar data inicial do período selecionado
+function getCurrentPeriodStart(){
+  if(CUSTOM_RANGE) return CUSTOM_RANGE.start;
+  if(PERIOD === 0) return null;  // sem filtro
+  if(PERIOD === 1) return TODAY;  // hoje
+  if(PERIOD === -1){
+    var hoje = new Date();
+    return hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-01';
+  }
+  return dateAgo(PERIOD);
+}
+
+function getCurrentPeriodEnd(){
+  if(CUSTOM_RANGE) return CUSTOM_RANGE.end;
+  return '9999-12-31';
+}
+
 // ================================================================
 // FILTROS: aplicar período + escopo em nfes válidas
 // ================================================================
@@ -1412,6 +1486,14 @@ function filterByPeriod(nfes, days){
       return (n.dataEmissao||'').slice(0,10) === TODAY;
     });
   }
+  if(days === -1){
+    // ESTE MÊS (do dia 1 até hoje)
+    var hoje = new Date();
+    var primeiroDia = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-01';
+    return nfes.filter(function(n){
+      return (n.dataEmissao||'').slice(0,10) >= primeiroDia;
+    });
+  }
   var cut = dateAgo(days);
   return nfes.filter(function(n){
     return (n.dataEmissao||'').slice(0,10) >= cut;
@@ -1428,12 +1510,10 @@ function getNfes(){
 function aggregateChannels(nfes){
   var groups = {};
   nfes.forEach(function(n){
-    // Usa loja do pedido vinculado se houver, senão loja da NFe
+    // v5.8: FIX B2B — não descartar NFes sem detalhe. Usa dados da lista mesmo.
     var lojaId = null;
     if(n.loja && n.loja.id) lojaId = String(n.loja.id);
-    // Se NFe avulsa B2B, categorizar como B2B/Direto
     var group;
-    if(!n.temDetalhe) return;
     if(!lojaId){
       group = n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal';
     } else {
@@ -1622,7 +1702,7 @@ function applyCustomDateRange(){
 
 function setScope(scope, btn){
   document.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
+  if(btn && btn.classList) btn.classList.add('active');
   SCOPE = scope;
   render(ACTIVE);
 }
@@ -1654,6 +1734,11 @@ function periodLabel(){
   if(CUSTOM_RANGE) return fmtDateBRFull(CUSTOM_RANGE.start) + ' a ' + fmtDateBRFull(CUSTOM_RANGE.end);
   if(PERIOD === 0) return 'todo o histórico';
   if(PERIOD === 1) return 'hoje';
+  if(PERIOD === -1) {
+    var meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    var hoje = new Date();
+    return 'mês de ' + meses[hoje.getMonth()];
+  }
   return 'últimos '+PERIOD+' dias';
 }
 
@@ -1969,6 +2054,151 @@ function renderVendasClienteTipo(nfes){
 
   document.getElementById('v-clitipo').innerHTML = html;
   setTimeout(makeTablesSortable, 50);
+
+  // v5.8: Novos blocos — produtos + evolução
+  renderVendasProdutos(nfes);
+  renderVendasProdutosEvo();
+  renderVendasTicketEvo();
+}
+
+function renderVendasProdutos(nfes){
+  // Agrega por produto usando items das NFes enriquecidas
+  var porProd = {};
+  nfes.forEach(function(n){
+    if(!n.itens || n.itens.length === 0) return;
+    n.itens.forEach(function(it){
+      var cod = it.codigo || '?';
+      var nomeObj = {nome: it.descricao, codigo: cod};
+      var nome = formatProductName(nomeObj);
+      if(!porProd[cod]) porProd[cod] = {nome:nome, qtd:0, valor:0};
+      porProd[cod].qtd += (it.quantidade||0);
+      porProd[cod].valor += (it.quantidade||0) * (it.valorUnitario||0);
+    });
+  });
+
+  var arr = Object.values(porProd).sort(function(a,b){ return b.valor - a.valor; }).slice(0,10);
+  dc('vProds');
+  if(arr.length === 0){
+    document.getElementById('ch-v-prods').parentElement.innerHTML = '<div class="hint">Aguardando enriquecimento de itens das NFes.</div>';
+    return;
+  }
+  CHARTS['vProds'] = new Chart(document.getElementById('ch-v-prods'), {
+    type:'bar',
+    data:{
+      labels: arr.map(function(p){ return p.nome.slice(0,30); }),
+      datasets:[{label:'Receita (R$)', data:arr.map(function(p){ return p.valor; }),
+                 backgroundColor:'rgba(0,229,160,.4)', borderColor:'#00e5a0', borderWidth:1, borderRadius:3}]
+    },
+    options:{
+      indexAxis: 'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(ctx){
+        var p = arr[ctx.dataIndex];
+        return p.nome+': '+R(p.valor)+' · '+N(Math.round(p.qtd))+' un.';
+      }}}},
+      scales:{x:{grid:{color:'rgba(30,40,48,.8)'}, ticks:{callback:function(v){return 'R$'+(v/1000).toFixed(0)+'k';}}}, y:{grid:{display:false}}}
+    }
+  });
+}
+
+function renderVendasProdutosEvo(){
+  // Últimos 12 meses — evolução por produto usando stats.porSku (do Bling)
+  var porSku = gp(DATA,'stats.porSku',{});
+  if(Object.keys(porSku).length === 0){
+    dc('vProdsEvo');
+    return;
+  }
+  // Top 6 produtos por valor histórico
+  var arr = Object.keys(porSku).map(function(cod){
+    var s = porSku[cod];
+    return {codigo:cod, nome:s.descricao||cod, porData:s.porData||{}, valor:s.valor||0};
+  }).sort(function(a,b){ return b.valor - a.valor; }).slice(0,6);
+
+  // Agrega por mês nos últimos 12
+  var meses = [];
+  var hoje = new Date();
+  for(var i=11; i>=0; i--){
+    var d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    meses.push(d.toISOString().slice(0,7));
+  }
+
+  var palette = ['#00e5a0','#3d9aff','#ffb340','#a78bfa','#ff4560','#00b87a'];
+  var datasets = arr.map(function(p, idx){
+    var byMes = {};
+    meses.forEach(function(m){ byMes[m] = 0; });
+    Object.keys(p.porData).forEach(function(d){
+      var m = d.slice(0,7);
+      if(byMes[m] !== undefined){
+        byMes[m] += (p.porData[d].qtd||0);
+      }
+    });
+    return {
+      label: formatProductName({nome:p.nome, codigo:p.codigo}).slice(0,25),
+      data: meses.map(function(m){ return byMes[m]; }),
+      borderColor: palette[idx], backgroundColor: palette[idx]+'22',
+      tension: 0.3, borderWidth: 2, pointRadius: 2, fill: false
+    };
+  });
+
+  dc('vProdsEvo');
+  CHARTS['vProdsEvo'] = new Chart(document.getElementById('ch-v-prods-evo'), {
+    type:'line',
+    data:{labels:meses, datasets:datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{intersect:false, mode:'index'},
+      plugins:{legend:{position:'top', labels:{padding:10, boxWidth:10, font:{size:10}}}},
+      scales:{y:{grid:{color:'rgba(30,40,48,.8)'}, beginAtZero:true, title:{display:true, text:'unidades/mês', font:{size:10}}}, x:{grid:{display:false}}}
+    }
+  });
+}
+
+function renderVendasTicketEvo(){
+  // Ticket médio mês a mês (últimos 12 meses)
+  var nfes = validNfes();
+  if(SCOPE === 'DTC') nfes = nfes.filter(function(n){ return n.tipoPessoa === 'F'; });
+  else if(SCOPE === 'B2B') nfes = nfes.filter(function(n){ return n.tipoPessoa === 'J'; });
+
+  var byMes = {};
+  var hoje = new Date();
+  var meses = [];
+  for(var i=11; i>=0; i--){
+    var d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    var m = d.toISOString().slice(0,7);
+    meses.push(m);
+    byMes[m] = {fat:0, n:0};
+  }
+
+  nfes.forEach(function(n){
+    var m = (n.dataEmissao||'').slice(0,7);
+    if(byMes[m]){
+      byMes[m].fat += parseFloat(n.valorNota)||0;
+      byMes[m].n += 1;
+    }
+  });
+
+  var tickets = meses.map(function(m){ return byMes[m].n > 0 ? byMes[m].fat/byMes[m].n : 0; });
+  var counts = meses.map(function(m){ return byMes[m].n; });
+
+  dc('vTicketEvo');
+  CHARTS['vTicketEvo'] = new Chart(document.getElementById('ch-v-ticket-evo'), {
+    data:{
+      labels: meses,
+      datasets:[
+        {type:'line', label:'Ticket médio (R$)', data:tickets, borderColor:'#00e5a0', backgroundColor:'rgba(0,229,160,.15)', tension:.3, pointRadius:3, borderWidth:2, fill:true, yAxisID:'y'},
+        {type:'bar', label:'NFes no mês', data:counts, backgroundColor:'rgba(61,154,255,.3)', borderColor:'#3d9aff', borderWidth:1, yAxisID:'y1'}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{intersect:false, mode:'index'},
+      plugins:{legend:{position:'top', labels:{padding:10, boxWidth:10, font:{size:11}}}},
+      scales:{
+        y:{position:'left', grid:{color:'rgba(30,40,48,.8)'}, ticks:{callback:function(v){return 'R$'+Math.round(v);}}},
+        y1:{position:'right', grid:{drawOnChartArea:false}, ticks:{color:'#3d9aff'}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
 }
 
 // ================================================================
@@ -2027,6 +2257,103 @@ function renderCanais(){
     '</tr>';
   }).join('');
   tblEl.innerHTML = '<table class="tbl" data-sortable="1"><thead><tr><th>Canal</th><th class="text-right">NFes</th><th class="text-right">Faturamento</th><th class="text-right">Ticket</th><th class="text-right">Share</th></tr></thead><tbody>'+rows+'</tbody></table>';
+
+  // v5.8: Evolução mensal por canal
+  renderCanaisEvo();
+  renderCanaisRep();
+}
+
+function renderCanaisEvo(){
+  var nfes = filterByScope(validNfes());
+  var hoje = new Date();
+  var meses = [];
+  for(var i=11; i>=0; i--){
+    var d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    meses.push(d.toISOString().slice(0,7));
+  }
+  var byChanMes = {};
+  nfes.forEach(function(n){
+    var m = (n.dataEmissao||'').slice(0,7);
+    if(meses.indexOf(m) === -1) return;
+    var lojaId = n.loja && n.loja.id ? String(n.loja.id) : null;
+    var chan = !lojaId ? (n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal') : getChannelGroup(lojaId);
+    if(!byChanMes[chan]) byChanMes[chan] = {};
+    if(!byChanMes[chan][m]) byChanMes[chan][m] = 0;
+    byChanMes[chan][m] += parseFloat(n.valorNota)||0;
+  });
+  var chans = Object.keys(byChanMes);
+  var palette = {'Nuvemshop':'#00e5a0','Mercado Livre':'#ffb340','B2B/Direto':'#a78bfa','Outros':'#3d9aff','Sem canal':'#666'};
+  var datasets = chans.map(function(chan){
+    return {
+      label: chan,
+      data: meses.map(function(m){ return byChanMes[chan][m] || 0; }),
+      borderColor: palette[chan] || '#999', backgroundColor: (palette[chan]||'#999')+'22',
+      tension:.3, borderWidth:2, pointRadius:2, fill: false
+    };
+  });
+  dc('canEvo');
+  CHARTS['canEvo'] = new Chart(document.getElementById('ch-canais-evo'), {
+    type:'line',
+    data:{labels:meses, datasets:datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{intersect:false, mode:'index'},
+      plugins:{legend:{position:'top', labels:{padding:10, boxWidth:10, font:{size:11}}}},
+      scales:{y:{grid:{color:'rgba(30,40,48,.8)'}, ticks:{callback:function(v){return 'R$'+(v/1000).toFixed(0)+'k';}}}, x:{grid:{display:false}}}
+    }
+  });
+}
+
+function renderCanaisRep(){
+  var nfes = filterByScope(validNfes());
+  var hoje = new Date();
+  var meses = [];
+  for(var i=11; i>=0; i--){
+    var d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    meses.push(d.toISOString().slice(0,7));
+  }
+  var byChanMes = {}, totalMes = {};
+  nfes.forEach(function(n){
+    var m = (n.dataEmissao||'').slice(0,7);
+    if(meses.indexOf(m) === -1) return;
+    var lojaId = n.loja && n.loja.id ? String(n.loja.id) : null;
+    var chan = !lojaId ? (n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal') : getChannelGroup(lojaId);
+    if(!byChanMes[chan]) byChanMes[chan] = {};
+    if(!byChanMes[chan][m]) byChanMes[chan][m] = 0;
+    byChanMes[chan][m] += parseFloat(n.valorNota)||0;
+    if(!totalMes[m]) totalMes[m] = 0;
+    totalMes[m] += parseFloat(n.valorNota)||0;
+  });
+  var chans = Object.keys(byChanMes);
+  var palette = {'Nuvemshop':'#00e5a0','Mercado Livre':'#ffb340','B2B/Direto':'#a78bfa','Outros':'#3d9aff','Sem canal':'#666'};
+  var datasets = chans.map(function(chan){
+    return {
+      label: chan,
+      data: meses.map(function(m){
+        var tot = totalMes[m] || 1;
+        return ((byChanMes[chan][m]||0) / tot * 100);
+      }),
+      backgroundColor: palette[chan] || '#999',
+      borderColor: palette[chan] || '#999',
+      borderWidth: 1, stack: 'a'
+    };
+  });
+  dc('canRep');
+  CHARTS['canRep'] = new Chart(document.getElementById('ch-canais-rep'), {
+    type:'bar',
+    data:{labels:meses, datasets:datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{intersect:false, mode:'index'},
+      plugins:{legend:{position:'top', labels:{padding:10, boxWidth:10, font:{size:11}}},
+        tooltip:{callbacks:{label:function(ctx){ return ctx.dataset.label+': '+ctx.raw.toFixed(1)+'%'; }}}
+      },
+      scales:{
+        y:{stacked:true, min:0, max:100, grid:{color:'rgba(30,40,48,.8)'}, ticks:{callback:function(v){return v+'%';}}},
+        x:{stacked:true, grid:{display:false}}
+      }
+    }
+  });
 }
 
 // ================================================================
@@ -2738,6 +3065,85 @@ function renderFluxo(){
 // ================================================================
 // CRM (placeholder até integração Reportana)
 // ================================================================
+
+function renderFluxoProj(){
+  var contasPag = DATA.contasPagar || [];
+  var contasRec = DATA.contasReceber || [];
+  var porData = gp(DATA,'stats.porData',{});
+
+  // Janela: últimos 30d + próximos 60d
+  var hoje = new Date();
+  var dStart = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 30);
+  var dEnd = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 60);
+
+  var dias = [];
+  var d = new Date(dStart);
+  while(d <= dEnd){
+    dias.push(d.toISOString().slice(0,10));
+    d.setDate(d.getDate()+1);
+  }
+
+  // Receitas realizadas (passado) — porData
+  // Receitas projetadas (futuro) — contasRec (a receber por vencimento)
+  // Vencimentos (futuro) — contasPag por vencimento
+  var recByDay = {}, pagByDay = {};
+  dias.forEach(function(k){ recByDay[k] = 0; pagByDay[k] = 0; });
+
+  // Realizado passado: porData.faturamento
+  dias.forEach(function(k){
+    if(porData[k] && porData[k].faturamento){
+      recByDay[k] += porData[k].faturamento;
+    }
+  });
+
+  // A receber (futuro): preferir vencimento, fallback dataEmissao
+  contasRec.forEach(function(cr){
+    var v = (cr.vencimento || cr.dataVencimento || cr.dataEmissao || '').slice(0,10);
+    if(v in recByDay){
+      recByDay[v] += parseFloat(cr.valor)||0;
+    }
+  });
+
+  // A pagar (futuro): preferir vencimento, fallback dataEmissao
+  contasPag.forEach(function(cp){
+    var v = (cp.vencimento || cp.dataVencimento || cp.dataEmissao || '').slice(0,10);
+    if(v in pagByDay){
+      pagByDay[v] += parseFloat(cp.valor)||0;
+    }
+  });
+
+  // Saldo acumulado (começando em 0 — usuário pode ajustar se quisesse com saldo em conta)
+  var saldo = 0;
+  var saldoArr = dias.map(function(k){
+    saldo += recByDay[k] - pagByDay[k];
+    return saldo;
+  });
+
+  dc('flProj');
+  CHARTS['flProj'] = new Chart(document.getElementById('ch-fl-proj'), {
+    data:{
+      labels: dias.map(function(d){ return fmtDateBR(d); }),
+      datasets:[
+        {type:'bar', label:'Receitas (R$)', data:dias.map(function(k){ return recByDay[k]; }), backgroundColor:'rgba(0,229,160,.5)', borderColor:'#00e5a0', borderWidth:1, stack:'s1'},
+        {type:'bar', label:'A pagar (R$)', data:dias.map(function(k){ return -pagByDay[k]; }), backgroundColor:'rgba(255,69,96,.5)', borderColor:'#ff4560', borderWidth:1, stack:'s1'},
+        {type:'line', label:'Saldo acumulado (R$)', data:saldoArr, borderColor:'#ffb340', backgroundColor:'transparent', tension:.1, pointRadius:0, borderWidth:2.5, yAxisID:'y1'}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{intersect:false, mode:'index'},
+      plugins:{legend:{position:'top', labels:{padding:10, boxWidth:10, font:{size:11}}}},
+      scales:{
+        y:{position:'left', stacked:true, grid:{color:'rgba(30,40,48,.8)'}, ticks:{callback:function(v){return 'R$'+(v/1000).toFixed(0)+'k';}}},
+        y1:{position:'right', grid:{drawOnChartArea:false}, ticks:{color:'#ffb340', callback:function(v){return 'R$'+(v/1000).toFixed(0)+'k';}}},
+        x:{grid:{display:false}, ticks:{maxTicksLimit:20, maxRotation:45, minRotation:45, font:{size:9}}}
+      }
+    }
+  });
+  renderFluxoProj();  // v5.8
+}
+
+
 function renderCRM(){
   var flowsEl = document.getElementById('crm-flows');
   flowsEl.innerHTML =
@@ -2781,11 +3187,12 @@ function aggMeta(rows, desde){
 
 // Helper: agregador DTC Bling por período (usando porData)
 function aggBlingDTC(days){
-  var porData = gp(DATA,'stats.porData',{});
-  // porData é geral (B2B+DTC). Para DTC puro, fazemos pelas NFes.
-  var cut = days > 0 ? dateAgo(days) : '';
+  // v5.8: usa helpers unificados pra suportar PERIOD = -1 (este mês)
+  var cut = getCurrentPeriodStart();
+  var cutEnd = getCurrentPeriodEnd();
   var nfesDTC = validNfes().filter(function(n){
-    return n.tipoPessoa === 'F' && (!cut || (n.dataEmissao||'').slice(0,10) >= cut);
+    var d = (n.dataEmissao||'').slice(0,10);
+    return n.tipoPessoa === 'F' && (!cut || (d >= cut && d <= cutEnd));
   });
   var fat = nfesDTC.reduce(function(s,n){ return s + (parseFloat(n.valorNota)||0); }, 0);
   return {fat:fat, n:nfesDTC.length};
@@ -2885,6 +3292,15 @@ function fadigaBadge(score){
 // MAIN render
 // ================================================================
 function renderMarketing(){
+  // v5.8: Atualizar subtítulos conforme PERIOD
+  var lblP = periodLabel();
+  ['mkt-crit-sub','mkt-camp-sub','mkt-brk-sub'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      var base = el.textContent.split('·')[1] || '';
+      el.textContent = lblP + (base ? ' ·' + base : '');
+    }
+  });
   if(!META_DATA){
     document.getElementById('mkt-alerts').innerHTML =
       '<div class="banner warn"><div class="banner-icon">⚠️</div><div><div class="banner-title">Meta Ads indisponível</div><div class="banner-body">O arquivo <code>data/meta.json</code> não foi carregado. Aguarde o próximo run do workflow <strong>Update Meta Ads Data</strong> ou rode manualmente em Actions.</div></div></div>';
@@ -2901,7 +3317,7 @@ function renderMarketing(){
   var breakdowns = gp(META_DATA,'breakdowns',{});
 
   // ===== KPIs =====
-  var cut = PERIOD > 0 ? dateAgo(PERIOD) : null;
+  var cut = getCurrentPeriodStart();  // v5.8: helper unificado
   var aggPeriod = aggMeta(accountInsights, cut);
   var blingPeriod = aggBlingDTC(PERIOD);
 
@@ -2943,6 +3359,9 @@ function renderMarketing(){
 
   // ===== ALERTAS =====
   var alerts = buildMarketingAlerts(aggPeriod, merBruto, ltvCac, campaignInsights, campaigns, adInsights);
+  // v5.8: Alerta sobre pixel Meta duplicado
+  alerts.unshift('<div class="banner warn"><div class="banner-icon">⚠️</div><div><div class="banner-title">Pixel Meta duplicado detectado</div><div class="banner-body">Você tem 2 pixels disparando Purchase (Nuvemshop + externo). <strong>Compras e ROAS reportados pelo Meta podem estar inflados ~2x.</strong> Para números corretos, priorize <strong>MER</strong> (Receita Bling ÷ Spend) em vez de ROAS Meta. Resolução offline: remover pixel duplicado no Events Manager.</div></div></div>');
+
   document.getElementById('mkt-alerts').innerHTML = alerts.join('');
 
   // ===== GRÁFICO TEMPORAL (Spend vs Faturamento Bling) =====
@@ -2955,10 +3374,18 @@ function renderMarketing(){
   renderMktMensal(accountInsights);
 
   // ===== TOP CAMPANHAS =====
-  renderMktCampanhas(campaignInsights, campaigns);
+  // v5.8: Filtrar por PERIOD antes de passar
+  // Tornar globais pra poder ser usadas em renderMktBreakdowns também
+  cutC = PERIOD > 0 ? dateAgo(PERIOD) : (CUSTOM_RANGE ? CUSTOM_RANGE.start : '1900-01-01');
+  cutCEnd = CUSTOM_RANGE ? CUSTOM_RANGE.end : '9999-12-31';
+  var cutMkt = cutC;
+  var cutMktEnd = cutCEnd;
+  var campaignInsightsFilt = campaignInsights.filter(function(r){ return r.d >= cutMkt && r.d <= cutMktEnd; });
+  var adInsightsFilt = adInsights.filter(function(r){ return r.d >= cutMkt && r.d <= cutMktEnd; });
+  renderMktCampanhas(campaignInsightsFilt, campaigns);
 
   // ===== TOP CRIATIVOS =====
-  renderMktCriativos(adInsights, ads, creatives);
+  renderMktCriativos(adInsightsFilt, ads, creatives);
 
   // ===== BREAKDOWNS =====
   renderMktBreakdowns(breakdowns);
@@ -3170,7 +3597,8 @@ function renderMktCampanhas(campaignInsights, campaigns){
     return c;
   });
   arr.sort(function(a,b){ return b.spend - a.spend; });
-  var top = arr.slice(0, 20);
+  // v5.8: sem limite — scroll container exibe tudo
+  var top = arr;
 
   document.getElementById('mkt-camp-count').textContent = arr.length + ' campanhas';
 
@@ -3189,7 +3617,8 @@ function renderMktCampanhas(campaignInsights, campaigns){
     '</tr>';
   }).join('');
   document.getElementById('mkt-campanhas').innerHTML =
-    '<table class="tbl" data-sortable="1"><thead><tr><th>Campanha</th><th class="text-right" data-sort="num">Spend</th><th class="text-right" data-sort="num">ROAS</th><th class="text-right" data-sort="num">CPA</th><th class="text-right" data-sort="num">Compras</th><th class="text-right" data-sort="num">Impressões</th><th data-sort="num">Fadiga</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    '<div style="max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
+    '<table class="tbl" data-sortable="1"><thead style="position:sticky;top:0;background:var(--bg2);z-index:1"><tr><th>Campanha</th><th class="text-right" data-sort="num">Spend</th><th class="text-right" data-sort="num">ROAS</th><th class="text-right" data-sort="num">CPA</th><th class="text-right" data-sort="num">Compras</th><th class="text-right" data-sort="num">Impressões</th><th data-sort="num">Fadiga</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 function renderMktCriativos(adInsights, ads, creatives){
@@ -3304,6 +3733,7 @@ function renderMktBreakdowns(breakdowns){
   if(pos.length > 0){
     var byPos = {};
     pos.forEach(function(r){
+      if(r.d < cutC || r.d > cutCEnd) return;
       var k = (r.pp||'?')+' · '+(r.pos||'?');
       if(!byPos[k]) byPos[k] = {spend:0, pv:0, pu:0};
       byPos[k].spend += r.sp || 0;
@@ -3970,6 +4400,13 @@ function formatDelta(delta, reverse) {
 // Render principal
 // ================================================================
 function renderDaily() {
+  // v5.8: Guard contra DATA não carregado ainda
+  if (!DATA || !DATA.nfes) {
+    console.log('renderDaily: DATA ainda não carregado, aguardando...');
+    setTimeout(renderDaily, 200);
+    return;
+  }
+
   // Greeting
   var now = new Date();
   var hora = now.getHours();
@@ -3992,14 +4429,20 @@ function renderDaily() {
   document.getElementById('daily-month-sub').textContent =
     'Dia ' + diaAtual + ' de ' + totalDias + ' · faltam ' + (totalDias - diaAtual) + ' dias';
 
-  renderDailyKPIs();
-  renderDailyAlerts();
-  renderDailyHourly();
-  renderDailyPacing();
-  renderDailyTopProdutos();
-  renderDailyCanais();
-  renderDailyFeed();
-  renderDailyChecklist();
+  // v5.8: try/catch em cada sub-render pra garantir que um erro não quebra a página toda
+  var subs = [
+    ['KPIs', renderDailyKPIs],
+    ['Alertas', renderDailyAlerts],
+    ['Hourly', renderDailyHourly],
+    ['Pacing', renderDailyPacing],
+    ['TopProd', renderDailyTopProdutos],
+    ['Canais', renderDailyCanais],
+    ['Feed', renderDailyFeed],
+    ['Checklist', renderDailyChecklist]
+  ];
+  subs.forEach(function(s){
+    try { s[1](); } catch(e) { console.error('renderDaily.' + s[0] + ' falhou:', e); }
+  });
 }
 
 // ================================================================
@@ -4505,6 +4948,7 @@ function toggleAlertExpand(idx) {
   if (!el) return;
   var detail = el.querySelector('.dly-alert-detail');
   var toggle = el.querySelector('.dly-alert-toggle');
+  if (!detail) return;  // v5.8: guard contra ausência de detail
   if (detail.style.display === 'none') {
     detail.style.display = 'block';
     if(toggle) toggle.textContent = '▴';
@@ -4532,7 +4976,45 @@ function toggleCheckItem(idx) {
 
 // Estado
 var _CRV_ITEMS = [];
-var CRV_WINDOW = 30;        // dias (0 = tudo)
+var CRV_WINDOW = 180;       // v5.8: default 180 dias (máximo da API Meta)
+var CRV_FILTER_TIPO = 'all';        // all, video, image
+var CRV_FILTER_PRODUCT = '';
+var CRV_FILTER_CREATOR = '';
+
+function setCrvTipo(t, btn){
+  CRV_FILTER_TIPO = t;
+  if(btn){ btn.parentElement.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
+  renderCriativo();
+}
+function applyCrvFilters(){
+  CRV_FILTER_PRODUCT = document.getElementById('crv-filter-product').value;
+  CRV_FILTER_CREATOR = document.getElementById('crv-filter-creator').value;
+  renderCriativo();
+}
+function populateCrvFilterOptions(items){
+  // Coleta produtos e creators únicos dos items
+  var prods = {}, creators = {};
+  items.forEach(function(i){
+    if(i.product && i.product !== '?') prods[i.product] = true;
+    if(i.creator && i.creator !== '?') creators[i.creator] = true;
+  });
+  var pSel = document.getElementById('crv-filter-product');
+  var cSel = document.getElementById('crv-filter-creator');
+  if(pSel && pSel.options.length <= 1){
+    Object.keys(prods).sort().forEach(function(p){
+      var o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      pSel.appendChild(o);
+    });
+  }
+  if(cSel && cSel.options.length <= 1){
+    Object.keys(creators).sort().forEach(function(cr){
+      var o = document.createElement('option');
+      o.value = cr; o.textContent = cr;
+      cSel.appendChild(o);
+    });
+  }
+}
 var CRV_MIN_SPEND = 50;     // R$
 var CRV_MIN_IMPRESSIONS = 1000;
 var CRV_GRID_SIZE = 20;
@@ -4656,9 +5138,14 @@ function buildCriativoData(){
     a.lifecycle = calcLifecycle(a);
   });
 
-  // Filtros de volume mínimo
+  // Filtros de volume mínimo + v5.8: filtros de tipo, produto, creator
   var eligible = arr.filter(function(a){
-    return a.spend >= CRV_MIN_SPEND && a.impressions >= CRV_MIN_IMPRESSIONS;
+    if(a.spend < CRV_MIN_SPEND || a.impressions < CRV_MIN_IMPRESSIONS) return false;
+    if(CRV_FILTER_TIPO === 'video' && !a.hasVideo) return false;
+    if(CRV_FILTER_TIPO === 'image' && a.hasVideo) return false;
+    if(CRV_FILTER_PRODUCT && a.product !== CRV_FILTER_PRODUCT) return false;
+    if(CRV_FILTER_CREATOR && a.creator !== CRV_FILTER_CREATOR) return false;
+    return true;
   });
 
   // Calcular CES baseado nos elegíveis
@@ -4715,6 +5202,24 @@ function buildCriativoData(){
   return { items: eligible, total: arr.length, eligibleCount: eligible.length };
 }
 
+function buildCriativoDataAllForOptions() {
+  // Retorna items minimos só pra extrair opções de produto/creator
+  if(!META_DATA || !META_DATA.insights || !META_DATA.insights.ad) return [];
+  var campaigns = META_DATA.campaigns || [];
+  var campNameById = {};
+  campaigns.forEach(function(c){ campNameById[c.id] = c.name; });
+  var seen = {};
+  var arr = [];
+  META_DATA.insights.ad.forEach(function(r){
+    if(!r.aid || seen[r.aid]) return;
+    seen[r.aid] = true;
+    var campName = r.cnm || campNameById[r.cid] || '';
+    var p = parseCampName(campName);
+    arr.push({product: p.product, creator: p.creator});
+  });
+  return arr;
+}
+
 // ================================================================
 // Lifecycle: compara últimos 7d com histórico
 // ================================================================
@@ -4761,6 +5266,11 @@ function calcLifecycle(ad){
 // RENDER
 // ================================================================
 function renderCriativo(){
+  // v5.8: Sincronizar CRV_WINDOW com PERIOD global quando usuário clica nos filtros do topo
+  // (mantém os toggles locais do Criativo, mas sincroniza no primeiro carregamento)
+  if(PERIOD > 0 && CRV_WINDOW === 30 && PERIOD !== 30) {
+    CRV_WINDOW = PERIOD;
+  }
   if(!META_DATA){
     document.getElementById('crv-status').innerHTML =
       '<div class="banner warn"><div class="banner-icon">⚠️</div><div><div class="banner-title">Meta Ads indisponível</div><div class="banner-body">O arquivo <code>data/meta.json</code> não foi carregado. Aguarde o próximo run do workflow <strong>Update Meta Ads Data</strong>.</div></div></div>';
@@ -4774,10 +5284,19 @@ function renderCriativo(){
 
   // Config status
   var windowLabel = CRV_WINDOW === 0 ? 'todo histórico' : 'últimos ' + CRV_WINDOW + ' dias';
+  var filterParts = [];
+  if(CRV_FILTER_TIPO !== 'all') filterParts.push('tipo: ' + CRV_FILTER_TIPO);
+  if(CRV_FILTER_PRODUCT) filterParts.push('produto: ' + CRV_FILTER_PRODUCT);
+  if(CRV_FILTER_CREATOR) filterParts.push('creator: ' + CRV_FILTER_CREATOR);
+  var filterTxt = filterParts.length > 0 ? ' · ' + filterParts.join(' · ') : '';
   document.getElementById('crv-config-status').textContent =
-    'Analisando ' + windowLabel + ' · exige spend ≥ R$ ' + CRV_MIN_SPEND + ' e impressions ≥ ' + N(CRV_MIN_IMPRESSIONS);
+    'Analisando ' + windowLabel + ' · exige spend ≥ R$ ' + CRV_MIN_SPEND + ' e impressions ≥ ' + N(CRV_MIN_IMPRESSIONS) + filterTxt;
 
   // KPIs topo
+  // v5.8: Popular dropdowns de filtros (antes de aplicar filtros)
+  var dataAll = buildCriativoDataAllForOptions();
+  populateCrvFilterOptions(dataAll);
+
   document.getElementById('crv-total').textContent = N(items.length);
   document.getElementById('crv-total-m').textContent = 'de ' + N(data.total) + ' totais · spend ≥ R$' + CRV_MIN_SPEND;
 
@@ -5169,7 +5688,7 @@ function renderCriativoCombos(items){
 // Scatter plot de vídeo (Hook × ThruPlay)
 // ================================================================
 function renderCriativoVideo(items){
-  var vids = items.filter(function(i){ return i.hasVideo && i.videoPlays > 10; });
+  var vids = items.filter(function(i){ return i.hasVideo && (i.videoPlays > 0 || i.impressions > 500); });  // v5.8: threshold relaxado
   if(vids.length < 3){
     document.getElementById('crv-video-insights').innerHTML = '<div class="hint">Dados insuficientes de vídeo.</div>';
     dc('crvVid');
@@ -5266,11 +5785,17 @@ function renderCriativoLifecycle(items){
   });
 
   // Cards de resumo
+  // v5.8: cards clicáveis pra ver detalhes
+  window._CRV_LIFECYCLE = {};
+  stages.forEach(function(s){
+    window._CRV_LIFECYCLE[s] = items.filter(function(i){ return i.lifecycle === s; });
+  });
   var cards = stages.map(function(s){
     var roasAvg = counts[s] > 0 ? roasSum[s]/counts[s] : 0;
     var cls = s === 'rising' ? 'g' : s === 'peaking' ? 'b' : s === 'declining' ? 'a' : s === 'dead' ? 'r' : 'p';
-    return '<div class="kpi ' + cls + '"><div class="kpi-accent"></div>' +
-      '<div class="kpi-label">' + labels[s] + '</div>' +
+    var clickable = counts[s] > 0 ? ' style="cursor:pointer" onclick="showLifecycleDetail(\'' + s + '\')"' : '';
+    return '<div class="kpi ' + cls + '"' + clickable + '><div class="kpi-accent"></div>' +
+      '<div class="kpi-label">' + labels[s] + (counts[s] > 0 ? ' →' : '') + '</div>' +
       '<div class="kpi-value mono">' + counts[s] + '</div>' +
       '<div class="kpi-meta">spend ' + R(spends[s]) + ' · ROAS méd ' + roasAvg.toFixed(2) + 'x</div></div>';
   }).join('');
@@ -5298,7 +5823,30 @@ function renderCriativoLifecycle(items){
       }).join('') +
     '</div>';
   }
-  document.getElementById('crv-lifecycle').innerHTML = html;
+  document.getElementById('crv-lifecycle').innerHTML = html + '<div id="crv-lc-detail"></div>';
+}
+
+function showLifecycleDetail(stage) {
+  var list = window._CRV_LIFECYCLE[stage] || [];
+  if(list.length === 0) return;
+  list = list.slice().sort(function(a,b){ return b.ces - a.ces; });
+  var stageLabels = {rising:'🟢 Rising', peaking:'🔵 Peaking', declining:'🟡 Declining', dead:'🔴 Dead', new:'🟣 Novos'};
+  var rows = list.map(function(a, i){
+    var cesCls = a.ces >= 70 ? 'g' : a.ces >= 50 ? 'a' : 'r';
+    return '<tr>' +
+      '<td class="mono text-muted">'+(i+1)+'</td>' +
+      '<td>'+a.name.slice(0,50)+'<br><span class="mono text-muted" style="font-size:9px">'+(a.creator||'?')+' · '+(a.product||'?')+'</span></td>' +
+      '<td class="num" data-sort="'+a.ces+'"><span class="badge '+cesCls+'">'+a.ces+'</span></td>' +
+      '<td class="num" data-sort="'+a.spend+'">'+R(a.spend)+'</td>' +
+      '<td class="num" data-sort="'+a.roas+'">'+a.roas.toFixed(2)+'x</td>' +
+      '<td class="num" data-sort="'+a.purchases+'">'+N(a.purchases)+'</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('crv-lc-detail').innerHTML =
+    '<div style="margin-top:16px"><div class="card-sub" style="margin-bottom:8px">Criativos em <strong style="color:var(--text)">'+stageLabels[stage]+'</strong> (' + list.length + ')</div>' +
+    '<div style="max-height:500px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
+    '<table class="tbl" data-sortable="1"><thead style="position:sticky;top:0;background:var(--bg2);z-index:1"><tr><th>#</th><th>Criativo</th><th class="text-right" data-sort="num">CES</th><th class="text-right" data-sort="num">Spend</th><th class="text-right" data-sort="num">ROAS</th><th class="text-right" data-sort="num">Compras</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  setTimeout(makeTablesSortable, 50);
 }
 
 loadData();
