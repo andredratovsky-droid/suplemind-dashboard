@@ -56,7 +56,9 @@ const INSIGHT_FIELDS_BASE = [
   'video_play_actions', 'video_thruplay_watched_actions',
   'video_p25_watched_actions', 'video_p50_watched_actions',
   'video_p75_watched_actions', 'video_p100_watched_actions',
-  'video_3_sec_watched_actions', 'video_avg_time_watched_actions',
+  // v2.5: video_3_sec_watched_actions foi DEPRECADA em jan/2026. Removida pra evitar HTTP 400.
+  // Hook rate agora usa fallback: video_p25_watched_actions / impressions
+  'video_avg_time_watched_actions',
   // Nomes (bug fix da v2.1)
   'campaign_id', 'campaign_name',
   'adset_id', 'adset_name',
@@ -563,7 +565,7 @@ function computeStats(accountInsights, campaignInsights, adInsights, campaignsMe
 // MAIN
 // ============================================================
 async function main() {
-  console.log('🚀 Suplemind Meta Ads Collector v2.4 (SLIM)');
+  console.log('🚀 Suplemind Meta Ads Collector v2.5 (SLIM)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('   Target: <15 MB em meta.json');
@@ -584,7 +586,7 @@ async function main() {
 
   const output = {
     meta: {
-      version: '2.4-slim',
+      version: '2.5-slim',
       collectedAt: new Date().toISOString(),
       mode: MODE,
       graphApiVersion: GRAPH_API_VERSION,
@@ -870,7 +872,7 @@ async function main() {
   const sizeMB = (fs.statSync(DATA_FILE).size / 1024 / 1024).toFixed(2);
 
   console.log('');
-  console.log('✅ Coleta Meta v2.4 concluída!');
+  console.log('✅ Coleta Meta v2.5 concluída!');
   console.log('   Arquivo: ' + sizeMB + ' MB (target <15 MB)');
 
   if (output.errors.length > 0) {
