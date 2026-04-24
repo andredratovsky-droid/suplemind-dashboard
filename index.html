@@ -728,6 +728,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
     <!-- HOME -->
     <div class="module" id="mod-home">
+      <div id="home-auditoria-fiscal"></div>
       <div id="home-alerts"></div>
       <div class="kpi-row cols4">
         <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Faturamento</div><div class="kpi-value" id="h-fat">R$ 0</div><div class="kpi-meta" id="h-fat-m">-</div></div>
@@ -1500,9 +1501,45 @@ function getCurrentPeriodEnd(){
 // ================================================================
 // FILTROS: aplicar período + escopo em nfes válidas
 // ================================================================
+// v5.10: Toggle pra INCLUIR ou EXCLUIR NFes não-venda (remessa/devolução)
+// Default: excluir (apenas vendas reais)
+var INCLUIR_NAO_VENDA = false;
+
+function toggleNaoVenda(incluir, btn){
+  INCLUIR_NAO_VENDA = incluir;
+  if(btn){
+    btn.parentElement.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+  render(ACTIVE);
+}
+
+// v5.10: Detecta se NFe é venda real (não remessa/devolução/transferência/etc)
+// Usa naturezaOperacao/finalidade/cfop quando disponível
+function isVendaClient(n){
+  // Entrada (E) nunca é venda
+  if(n.tipoOperacao === 'E' || n.tipo === 'E') return false;
+  // Finalidade 4 = devolução
+  if(n.finalidade === 4 || n.finalidade === '4') return false;
+  // Se já vem marcado pelo collect, respeitar
+  if(n.ehVenda === false) return false;
+  if(n.ehVenda === true) return true;
+  // Fallback: não tem dado fiscal (NFes antigas antes do v5.7)
+  // Retornar true (benefício da dúvida — comportamento antigo)
+  return true;
+}
+
 function validNfes(){
   if(!DATA || !DATA.nfes) return [];
-  return DATA.nfes.filter(function(n){ return n.temDetalhe; });
+  var base = DATA.nfes.filter(function(n){ return n.temDetalhe; });
+  if(INCLUIR_NAO_VENDA) return base;  // Modo auditoria: mostra tudo
+  return base.filter(isVendaClient);  // Default: só vendas
+}
+
+// v5.10: Retorna NFes excluídas (pra auditoria)
+function naoVendaNfes(){
+  if(!DATA || !DATA.nfes) return [];
+  return DATA.nfes.filter(function(n){ return n.temDetalhe && !isVendaClient(n); });
 }
 
 function filterByScope(nfes){
@@ -1794,7 +1831,57 @@ function scopeLabel(){
 // ================================================================
 // HOME
 // ================================================================
+// ================================================================
+// v5.10: Auditoria fiscal — avisa e oferece toggle
+// ================================================================
+function renderAuditoriaFiscal(elId){
+  var el = document.getElementById(elId);
+  if(!el) return;
+  var excluidas = naoVendaNfes();
+  if(excluidas.length === 0){ el.innerHTML = ''; return; }
+
+  // Calcular valor total excluído
+  var valorExcluido = excluidas.reduce(function(s,n){ return s + (parseFloat(n.valorNota)||0); }, 0);
+
+  // Agrupar por CFOP
+  var porCfop = {};
+  excluidas.forEach(function(n){
+    var cfop = n.cfopPrimeiroItem || 'sem-CFOP';
+    if(!porCfop[cfop]) porCfop[cfop] = {qtd:0, valor:0, naturezas:{}};
+    porCfop[cfop].qtd += 1;
+    porCfop[cfop].valor += parseFloat(n.valorNota)||0;
+    var nat = n.naturezaOperacao && n.naturezaOperacao.descricao || 'sem natureza';
+    porCfop[cfop].naturezas[nat] = (porCfop[cfop].naturezas[nat] || 0) + 1;
+  });
+  var topCfops = Object.keys(porCfop).sort(function(a,b){ return porCfop[b].valor - porCfop[a].valor; }).slice(0,5);
+
+  var cfopRows = topCfops.map(function(cfop){
+    var natDesc = Object.keys(porCfop[cfop].naturezas)[0] || '-';
+    return '<tr><td class="mono">'+cfop+'</td><td class="num">'+porCfop[cfop].qtd+'</td><td class="num">'+R(porCfop[cfop].valor)+'</td><td style="font-size:11px">'+natDesc.slice(0,40)+'</td></tr>';
+  }).join('');
+
+  var statusTxt = INCLUIR_NAO_VENDA
+    ? 'Atualmente INCLUINDO essas NFes nos números (modo auditoria).'
+    : 'Atualmente EXCLUINDO essas NFes dos números (modo correto).';
+
+  el.innerHTML =
+    '<div class="card" style="border-left:4px solid var(--amber)">' +
+      '<div class="card-head">' +
+        '<div><div class="card-title">🔍 Auditoria Fiscal · NFes excluídas</div>' +
+        '<div class="card-sub">'+excluidas.length+' NFes identificadas como remessa/devolução/transferência (total '+R(valorExcluido)+'). '+statusTxt+'</div></div>' +
+        '<div class="scope-btns">' +
+          '<button class="sbtn '+(INCLUIR_NAO_VENDA?'':'active')+'" onclick="toggleNaoVenda(false,this)" title="Só vendas (recomendado)">Só Vendas</button>' +
+          '<button class="sbtn '+(INCLUIR_NAO_VENDA?'active':'')+'" onclick="toggleNaoVenda(true,this)" title="Mostrar tudo (auditoria)">Incluir tudo</button>' +
+        '</div>' +
+      '</div>' +
+      '<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--text2);font-size:12px">📋 Top 5 CFOPs excluídos (clica pra ver)</summary>' +
+        '<table class="tbl" style="margin-top:8px;font-size:12px"><thead><tr><th>CFOP</th><th class="text-right">Qtd</th><th class="text-right">Valor</th><th>Natureza</th></tr></thead><tbody>'+cfopRows+'</tbody></table>' +
+      '</details>' +
+    '</div>';
+}
+
 function renderHome(){
+  renderAuditoriaFiscal('home-auditoria-fiscal');  // v5.10
   var nfes = getNfes();
   var s = calcStats(nfes);
   var lbl = periodLabel();
@@ -2120,7 +2207,10 @@ function renderVendasProdutos(nfes){
   var arr = Object.values(porProd).sort(function(a,b){ return b.valor - a.valor; }).slice(0,10);
   dc('vProds');
   if(arr.length === 0){
-    document.getElementById('ch-v-prods').parentElement.innerHTML = '<div class="hint">Aguardando enriquecimento de itens das NFes.</div>';
+    var chProds = document.getElementById('ch-v-prods');
+    if(chProds && chProds.parentElement){
+      chProds.parentElement.innerHTML = '<div class="hint">Aguardando enriquecimento de itens das NFes.</div>';
+    }
     return;
   }
   CHARTS['vProds'] = new Chart(document.getElementById('ch-v-prods'), {
