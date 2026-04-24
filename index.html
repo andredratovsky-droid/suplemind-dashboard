@@ -1191,6 +1191,31 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="kpi p"><div class="kpi-accent"></div><div class="kpi-label">NFes no histórico</div><div class="kpi-value mono" id="f-nfes-hist">0</div></div>
       </div>
       <div class="card"><div class="card-head"><div><div class="card-title">Faturamento por ano</div><div class="card-sub">NFes DTC + B2B</div></div></div><div class="chart-box"><canvas id="ch-f-ano"></canvas></div></div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">📊 DRE Gerencial</div>
+            <div class="card-sub" id="dre-period-label">Demonstração do Resultado do Exercício · regime de competência</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">PERÍODO:</span>
+            <div class="scope-btns">
+              <button class="sbtn active" onclick="setDREPeriod('mes',this)">Este mês</button>
+              <button class="sbtn" onclick="setDREPeriod('3meses',this)">3 meses</button>
+              <button class="sbtn" onclick="setDREPeriod('6meses',this)">6 meses</button>
+              <button class="sbtn" onclick="setDREPeriod('ano',this)">Ano</button>
+              <button class="sbtn" onclick="setDREPeriod('tudo',this)">Tudo</button>
+            </div>
+          </div>
+        </div>
+        <div id="dre-content"></div>
+        <div class="hint" style="margin-top:10px">
+          <strong>Como funciona:</strong> a DRE cruza Contas a Receber/Pagar com as Categorias configuradas no Bling.
+          Cada categoria tem um Grupo DRE (Receita Bruta, Despesas Operacionais, etc).
+          Para configurar, acesse no Bling: <em>Cadastros → Categorias financeiras → Editar → Grupo de DRE</em>.
+        </div>
+      </div>
+
       <div class="grid-eq">
         <div class="card"><div class="card-head"><div><div class="card-title">A receber — próximos vencimentos</div></div></div><div id="f-tbl-rec"></div></div>
         <div class="card"><div class="card-head"><div><div class="card-title">A pagar — próximos vencimentos</div></div></div><div id="f-tbl-pag"></div></div>
@@ -1205,6 +1230,22 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Saldo (30d proj.)</div><div class="kpi-value" id="fl-l">R$ 0</div></div>
       </div>
       <div class="card"><div class="card-head"><div><div class="card-title">Receita diária (últimos 30d)</div><div class="card-sub">Base para projeção</div></div></div><div class="chart-box"><canvas id="ch-fl"></canvas></div></div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">💰 Saldo atual em conta</div>
+            <div class="card-sub">Valor usado como ponto de partida para a projeção de saldo acumulado</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="mono text-muted" style="font-size:10px">R$</span>
+            <input type="number" id="fl-saldo-inicial" step="0.01" placeholder="0.00"
+              style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:13px;font-family:\'DM Mono\',monospace;width:140px"
+              onchange="salvarSaldoInicial()" />
+          </div>
+        </div>
+        <div class="hint" style="margin-top:6px">Informe quanto você tem hoje em contas (banco + caixa). Valor é salvo localmente no seu browser.</div>
+      </div>
 
       <div class="card">
         <div class="card-head">
@@ -2956,6 +2997,7 @@ function renderConciliacao(){
 // FINANCEIRO / DRE
 // ================================================================
 function renderFinanceiro(){
+  renderDRE();  // v5.9
   var rec = gp(DATA,'stats.somaContasReceber',0);
   var pag = gp(DATA,'stats.somaContasPagar',0);
   var saldo = rec - pag;
@@ -2992,23 +3034,240 @@ function renderFinanceiro(){
   document.getElementById('f-tbl-pag').innerHTML = tableContas(pagTab);
 }
 
+// ================================================================
+// v5.9: DRE Gerencial — cruza contas × categorias × grupos DRE
+// ================================================================
+var DRE_PERIOD = 'mes';  // mes, 3meses, 6meses, ano, tudo
+
+function setDREPeriod(p, btn){
+  DRE_PERIOD = p;
+  if(btn){ btn.parentElement.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
+  renderDRE();
+}
+
+function getDREWindow(){
+  var hoje = new Date();
+  if(DRE_PERIOD === 'mes') return { start: hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-01', label: 'este mês' };
+  if(DRE_PERIOD === '3meses'){
+    var d = new Date(hoje); d.setMonth(d.getMonth() - 3);
+    return { start: d.toISOString().slice(0,10), label: 'últimos 3 meses' };
+  }
+  if(DRE_PERIOD === '6meses'){
+    var d2 = new Date(hoje); d2.setMonth(d2.getMonth() - 6);
+    return { start: d2.toISOString().slice(0,10), label: 'últimos 6 meses' };
+  }
+  if(DRE_PERIOD === 'ano') return { start: hoje.getFullYear() + '-01-01', label: 'ano corrente' };
+  return { start: '1900-01-01', label: 'todo o histórico' };
+}
+
+function renderDRE(){
+  var el = document.getElementById('dre-content');
+  if(!el) return;
+  var categorias = DATA.categoriasRecDesp || [];
+  var contasReceber = DATA.contasReceber || [];
+  var contasPagar = DATA.contasPagar || [];
+
+  // Se não tem categorias OU contas enriquecidas, mostrar mensagem
+  var temCategorias = categorias.length > 0;
+  var contasEnriq = contasReceber.concat(contasPagar).filter(function(c){ return c.categoria && c.categoria.id; }).length;
+
+  if(!temCategorias || contasEnriq === 0){
+    el.innerHTML = '<div class="banner warn"><div class="banner-icon">⏳</div><div><div class="banner-title">DRE aguardando dados</div><div class="banner-body">' +
+      'Para o DRE funcionar, o <strong>collect.js v5.6</strong> precisa ter rodado ao menos uma vez em modo <code>full</code>, ' +
+      'coletando categorias e detalhes de contas. <br>' +
+      'Contas enriquecidas com categoria: <strong>' + contasEnriq + '</strong> · Categorias carregadas: <strong>' + categorias.length + '</strong></div></div></div>';
+    return;
+  }
+
+  var win = getDREWindow();
+  var cutStart = win.start;
+  document.getElementById('dre-period-label').textContent = 'DRE · regime de competência · ' + win.label;
+
+  // Mapa catId → {descricao, grupoDRE, tipo}
+  var catMap = {};
+  categorias.forEach(function(cat){
+    catMap[cat.id] = {
+      descricao: cat.descricao || '(sem nome)',
+      grupoDre: (cat.grupoDre && cat.grupoDre.descricao) || cat.grupoDre || 'Sem grupo DRE',
+      tipo: cat.tipo || '?'
+    };
+  });
+
+  // Agregar contas por Grupo DRE + Categoria
+  // Filtro por competência (ou dataEmissao se não houver competência)
+  var byGrupo = {};
+  function addConta(conta, sinal){
+    var catId = conta.categoria && conta.categoria.id;
+    if(!catId) return;
+    var dataRef = (conta.competencia || conta.dataEmissao || conta.vencimento || '').slice(0,10);
+    if(dataRef < cutStart) return;
+
+    var cat = catMap[catId];
+    if(!cat){
+      cat = { descricao: (conta.categoria.descricao || 'Cat #' + catId), grupoDre: 'Sem grupo DRE', tipo: '?' };
+    }
+    var grupo = cat.grupoDre;
+    if(!byGrupo[grupo]) byGrupo[grupo] = { total: 0, porCat: {}, sinal: sinal };
+    var v = parseFloat(conta.valor) || 0;
+    byGrupo[grupo].total += v * sinal;
+    if(!byGrupo[grupo].porCat[cat.descricao]) byGrupo[grupo].porCat[cat.descricao] = 0;
+    byGrupo[grupo].porCat[cat.descricao] += v * sinal;
+  }
+  contasReceber.forEach(function(c){ addConta(c, 1); });
+  contasPagar.forEach(function(c){ addConta(c, -1); });
+
+  // Ordem dos grupos DRE (conforme Bling + estrutura clássica)
+  var ordemPadrao = [
+    'Receita Bruta',
+    'Deduções',
+    'Receita Líquida',
+    'Custo dos Produtos Vendidos',
+    'Custo das Mercadorias Vendidas',
+    'Custos',
+    'Lucro Bruto',
+    'Despesas Operacionais',
+    'Despesas com Vendas',
+    'Despesas Administrativas',
+    'Despesas Gerais',
+    'Outras Despesas',
+    'Receitas Financeiras',
+    'Despesas Financeiras',
+    'Outras Receitas',
+    'Sem grupo DRE'
+  ];
+  var gruposPresentes = Object.keys(byGrupo);
+  var gruposOrdenados = ordemPadrao.filter(function(g){ return gruposPresentes.indexOf(g) >= 0; });
+  gruposPresentes.forEach(function(g){ if(gruposOrdenados.indexOf(g) < 0) gruposOrdenados.push(g); });
+
+  // Cálculo de indicadores derivados
+  var receitaBruta = (byGrupo['Receita Bruta'] && byGrupo['Receita Bruta'].total) || 0;
+  var deducoes = (byGrupo['Deduções'] && Math.abs(byGrupo['Deduções'].total)) || 0;
+  var receitaLiquida = receitaBruta - deducoes;
+  var custos = ((byGrupo['Custo dos Produtos Vendidos'] && Math.abs(byGrupo['Custo dos Produtos Vendidos'].total)) || 0)
+             + ((byGrupo['Custo das Mercadorias Vendidas'] && Math.abs(byGrupo['Custo das Mercadorias Vendidas'].total)) || 0)
+             + ((byGrupo['Custos'] && Math.abs(byGrupo['Custos'].total)) || 0);
+  var lucroBruto = receitaLiquida - custos;
+  var despOper = ((byGrupo['Despesas Operacionais'] && Math.abs(byGrupo['Despesas Operacionais'].total)) || 0)
+               + ((byGrupo['Despesas com Vendas'] && Math.abs(byGrupo['Despesas com Vendas'].total)) || 0)
+               + ((byGrupo['Despesas Administrativas'] && Math.abs(byGrupo['Despesas Administrativas'].total)) || 0)
+               + ((byGrupo['Despesas Gerais'] && Math.abs(byGrupo['Despesas Gerais'].total)) || 0)
+               + ((byGrupo['Outras Despesas'] && Math.abs(byGrupo['Outras Despesas'].total)) || 0);
+  var ebit = lucroBruto - despOper;
+  var recFin = (byGrupo['Receitas Financeiras'] && byGrupo['Receitas Financeiras'].total) || 0;
+  var despFin = (byGrupo['Despesas Financeiras'] && Math.abs(byGrupo['Despesas Financeiras'].total)) || 0;
+  var lucroLiquido = ebit + recFin - despFin;
+
+  // Render
+  function formatValor(v, sinalCalc){
+    var color = v < 0 ? 'var(--red)' : (v > 0 ? 'var(--green)' : 'var(--text2)');
+    if(sinalCalc === 'receita') color = v > 0 ? 'var(--green)' : 'var(--text2)';
+    if(sinalCalc === 'despesa') color = v > 0 ? 'var(--red)' : 'var(--text2)';
+    return '<span style="color:'+color+';font-family:\'DM Mono\',monospace">' + R(v) + '</span>';
+  }
+
+  function pctOfReceita(v){
+    if(receitaLiquida === 0) return '-';
+    return ((v / receitaLiquida) * 100).toFixed(1) + '%';
+  }
+
+  var html = '<table class="tbl" style="font-size:13px"><thead><tr><th>Conta</th><th class="text-right">Valor</th><th class="text-right">% Rec. Líquida</th></tr></thead><tbody>';
+
+  // Receita Bruta
+  html += '<tr style="background:var(--bg3)"><td class="strong">Receita Bruta</td><td class="num">'+formatValor(receitaBruta, 'receita')+'</td><td class="num mono">-</td></tr>';
+  if(byGrupo['Receita Bruta']){
+    Object.keys(byGrupo['Receita Bruta'].porCat).sort().forEach(function(cat){
+      var v = byGrupo['Receita Bruta'].porCat[cat];
+      html += '<tr><td style="padding-left:20px;font-size:11px;color:var(--text2)">'+cat+'</td><td class="num" style="font-size:11px">'+R(v)+'</td><td class="num mono" style="font-size:11px">'+pctOfReceita(v)+'</td></tr>';
+    });
+  }
+
+  // Deduções
+  if(deducoes > 0){
+    html += '<tr><td>(−) Deduções</td><td class="num">'+formatValor(-deducoes, 'despesa')+'</td><td class="num mono">'+pctOfReceita(-deducoes)+'</td></tr>';
+  }
+
+  // Receita Líquida
+  html += '<tr style="background:var(--bg3);border-top:2px solid var(--border2)"><td class="strong">= Receita Líquida</td><td class="num strong">'+formatValor(receitaLiquida, 'receita')+'</td><td class="num mono">100.0%</td></tr>';
+
+  // Custos
+  if(custos > 0){
+    html += '<tr><td>(−) Custos</td><td class="num">'+formatValor(-custos, 'despesa')+'</td><td class="num mono">'+pctOfReceita(-custos)+'</td></tr>';
+  }
+
+  // Lucro Bruto
+  html += '<tr style="background:var(--bg3)"><td class="strong">= Lucro Bruto</td><td class="num strong">'+formatValor(lucroBruto)+'</td><td class="num mono">'+pctOfReceita(lucroBruto)+'</td></tr>';
+
+  // Despesas Operacionais — detalhar por grupo
+  ['Despesas Operacionais','Despesas com Vendas','Despesas Administrativas','Despesas Gerais','Outras Despesas'].forEach(function(g){
+    if(byGrupo[g]){
+      var val = Math.abs(byGrupo[g].total);
+      html += '<tr><td>(−) '+g+'</td><td class="num">'+formatValor(-val, 'despesa')+'</td><td class="num mono">'+pctOfReceita(-val)+'</td></tr>';
+      // Detalhar por categoria (apenas top 5)
+      var cats = Object.keys(byGrupo[g].porCat).sort(function(a,b){ return Math.abs(byGrupo[g].porCat[b]) - Math.abs(byGrupo[g].porCat[a]); });
+      cats.slice(0, 5).forEach(function(cat){
+        var v = byGrupo[g].porCat[cat];
+        html += '<tr><td style="padding-left:20px;font-size:11px;color:var(--text3)">'+cat+'</td><td class="num" style="font-size:11px">'+R(v)+'</td><td class="num mono" style="font-size:11px">'+pctOfReceita(v)+'</td></tr>';
+      });
+    }
+  });
+
+  // EBIT
+  html += '<tr style="background:var(--bg3)"><td class="strong">= EBIT (Lucro Operacional)</td><td class="num strong">'+formatValor(ebit)+'</td><td class="num mono">'+pctOfReceita(ebit)+'</td></tr>';
+
+  // Financeiras
+  if(recFin > 0){
+    html += '<tr><td>(+) Receitas Financeiras</td><td class="num">'+formatValor(recFin, 'receita')+'</td><td class="num mono">'+pctOfReceita(recFin)+'</td></tr>';
+  }
+  if(despFin > 0){
+    html += '<tr><td>(−) Despesas Financeiras</td><td class="num">'+formatValor(-despFin, 'despesa')+'</td><td class="num mono">'+pctOfReceita(-despFin)+'</td></tr>';
+  }
+
+  // Lucro Líquido
+  var liqColor = lucroLiquido >= 0 ? 'var(--green)' : 'var(--red)';
+  html += '<tr style="background:var(--bg3);border-top:3px solid '+liqColor+'"><td class="strong" style="font-size:14px">= Lucro Líquido</td><td class="num strong" style="font-size:14px">'+formatValor(lucroLiquido)+'</td><td class="num mono strong" style="font-size:13px">'+pctOfReceita(lucroLiquido)+'</td></tr>';
+
+  // "Sem grupo DRE"
+  if(byGrupo['Sem grupo DRE']){
+    var semGrupo = byGrupo['Sem grupo DRE'];
+    html += '<tr><td colspan="3" class="hint" style="padding-top:12px">⚠️ <strong>Categorias sem Grupo DRE configurado</strong> (impacto: '+R(Math.abs(semGrupo.total))+'). Vá no Bling e vincule cada categoria a um Grupo DRE.</td></tr>';
+  }
+
+  html += '</tbody></table>';
+
+  el.innerHTML = html;
+}
+
 function tableContas(arr){
-  if(!arr || arr.length===0) return '<div class="hint">Sem registros.</div>';
+  if(!arr || arr.length===0) return '<div class="hint">Sem registros. (Aguardando enriquecimento v5.6 do collect.)</div>';
+  var hojeStr = TODAY;
   var rows = arr.map(function(c){
+    var venc = (c.vencimento || c.dataVencimento || c.dataEmissao || '').slice(0,10);
+    var cat = c.categoria && c.categoria.descricao ? c.categoria.descricao : '-';
+    var contato = c.contato && c.contato.nome ? c.contato.nome.slice(0,25) : '-';
+    var historico = (c.historico || '').slice(0,40);
+    var atrasada = venc && venc < hojeStr;
+    var cls = atrasada ? 'style="color:var(--red)"' : '';
     return '<tr>' +
-      '<td class="mono text-muted">'+((c.dataEmissao||c.vencimento||'').slice(0,10))+'</td>' +
-      '<td>'+(c.contato && c.contato.nome ? c.contato.nome.slice(0,30) : (c.historico||'-').slice(0,30))+'</td>' +
-      '<td class="num">'+R_full(parseFloat(c.valor)||0)+'</td>' +
-      '<td>'+(c.situacao || '?')+'</td>' +
+      '<td class="mono" '+cls+' data-sort="'+venc+'">'+fmtDateBR(venc)+'</td>' +
+      '<td class="num" data-sort="'+(parseFloat(c.valor)||0)+'">'+R_full(parseFloat(c.valor)||0)+'</td>' +
+      '<td style="font-size:11px">'+cat+'</td>' +
+      '<td style="font-size:11px">'+contato+'</td>' +
+      '<td style="font-size:10px;color:var(--text3)">'+historico+'</td>' +
+      '<td style="font-size:10px">'+(c.situacao || '?')+'</td>' +
     '</tr>';
   }).join('');
-  return '<table class="tbl" data-sortable="1"><thead><tr><th>Data</th><th>Descrição</th><th class="text-right">Valor</th><th>Situação</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  return '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
+    '<table class="tbl" data-sortable="1"><thead style="position:sticky;top:0;background:var(--bg2);z-index:1"><tr>' +
+    '<th data-sort="date">Vencim.</th><th class="text-right" data-sort="num">Valor</th>' +
+    '<th>Categoria</th><th>Contato</th><th>Histórico</th><th>Sit.</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 // ================================================================
 // FLUXO DE CAIXA
 // ================================================================
 function renderFluxo(){
+  carregarSaldoInicial();  // v5.9: popula input de saldo
   var rec = gp(DATA,'stats.somaContasReceber',0);
   var pag = gp(DATA,'stats.somaContasPagar',0);
   document.getElementById('fl-e').textContent = R(rec);
@@ -3066,6 +3325,21 @@ function renderFluxo(){
 // CRM (placeholder até integração Reportana)
 // ================================================================
 
+function salvarSaldoInicial(){
+  var el = document.getElementById('fl-saldo-inicial');
+  var v = parseFloat(el.value) || 0;
+  localStorage.setItem('suplemind_saldo_inicial', String(v));
+  renderFluxoProj();  // re-render imediato
+}
+
+function carregarSaldoInicial(){
+  var el = document.getElementById('fl-saldo-inicial');
+  if(el){
+    var v = parseFloat(localStorage.getItem('suplemind_saldo_inicial') || '0') || 0;
+    el.value = v.toFixed(2);
+  }
+  renderFluxoProj();  // v5.9
+}
 function renderFluxoProj(){
   var contasPag = DATA.contasPagar || [];
   var contasRec = DATA.contasReceber || [];
@@ -3112,8 +3386,9 @@ function renderFluxoProj(){
     }
   });
 
-  // Saldo acumulado (começando em 0 — usuário pode ajustar se quisesse com saldo em conta)
-  var saldo = 0;
+  // v5.9: Saldo acumulado usa saldo inicial se configurado
+  var saldoInicial = parseFloat(localStorage.getItem('suplemind_saldo_inicial') || '0') || 0;
+  var saldo = saldoInicial;
   var saldoArr = dias.map(function(k){
     saldo += recByDay[k] - pagByDay[k];
     return saldo;
@@ -3140,7 +3415,6 @@ function renderFluxoProj(){
       }
     }
   });
-  renderFluxoProj();  // v5.8
 }
 
 
@@ -4646,7 +4920,7 @@ function renderDailyAlerts() {
   }
 
   // --- ALERTAS DE PEDIDOS ---
-  var d1 = ontem();
+  var d1 = DAILY_DAY_MODE === 'today' ? hoje() : ontem();  // v5.9
   var d2 = daysAgo(2);
   var ontm = getFatPorData(d1, false);
   var anteO = getFatPorData(d2, false);
@@ -4706,7 +4980,7 @@ function renderDailyAlerts() {
 function renderDailyPacing() {
   var metas = getMetas();
   var inicio = inicioDoMes();
-  var ontem_ = ontem();
+  var ontem_ = DAILY_DAY_MODE === 'today' ? hoje() : ontem();  // v5.9
   var diaAtual = diaDoMes();
   var totalDias = diasNoMesAtual();
   var progressoEsperado = diaAtual / totalDias;
@@ -4807,7 +5081,7 @@ function salvarMetas() {
 // Top produtos ontem
 // ================================================================
 function renderDailyTopProdutos() {
-  var d1 = ontem();
+  var d1 = DAILY_DAY_MODE === 'today' ? hoje() : ontem();  // v5.9
   var nfesOntem = validNfes().filter(function(n){
     return (n.dataEmissao||'').slice(0,10) === d1 && n.tipoPessoa === 'F';
   });
@@ -4845,7 +5119,7 @@ function renderDailyTopProdutos() {
 // Canais ontem
 // ================================================================
 function renderDailyCanais() {
-  var d1 = ontem();
+  var d1 = DAILY_DAY_MODE === 'today' ? hoje() : ontem();  // v5.9
   var nfesOntem = validNfes().filter(function(n){
     return (n.dataEmissao||'').slice(0,10) === d1;
   });
