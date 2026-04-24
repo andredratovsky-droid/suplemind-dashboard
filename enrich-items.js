@@ -128,7 +128,7 @@ function salvarCache(cache) {
 }
 
 async function main() {
-  console.log('🚀 Enrich Items v1.1 (itens + formas pgto)');
+  console.log('🚀 Enrich Items v1.2 (itens + formas pgto + reprocessa antigas)');
   console.log('   Timeout: ' + MAX_MINUTES + ' min');
   console.log('');
 
@@ -141,18 +141,31 @@ async function main() {
   const semItens = allIds.filter(function (id) {
     return !cache[id].itens || cache[id].itens.length === 0;
   });
+  // v1.2: Também reprocessar NFes sem formasPagamento (adicionado no v1.1)
+  const semFormaPag = allIds.filter(function (id) {
+    // Tem itens mas não tem formasPagamento (foi enriquecido antes da v1.1)
+    return cache[id].itens && cache[id].itens.length > 0
+      && (!cache[id].formasPagamento);  // undefined significa ainda não coletado
+  });
+
+  // Mescla os dois sets (sem duplicar)
+  const idsSet = new Set(semItens);
+  semFormaPag.forEach(function(id){ idsSet.add(id); });
+  const precisaProcessar = Array.from(idsSet);
 
   console.log('📊 Status do cache:');
   console.log('   Total: ' + allIds.length + ' NFes');
   console.log('   Com itens: ' + (allIds.length - semItens.length));
-  console.log('   SEM itens (a processar): ' + semItens.length);
+  console.log('   SEM itens: ' + semItens.length);
+  console.log('   COM itens mas SEM formaPagamento (v1.2 reprocessa): ' + semFormaPag.length);
+  console.log('   Total a processar: ' + precisaProcessar.length);
 
-  if (semItens.length === 0) {
-    console.log('✅ Todas NFes já têm itens! Nada a fazer.');
+  if (precisaProcessar.length === 0) {
+    console.log('✅ Todas NFes já têm itens E forma de pagamento! Nada a fazer.');
     return;
   }
 
-  const tempoEst = Math.ceil(semItens.length * RATE_LIMIT_MS / 60000);
+  const tempoEst = Math.ceil(precisaProcessar.length * RATE_LIMIT_MS / 60000);
   console.log('   Tempo total estimado: ~' + tempoEst + ' min');
   console.log('   Nesta run (' + MAX_MINUTES + ' min): ~' + Math.floor(MAX_MINUTES * 60000 / RATE_LIMIT_MS) + ' NFes\n');
 
@@ -163,7 +176,7 @@ async function main() {
   let erros = 0;
   let desdeCheckpoint = 0;
 
-  for (let i = 0; i < semItens.length; i++) {
+  for (let i = 0; i < precisaProcessar.length; i++) {
     // Check timeout
     const elapsed = (Date.now() - startTime) / 60000;
     if (elapsed >= MAX_MINUTES) {
@@ -174,7 +187,7 @@ async function main() {
       break;
     }
 
-    const id = semItens[i];
+    const id = precisaProcessar[i];
     try {
       const resp = await apiGet(accessToken, '/nfe/' + id);
       if (resp && resp.data) {
