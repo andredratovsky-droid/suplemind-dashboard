@@ -19,6 +19,7 @@ const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'bling.json');
 const BACKUP_FILE = path.join(DATA_DIR, 'bling_backup_v5.2.json');
 const CACHE_FILE = path.join(DATA_DIR, 'nfes_cache.json');
+const CACHE_CONTAS_FILE = path.join(DATA_DIR, 'contas_cache.json');  // v5.6
 const ESTOQUES_FILE = path.join(DATA_DIR, 'estoques.json');
 const TOKEN_FILE = path.join(__dirname, '.bling_refresh_token');
 
@@ -148,6 +149,31 @@ function salvarCacheDetalhes(cache) {
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache));
   const sizeKB = (fs.statSync(CACHE_FILE).size / 1024).toFixed(1);
   console.log('   💾 Checkpoint: ' + Object.keys(cache).length + ' detalhes (' + sizeKB + ' KB)');
+}
+
+
+// v5.6: Cache de detalhes de contas (categoria, histórico, centro custo)
+function carregarCacheContas() {
+  if (fs.existsSync(CACHE_CONTAS_FILE)) {
+    try {
+      const cache = JSON.parse(fs.readFileSync(CACHE_CONTAS_FILE, 'utf-8'));
+      const count = Object.keys(cache).length;
+      console.log('📥 Cache de contas: ' + count + ' contas detalhadas');
+      return cache;
+    } catch (err) {
+      console.log('⚠️  Cache contas corrompido: ' + err.message);
+      return {};
+    }
+  }
+  console.log('📥 Cache de contas: nenhum encontrado');
+  return {};
+}
+
+function salvarCacheContas(cache) {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(CACHE_CONTAS_FILE, JSON.stringify(cache));
+  const sizeKB = (fs.statSync(CACHE_CONTAS_FILE).size / 1024).toFixed(1);
+  console.log('   💾 Cache contas: ' + Object.keys(cache).length + ' (' + sizeKB + ' KB)');
 }
 
 // ============================================================
@@ -687,6 +713,19 @@ function fazerBackup() {
   }
 }
 
+function coletarCategoriasReceitasDespesas(accessToken) {
+  // v5.6: Lista todas as categorias de receita/despesa cadastradas no Bling.
+  // Cada categoria tem o grupo de DRE vinculado (ex: 'Receita Bruta', 'Despesas Operacionais').
+  return coletarPaginado(accessToken, {
+    endpoint: '/categorias/receitas-despesas',
+    label: 'categorias receitas/despesas',
+    maxPages: 5
+  }).catch(function (err) {
+    console.log('  ⚠️  Erro categorias: ' + err.message);
+    return [];
+  });
+}
+
 function coletarProdutos(accessToken) {
   return coletarPaginado(accessToken, { endpoint: '/produtos', label: 'produtos', maxPages: 10 });
 }
@@ -695,6 +734,73 @@ function coletarContas(accessToken, tipo) {
   const endpoint = tipo === 'pagar' ? '/contas/pagar' : '/contas/receber';
   return coletarPaginado(accessToken, { endpoint: endpoint, label: 'contas a ' + tipo, maxPages: 10 })
     .catch(function (err) { console.log('  ⚠️  Erro contas a ' + tipo + ': ' + err.message); return []; });
+}
+
+function enriquecerContasComDetalhe(accessToken, contas, tipo, cacheDetalhes) {
+  // v5.6: Busca detalhe de cada conta. Contém categoria (→ DRE), histórico, contato.
+  // Rate limit: 350ms entre calls. Cache pra evitar recalls.
+  const endpoint = tipo === 'pagar' ? '/contas/pagar' : '/contas/receber';
+  const precisaBuscar = [];
+  contas.forEach(function (conta) {
+    if (cacheDetalhes[conta.id]) {
+      // Mescla dados do cache na conta
+      Object.assign(conta, cacheDetalhes[conta.id]);
+    } else {
+      precisaBuscar.push(conta);
+    }
+  });
+
+  console.log('  🔎 Detalhando contas a ' + tipo + ': ' + precisaBuscar.length + ' novas (cache: ' + (contas.length - precisaBuscar.length) + ')');
+
+  // Limite por run pra não estourar tempo — faz até 500 por run
+  const MAX_POR_RUN = 500;
+  const aFazer = precisaBuscar.slice(0, MAX_POR_RUN);
+  if (precisaBuscar.length > MAX_POR_RUN) {
+    console.log('  ⚠️  Limite de ' + MAX_POR_RUN + ' detalhes/run atingido. Restam ' + (precisaBuscar.length - MAX_POR_RUN) + ' pra próxima run.');
+  }
+
+  let sucessos = 0, erros = 0;
+  const inicio = Date.now();
+
+  return aFazer.reduce(function (promise, conta, idx) {
+    return promise.then(function () {
+      return new Promise(function (resolve) { setTimeout(resolve, 350); })
+        .then(function () {
+          return axios.get(BLING_API_BASE + endpoint + '/' + conta.id, {
+            headers: { Authorization: 'Bearer ' + accessToken },
+            timeout: 15000
+          });
+        })
+        .then(function (resp) {
+          if (resp && resp.data && resp.data.data) {
+            const d = resp.data.data;
+            const detalhe = {
+              categoria: d.categoria || null,          // {id, descricao}
+              historico: d.historico || '',             // descrição livre
+              contato: d.contato || null,               // {id, nome}
+              ocorrencia: d.ocorrencia || null,         // tipo de pagamento
+              dataEmissao: d.dataEmissao || null,
+              vencimento: d.vencimento || null,
+              competencia: d.competencia || null        // data de competência (pra DRE)
+            };
+            cacheDetalhes[conta.id] = detalhe;
+            Object.assign(conta, detalhe);
+            sucessos += 1;
+          }
+          if ((idx + 1) % 50 === 0) {
+            const elapsed = ((Date.now() - inicio) / 1000).toFixed(0);
+            console.log('    ' + (idx + 1) + '/' + aFazer.length + ' contas a ' + tipo + ' (' + elapsed + 's)');
+          }
+        })
+        .catch(function (err) {
+          erros += 1;
+          if (erros <= 5) console.log('    ⚠️  Erro conta ' + conta.id + ': ' + err.message);
+        });
+    });
+  }, Promise.resolve()).then(function () {
+    console.log('  ✅ Detalhes contas a ' + tipo + ': ' + sucessos + ' sucessos, ' + erros + ' erros');
+    return contas;
+  });
 }
 
 function mergeById(existentes, novos, label) {
@@ -719,7 +825,7 @@ function mergeById(existentes, novos, label) {
 // MAIN
 // ============================================================
 function main() {
-  console.log('🚀 Suplemind Bling Collector v5.5 (estoques + itens + formas pgto)');
+  console.log('🚀 Suplemind Bling Collector v5.6 (+ categorias + DRE + contas detalhadas)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('');
@@ -730,21 +836,23 @@ function main() {
 
   let accessToken;
   let cacheDetalhes = {};
+  let cacheContas = {};  // v5.6
 
   return refreshAccessToken().then(function (token) {
     accessToken = token;
     cacheDetalhes = carregarCacheDetalhes();
+    cacheContas = carregarCacheContas();  // v5.6
 
     if (MODE === 'incremental') {
       if (!fs.existsSync(DATA_FILE)) {
         console.log('⚠️  bling.json não existe — forçando full');
-        return coletarModoFull(accessToken, cacheDetalhes);
+        return coletarModoFull(accessToken, cacheDetalhes, cacheContas);
       }
-      return coletarModoIncremental(accessToken, cacheDetalhes);
+      return coletarModoIncremental(accessToken, cacheDetalhes, cacheContas);
     }
 
     fazerBackup();
-    return coletarModoFull(accessToken, cacheDetalhes);
+    return coletarModoFull(accessToken, cacheDetalhes, cacheContas);
   }).then(function (dados) {
     relatarSituacoes(dados.nfes);
 
@@ -760,7 +868,7 @@ function main() {
 
     const output = {
       meta: {
-        version: '5.5',
+        version: '5.6',
         collectedAt: new Date().toISOString(),
         mode: MODE,
         nfeSituacoesValidas: NFE_SITUACOES_VALIDAS,
@@ -783,10 +891,15 @@ function main() {
       produtos: dados.produtos,
       estoques: dados.estoques || [],
       contasPagar: dados.contasPagar,
-      contasReceber: dados.contasReceber
+      contasReceber: dados.contasReceber,
+      categoriasRecDesp: dados.categoriasRecDesp || []  // v5.6
     };
 
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    // v5.6: Salvar cache contas antes de escrever JSON final
+    salvarCacheContas(cacheContas);
+    salvarCacheDetalhes(cacheDetalhes);  // garante último estado
+
     fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
 
     // Salva também estoques em arquivo separado (pra consulta rápida)
@@ -813,31 +926,41 @@ function main() {
   });
 }
 
-function coletarModoFull(accessToken, cacheDetalhes) {
+function coletarModoFull(accessToken, cacheDetalhes, cacheContas) {
   return Promise.all([
     coletarPedidos(accessToken, { maxPages: MAX_PAGES_FULL }),
     coletarNFesLista(accessToken, { dataInicial: '2024-11-01' }),
     coletarProdutos(accessToken),
     coletarContas(accessToken, 'pagar'),
-    coletarContas(accessToken, 'receber')
+    coletarContas(accessToken, 'receber'),
+    coletarCategoriasReceitasDespesas(accessToken)  // v5.6
   ]).then(function (r) {
     return enriquecerNFesComDetalhes(accessToken, r[1], cacheDetalhes)
       .then(function (detalhesMap) {
-        return {
-          pedidos: r[0],
-          nfes: consolidarNFes(r[1], detalhesMap),
-          produtos: r[2],
-          contasPagar: r[3],
-          contasReceber: r[4]
-        };
+        // v5.6: enriquecer contas com categoria, histórico, centro custo
+        return enriquecerContasComDetalhe(accessToken, r[3], 'pagar', cacheContas)
+          .then(function () {
+            return enriquecerContasComDetalhe(accessToken, r[4], 'receber', cacheContas);
+          })
+          .then(function () {
+            return {
+              pedidos: r[0],
+              nfes: consolidarNFes(r[1], detalhesMap),
+              produtos: r[2],
+              contasPagar: r[3],
+              contasReceber: r[4],
+              categoriasRecDesp: r[5]  // v5.6
+            };
+          });
       });
   });
 }
 
-function coletarModoIncremental(accessToken, cacheDetalhes) {
+function coletarModoIncremental(accessToken, cacheDetalhes, cacheContas) {
   const existentes = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
   const pedidosExistentes = existentes.pedidos || [];
   const nfesExistentes = existentes.nfes || [];
+  const categoriasExistentes = existentes.categoriasRecDesp || [];
 
   const corte = new Date(Date.now() - INCREMENTAL_DAYS_BACK * 86400000);
   const dataInicial = corte.toISOString().slice(0, 10);
@@ -845,28 +968,42 @@ function coletarModoIncremental(accessToken, cacheDetalhes) {
 
   console.log('📥 Incremental desde ' + dataInicial);
 
-  // Em incremental, também precisamos de produtos (caso tenha SKU novo)
   return Promise.all([
     coletarPedidos(accessToken, { dataInicial: dataInicial, maxPages: 20 }),
     coletarNFesLista(accessToken, {
       janelas: [{ inicial: dataInicial, final: dataFinal }],
       maxPages: 20
     }),
-    coletarProdutos(accessToken)
+    coletarProdutos(accessToken),
+    coletarContas(accessToken, 'pagar'),     // v5.6: contas sempre atualizam
+    coletarContas(accessToken, 'receber'),   // v5.6
+    coletarCategoriasReceitasDespesas(accessToken)  // v5.6
   ]).then(function (r) {
     const pedidosNovos = r[0];
     const nfesListaNovas = r[1];
     const produtosNovos = r[2];
+    const contasPagarNovas = r[3];
+    const contasReceberNovas = r[4];
+    const categoriasNovas = r[5].length > 0 ? r[5] : categoriasExistentes;
+
     return enriquecerNFesComDetalhes(accessToken, nfesListaNovas, cacheDetalhes)
       .then(function (detalhesMap) {
         const nfesNovas = consolidarNFes(nfesListaNovas, detalhesMap);
-        return {
-          pedidos: mergeById(pedidosExistentes, pedidosNovos, 'pedidos'),
-          nfes: mergeById(nfesExistentes, nfesNovas, 'NFes'),
-          produtos: produtosNovos,  // sempre atualiza produtos (poucos)
-          contasPagar: existentes.contasPagar || [],
-          contasReceber: existentes.contasReceber || []
-        };
+        // v5.6: enriquecer contas (usa cache)
+        return enriquecerContasComDetalhe(accessToken, contasPagarNovas, 'pagar', cacheContas)
+          .then(function () {
+            return enriquecerContasComDetalhe(accessToken, contasReceberNovas, 'receber', cacheContas);
+          })
+          .then(function () {
+            return {
+              pedidos: mergeById(pedidosExistentes, pedidosNovos, 'pedidos'),
+              nfes: mergeById(nfesExistentes, nfesNovas, 'NFes'),
+              produtos: produtosNovos,
+              contasPagar: contasPagarNovas,
+              contasReceber: contasReceberNovas,
+              categoriasRecDesp: categoriasNovas
+            };
+          });
       });
   });
 }
