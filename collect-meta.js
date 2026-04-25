@@ -565,7 +565,7 @@ function computeStats(accountInsights, campaignInsights, adInsights, campaignsMe
 // MAIN
 // ============================================================
 async function main() {
-  console.log('🚀 Suplemind Meta Ads Collector v2.5 (SLIM)');
+  console.log('🚀 Suplemind Meta Ads Collector v2.6 (SLIM)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('   Target: <15 MB em meta.json');
@@ -604,12 +604,13 @@ async function main() {
         vp25: 'video_p25', vp50: 'video_p50', vp75: 'video_p75', vp100: 'video_p100',
         qr: 'quality_ranking', err: 'engagement_rate_ranking', crr: 'conversion_rate_ranking',
         age: 'age', gnd: 'gender', pp: 'publisher_platform', pos: 'platform_position',
+        region: 'region', devp: 'device_platform', impd: 'impression_device', freq: 'frequency_value',
         obj: 'objective'
       }
     },
     accounts: {},
     insights: { account: [], campaign: [], adset: [], ad: [] },
-    breakdowns: { byAgeGender: [], byPublisherPlatform: [], byPlatformPosition: [] },
+    breakdowns: { byAgeGender: [], byPublisherPlatform: [], byPlatformPosition: [], byRegion: [], byDevicePlatform: [], byImpressionDevice: [], byFrequencyValue: [] },
     campaigns: [], adsets: [], ads: [], creatives: {},
     errors: []
   };
@@ -656,10 +657,15 @@ async function main() {
 
     if (MODE === 'full') {
       console.log('  🎯 Breakdowns (30d)...');
+      // v2.6: +4 estratificações (região, dispositivo, dispositivo de impressão, frequency)
       const bkConfigs = [
-        { name: 'byAgeGender', bk: 'age,gender' },
-        { name: 'byPublisherPlatform', bk: 'publisher_platform' },
-        { name: 'byPlatformPosition', bk: 'publisher_platform,platform_position' }
+        { name: 'byAgeGender', bk: 'age,gender', days: 30 },
+        { name: 'byPublisherPlatform', bk: 'publisher_platform', days: 30 },
+        { name: 'byPlatformPosition', bk: 'publisher_platform,platform_position', days: 30 },
+        { name: 'byRegion', bk: 'region', days: 30 },                // UF/estado do usuário (BR)
+        { name: 'byDevicePlatform', bk: 'device_platform', days: 30 }, // mobile/desktop
+        { name: 'byImpressionDevice', bk: 'impression_device', days: 30 },  // iPhone, Android, iPad
+        { name: 'byFrequencyValue', bk: 'frequency_value', days: 30 }  // saturação (freq ≥ 3.5 = fadiga)
       ];
       for (const bc of bkConfigs) {
         try {
@@ -756,6 +762,10 @@ async function main() {
     breakdownAgeGender: output.breakdowns.byAgeGender.length,
     breakdownPlatform: output.breakdowns.byPublisherPlatform.length,
     breakdownPosition: output.breakdowns.byPlatformPosition.length,
+    breakdownRegion: output.breakdowns.byRegion.length,
+    breakdownDevicePlatform: output.breakdowns.byDevicePlatform.length,
+    breakdownImpressionDevice: output.breakdowns.byImpressionDevice.length,
+    breakdownFrequency: output.breakdowns.byFrequencyValue.length,
     errors: output.errors.length
   };
 
@@ -821,6 +831,26 @@ async function main() {
         output.breakdowns.byPlatformPosition,
         function(r){ return (r.d||'') + '|' + (r.acc||'') + '|' + (r.pp||'') + '|' + (r.pos||''); }
       );
+      output.breakdowns.byRegion = mergeInsights(
+        existing.breakdowns && existing.breakdowns.byRegion ? existing.breakdowns.byRegion : [],
+        output.breakdowns.byRegion,
+        function(r){ return (r.d||'') + '|' + (r.acc||'') + '|' + (r.region||''); }
+      );
+      output.breakdowns.byDevicePlatform = mergeInsights(
+        existing.breakdowns && existing.breakdowns.byDevicePlatform ? existing.breakdowns.byDevicePlatform : [],
+        output.breakdowns.byDevicePlatform,
+        function(r){ return (r.d||'') + '|' + (r.acc||'') + '|' + (r.devp||''); }
+      );
+      output.breakdowns.byImpressionDevice = mergeInsights(
+        existing.breakdowns && existing.breakdowns.byImpressionDevice ? existing.breakdowns.byImpressionDevice : [],
+        output.breakdowns.byImpressionDevice,
+        function(r){ return (r.d||'') + '|' + (r.acc||'') + '|' + (r.impd||''); }
+      );
+      output.breakdowns.byFrequencyValue = mergeInsights(
+        existing.breakdowns && existing.breakdowns.byFrequencyValue ? existing.breakdowns.byFrequencyValue : [],
+        output.breakdowns.byFrequencyValue,
+        function(r){ return (r.d||'') + '|' + (r.acc||'') + '|' + (r.freq||''); }
+      );
 
       // Mantém metadados/criativos do que vier mais recente
       output.creatives = Object.assign({}, existing.creatives || {}, output.creatives);
@@ -872,7 +902,7 @@ async function main() {
   const sizeMB = (fs.statSync(DATA_FILE).size / 1024 / 1024).toFixed(2);
 
   console.log('');
-  console.log('✅ Coleta Meta v2.5 concluída!');
+  console.log('✅ Coleta Meta v2.6 concluída!');
   console.log('   Arquivo: ' + sizeMB + ' MB (target <15 MB)');
 
   if (output.errors.length > 0) {
