@@ -1032,6 +1032,39 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         </div>
         <div id="crv-lifecycle"></div>
       </div>
+
+      <!-- v5.11: Correlação ROAS vs MER -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">📊 ROAS Meta vs MER (real) — detecta inflação do pixel</div>
+            <div class="card-sub">Comparação por campanha: ROAS é o que o pixel reporta · MER é faturamento Bling ÷ spend Meta (mais confiável)</div>
+          </div>
+        </div>
+        <div id="crv-roas-vs-mer"></div>
+      </div>
+
+      <!-- v5.11: Correlações -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🧠 Correlações — o que realmente prevê vendas?</div>
+            <div class="card-sub">Coef. de Pearson entre características dos criativos e resultados. |r| > 0.3 = correlação relevante</div>
+          </div>
+        </div>
+        <div id="crv-correlations"></div>
+      </div>
+
+      <!-- v5.11: Winning combinations -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">🎯 Combinações vencedoras</div>
+            <div class="card-sub">Fatores em comum dos criativos top 20% (por ROAS) — o que eles têm em comum que os de baixo não têm</div>
+          </div>
+        </div>
+        <div id="crv-winning-combos"></div>
+      </div>
     </div>
 
     <!-- RECORRÊNCIA -->
@@ -3966,11 +3999,15 @@ function renderMktCampanhas(campaignInsights, campaigns){
 
   document.getElementById('mkt-camp-count').textContent = arr.length + ' campanhas';
 
+  // v5.11: store data pra drill-down
+  window._MKT_CAMPS = {};
+  top.forEach(function(c){ window._MKT_CAMPS[c.id] = c; });
+
   var rows = top.map(function(c){
     var roasCls = c.roas >= 10 ? 'g' : c.roas >= 5 ? 'a' : 'r';
     var status = c.roas >= 5 ? '🟢' : c.roas >= 2 ? '🟡' : '🔴';
-    return '<tr>' +
-      '<td class="strong">'+c.name.slice(0,55)+(c.name.length>55?'…':'')+'</td>' +
+    return '<tr style="cursor:pointer" onclick="toggleCampanhaDrill(\''+c.id+'\', this)" title="Clique pra ver ads dessa campanha">' +
+      '<td class="strong">▸ '+c.name.slice(0,55)+(c.name.length>55?'…':'')+'</td>' +
       '<td class="num">'+R(c.spend)+'</td>' +
       '<td class="num"><span class="badge '+roasCls+'">'+c.roas.toFixed(2)+'x</span></td>' +
       '<td class="num">'+R_full(c.cpa)+'</td>' +
@@ -3983,6 +4020,76 @@ function renderMktCampanhas(campaignInsights, campaigns){
   document.getElementById('mkt-campanhas').innerHTML =
     '<div style="max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
     '<table class="tbl" data-sortable="1"><thead style="position:sticky;top:0;background:var(--bg2);z-index:1"><tr><th>Campanha</th><th class="text-right" data-sort="num">Spend</th><th class="text-right" data-sort="num">ROAS</th><th class="text-right" data-sort="num">CPA</th><th class="text-right" data-sort="num">Compras</th><th class="text-right" data-sort="num">Impressões</th><th data-sort="num">Fadiga</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// v5.11: Drill-down — expande linha de campanha mostrando ads dentro
+function toggleCampanhaDrill(campId, row) {
+  // Verifica se já tem linha expandida logo abaixo
+  var next = row.nextElementSibling;
+  if(next && next.classList.contains('drill-row')){
+    next.remove();
+    // Volta seta
+    row.cells[0].innerHTML = row.cells[0].innerHTML.replace('▾', '▸');
+    return;
+  }
+  // Remove outras expansões abertas na mesma tabela
+  var openDrills = row.parentElement.querySelectorAll('.drill-row');
+  openDrills.forEach(function(d){ d.remove(); });
+  row.parentElement.querySelectorAll('tr').forEach(function(tr){
+    if(tr !== row && tr.cells && tr.cells[0]){
+      tr.cells[0].innerHTML = tr.cells[0].innerHTML.replace('▾', '▸');
+    }
+  });
+  row.cells[0].innerHTML = row.cells[0].innerHTML.replace('▸', '▾');
+
+  // Buscar ads dessa campanha
+  if(!META_DATA || !META_DATA.insights || !META_DATA.insights.ad){
+    return;
+  }
+  var adInsights = META_DATA.insights.ad.filter(function(r){
+    return r.cid === campId && r.d >= cutC && r.d <= cutCEnd;
+  });
+  var byAd = {};
+  adInsights.forEach(function(r){
+    if(!r.aid) return;
+    if(!byAd[r.aid]){
+      byAd[r.aid] = {aid:r.aid, name:r.anm||'(sem nome)', spend:0, pv:0, pu:0, im:0, cl:0};
+    }
+    byAd[r.aid].spend += r.sp||0;
+    byAd[r.aid].pv += r.pv||0;
+    byAd[r.aid].pu += r.pu||0;
+    byAd[r.aid].im += r.im||0;
+    byAd[r.aid].cl += r.cl||0;
+  });
+  var adsArr = Object.values(byAd).map(function(a){
+    a.roas = a.spend > 0 ? a.pv/a.spend : 0;
+    a.cpa = a.pu > 0 ? a.spend/a.pu : 0;
+    a.ctr = a.im > 0 ? a.cl/a.im*100 : 0;
+    return a;
+  }).sort(function(a,b){ return b.spend - a.spend; });
+
+  var drillHTML;
+  if(adsArr.length === 0){
+    drillHTML = '<td colspan="8" style="padding:12px 30px;background:var(--bg2);color:var(--text2);font-size:12px">Sem ads ativos nessa campanha no período.</td>';
+  } else {
+    var adRows = adsArr.slice(0, 20).map(function(a){
+      var cls = a.roas >= 10 ? 'g' : a.roas >= 5 ? 'a' : 'r';
+      return '<tr><td style="padding-left:30px">└ '+a.name.slice(0,50)+'</td>' +
+        '<td class="num">'+R(a.spend)+'</td>' +
+        '<td class="num"><span class="badge '+cls+'">'+a.roas.toFixed(2)+'x</span></td>' +
+        '<td class="num">'+R_full(a.cpa)+'</td>' +
+        '<td class="num">'+N(a.pu)+'</td>' +
+        '<td class="num">'+a.ctr.toFixed(2)+'%</td>' +
+        '<td></td><td></td></tr>';
+    }).join('');
+    drillHTML = '<td colspan="8" style="padding:8px 12px;background:var(--bg2)"><div style="font-size:11px;color:var(--text2);margin-bottom:6px">Ads da campanha ('+adsArr.length+' · ordenados por spend)</div><table style="width:100%;font-size:11px" class="tbl">'+adRows+'</table></div></td>';
+  }
+
+  // Inserir nova linha
+  var newRow = document.createElement('tr');
+  newRow.className = 'drill-row';
+  newRow.innerHTML = drillHTML;
+  row.parentElement.insertBefore(newRow, row.nextElementSibling);
 }
 
 function renderMktCriativos(adInsights, ads, creatives){
@@ -4041,6 +4148,31 @@ function renderMktCriativos(adInsights, ads, creatives){
   });
   html += '</div>';
   document.getElementById('mkt-criativos').innerHTML = html;
+}
+
+// v5.11: Helper DRY pra tabelas de breakdowns
+function renderBreakdownTable(rows, keyFn, titulo, labelHeader){
+  if(!rows || rows.length === 0) return '';
+  var by = {};
+  rows.forEach(function(r){
+    var k = keyFn(r);
+    if(!k || k === '?') return;
+    if(!by[k]) by[k] = {spend:0, pv:0, pu:0};
+    by[k].spend += r.sp || 0;
+    by[k].pv += r.pv || 0;
+    by[k].pu += r.pu || 0;
+  });
+  var arr = Object.keys(by).map(function(k){
+    var d = by[k];
+    return {key:k, spend:d.spend, pu:d.pu, roas:d.spend>0?d.pv/d.spend:0};
+  }).sort(function(a,b){ return b.spend - a.spend; });
+  if(arr.length === 0) return '';
+  var rowsHtml = arr.slice(0, 15).map(function(d){
+    var roasCls = d.roas >= 10 ? 'text-green' : d.roas >= 5 ? 'text-amber' : 'text-red';
+    return '<tr><td class="strong">'+d.key+'</td><td class="num">'+R(d.spend)+'</td><td class="num">'+N(d.pu)+'</td><td class="num '+roasCls+'">'+d.roas.toFixed(2)+'x</td></tr>';
+  }).join('');
+  return '<div style="margin-bottom:16px"><div class="card-sub" style="margin-bottom:6px">'+titulo+' (últimos 30d)</div>' +
+    '<table class="tbl" data-sortable="1"><thead><tr><th>'+labelHeader+'</th><th class="text-right" data-sort="num">Spend</th><th class="text-right" data-sort="num">Compras</th><th class="text-right" data-sort="num">ROAS</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
 }
 
 function renderMktBreakdowns(breakdowns){
@@ -4116,7 +4248,34 @@ function renderMktBreakdowns(breakdowns){
       '<table class="tbl" data-sortable="1"><thead><tr><th>Posição</th><th class="text-right">Spend</th><th class="text-right">Compras</th><th class="text-right">ROAS</th></tr></thead><tbody>'+rowsPos+'</tbody></table></div>';
   }
 
-  if(!html) html = '<div class="hint">Breakdowns não disponíveis ainda.</div>';
+  // v5.11: 4 novos breakdowns (região, device_platform, impression_device, frequency_value)
+  html += renderBreakdownTable(breakdowns.byRegion, function(r){ return r.region; }, '🗺️ Região (UF)', 'Estado');
+  html += renderBreakdownTable(breakdowns.byDevicePlatform, function(r){ return r.devp; }, '📱 Device platform', 'Plataforma');
+  html += renderBreakdownTable(breakdowns.byImpressionDevice, function(r){ return r.impd; }, '📲 Impression device', 'Dispositivo');
+
+  // Frequency: agrupar em faixas (1.0-1.9 baixa, 2.0-3.4 normal, 3.5+ fadiga)
+  var fvRaw = breakdowns.byFrequencyValue || [];
+  if(fvRaw.length > 0){
+    var byFreq = {'1: Baixa (1.0-1.9)':{spend:0,pv:0,pu:0}, '2: Normal (2.0-3.4)':{spend:0,pv:0,pu:0}, '3: Fadiga (≥3.5)':{spend:0,pv:0,pu:0}};
+    fvRaw.forEach(function(r){
+      var f = parseFloat(r.freq)||0;
+      var bucket = f < 2 ? '1: Baixa (1.0-1.9)' : (f < 3.5 ? '2: Normal (2.0-3.4)' : '3: Fadiga (≥3.5)');
+      byFreq[bucket].spend += r.sp||0;
+      byFreq[bucket].pv += r.pv||0;
+      byFreq[bucket].pu += r.pu||0;
+    });
+    var rowsFreq = Object.keys(byFreq).map(function(k){
+      var d = byFreq[k];
+      var roas = d.spend > 0 ? d.pv/d.spend : 0;
+      var roasCls = roas >= 10 ? 'text-green' : roas >= 5 ? 'text-amber' : 'text-red';
+      return '<tr><td class="strong">'+k+'</td><td class="num">'+R(d.spend)+'</td><td class="num">'+N(d.pu)+'</td><td class="num '+roasCls+'">'+roas.toFixed(2)+'x</td></tr>';
+    }).join('');
+    html += '<div style="margin-bottom:16px"><div class="card-sub" style="margin-bottom:6px">⚡ Frequency / Saturação (últimos 30d)</div>' +
+      '<table class="tbl"><thead><tr><th>Faixa</th><th class="text-right">Spend</th><th class="text-right">Compras</th><th class="text-right">ROAS</th></tr></thead><tbody>'+rowsFreq+'</tbody></table>' +
+      '<div class="hint" style="margin-top:4px">Frequência ≥3.5 sinaliza fadiga criativa (mesma pessoa vendo o anúncio muito). Refresh seus ads se o bucket "Fadiga" estiver alto.</div></div>';
+  }
+
+  if(!html) html = '<div class="hint">Breakdowns não disponíveis ainda. Rode Update Meta Ads em modo full.</div>';
   document.getElementById('mkt-breakdowns').innerHTML = html;
 }
 
@@ -5668,10 +5827,12 @@ function renderCriativo(){
   document.getElementById('crv-ces-avg').textContent = Math.round(cesAvg);
 
   var vids = items.filter(function(i){ return i.hasVideo; });
-  var hookAvg = vids.length > 0 ? vids.reduce(function(s,i){return s+i.hookRate;},0)/vids.length : 0;
-  var thruAvg = vids.length > 0 ? vids.reduce(function(s,i){return s+i.thruplayRate;},0)/vids.length : 0;
-  document.getElementById('crv-hook').textContent = hookAvg.toFixed(1) + '%';
-  document.getElementById('crv-thru').textContent = thruAvg.toFixed(1) + '%';
+  var vidsComHook = vids.filter(function(i){return i.hookRate !== null;});
+  var hookAvg = vidsComHook.length > 0 ? vidsComHook.reduce(function(s,i){return s+i.hookRate;},0)/vidsComHook.length : null;
+  var vidsComThru = vids.filter(function(i){return i.thruplayRate !== null;});
+  var thruAvg = vidsComThru.length > 0 ? vidsComThru.reduce(function(s,i){return s+i.thruplayRate;},0)/vidsComThru.length : null;
+  document.getElementById('crv-hook').textContent = hookAvg === null ? 'N/A' : hookAvg.toFixed(1) + '%';
+  document.getElementById('crv-thru').textContent = thruAvg === null ? 'N/A' : thruAvg.toFixed(1) + '%';
 
   // Sub-renders
   renderCriativoInsights(items);
@@ -5682,6 +5843,317 @@ function renderCriativo(){
   renderCriativoCombos(items);
   renderCriativoVideo(items);
   renderCriativoLifecycle(items);
+  // v5.11: novas análises
+  renderCriativoRoasVsMer(items);
+  renderCriativoCorrelations(items);
+  renderCriativoWinningCombos(items);
+}
+
+// ================================================================
+// v5.11: ROAS Meta vs MER (real) por campanha
+// ================================================================
+function renderCriativoRoasVsMer(items){
+  var el = document.getElementById('crv-roas-vs-mer');
+  if(!el) return;
+
+  // Agregar por campanha (cid)
+  var byCamp = {};
+  items.forEach(function(i){
+    if(!i.campaignId) return;
+    if(!byCamp[i.campaignId]){
+      byCamp[i.campaignId] = {id:i.campaignId, name:i.campaignName||'(sem nome)', spend:0, pv:0, pu:0, product:i.product};
+    }
+    byCamp[i.campaignId].spend += i.spend;
+    byCamp[i.campaignId].pv += i.purchaseValue || 0;
+    byCamp[i.campaignId].pu += i.purchases;
+  });
+
+  // Calcular ROAS e "MER por campanha" (usando proporção de receita Bling atribuída via produto)
+  // Abordagem: MER é global (Bling total ÷ spend total). Por campanha sem UTM, só temos proxy.
+  // Mostrar: ROAS por campanha, junto com MER GLOBAL do período e alerta de diferença
+  var globalSpend = items.reduce(function(s,i){return s+i.spend;},0);
+  var globalMetaRev = items.reduce(function(s,i){return s+(i.purchaseValue||0);},0);
+  var globalROASMeta = globalSpend > 0 ? globalMetaRev/globalSpend : 0;
+
+  // MER global: Bling ÷ Spend Meta (no período do Criativo)
+  // Usa DATA.nfes filtradas pela janela CRV_WINDOW
+  var blingFat = 0;
+  if(DATA && DATA.nfes){
+    var hoje = new Date();
+    var cutDays = CRV_WINDOW > 0 ? CRV_WINDOW : 365;
+    var cutDate = new Date(hoje.getTime() - cutDays*86400000);
+    var cutStr = cutDate.toISOString().slice(0,10);
+    blingFat = DATA.nfes.reduce(function(s,n){
+      if(!n.temDetalhe || !isVendaClient(n)) return s;
+      if(n.tipoPessoa !== 'F') return s;  // Só DTC (Meta mira DTC)
+      var d = (n.dataEmissao||'').slice(0,10);
+      if(d < cutStr) return s;
+      return s + (parseFloat(n.valorNota)||0);
+    }, 0);
+  }
+  var globalMER = globalSpend > 0 ? blingFat/globalSpend : 0;
+  var inflacao = globalROASMeta > 0 && globalMER > 0 ? ((globalROASMeta/globalMER - 1) * 100) : 0;
+
+  // Tabela de campanhas com ROAS
+  var arr = Object.values(byCamp).map(function(c){
+    c.roasMeta = c.spend > 0 ? c.pv/c.spend : 0;
+    c.cpa = c.pu > 0 ? c.spend/c.pu : 0;
+    return c;
+  }).sort(function(a,b){ return b.spend - a.spend; }).slice(0, 25);
+
+  if(arr.length === 0){
+    el.innerHTML = '<div class="hint">Sem campanhas com spend no período.</div>';
+    return;
+  }
+
+  // Cards de comparação global
+  var merCls = globalMER >= 3 ? 'g' : globalMER >= 1.5 ? 'a' : 'r';
+  var roasCls = globalROASMeta >= 5 ? 'g' : globalROASMeta >= 2 ? 'a' : 'r';
+  var inflacaoCor = inflacao > 50 ? '#d64545' : (inflacao > 20 ? '#f0a500' : '#00a86b');
+
+  var header =
+    '<div class="kpi-row cols3" style="margin-bottom:14px">' +
+    '<div class="kpi ' + roasCls + '"><div class="kpi-accent"></div>' +
+    '<div class="kpi-label">ROAS MÉDIO META (período)</div>' +
+    '<div class="kpi-value mono">' + globalROASMeta.toFixed(2) + 'x</div>' +
+    '<div class="kpi-meta">' + R(globalMetaRev) + ' / ' + R(globalSpend) + '</div></div>' +
+    '<div class="kpi ' + merCls + '"><div class="kpi-accent"></div>' +
+    '<div class="kpi-label">MER REAL (Bling DTC)</div>' +
+    '<div class="kpi-value mono">' + globalMER.toFixed(2) + 'x</div>' +
+    '<div class="kpi-meta">' + R(blingFat) + ' / ' + R(globalSpend) + '</div></div>' +
+    '<div class="kpi"><div class="kpi-accent" style="background:' + inflacaoCor + '"></div>' +
+    '<div class="kpi-label">INFLAÇÃO ROAS vs MER</div>' +
+    '<div class="kpi-value mono" style="color:' + inflacaoCor + '">' + (inflacao > 0 ? '+' : '') + inflacao.toFixed(0) + '%</div>' +
+    '<div class="kpi-meta">ROAS/MER = ' + (globalMER > 0 ? (globalROASMeta/globalMER).toFixed(2) : '?') + 'x</div></div>' +
+    '</div>';
+
+  var alerta = '';
+  if(inflacao > 50){
+    alerta = '<div class="banner warn" style="margin-bottom:10px"><div class="banner-icon">⚠️</div><div><div class="banner-title">Pixel Meta provavelmente duplicado</div><div class="banner-body">ROAS Meta está ' + inflacao.toFixed(0) + '% acima do MER real. Confirme no Events Manager se há pixels duplicados disparando Purchase.</div></div></div>';
+  }
+
+  var rows = arr.map(function(c){
+    var rCls = c.roasMeta >= 5 ? 'g' : c.roasMeta >= 2 ? 'a' : 'r';
+    // MER por campanha: não dá pra saber sem UTMs. Mostrar ROAS Meta só.
+    return '<tr>' +
+      '<td class="strong">' + c.name.slice(0,45) + (c.name.length>45?'…':'') + '</td>' +
+      '<td class="num">' + R(c.spend) + '</td>' +
+      '<td class="num"><span class="badge ' + rCls + '">' + c.roasMeta.toFixed(2) + 'x</span></td>' +
+      '<td class="num">' + R_full(c.cpa) + '</td>' +
+      '<td class="num">' + N(c.pu) + '</td>' +
+      '<td>' + (c.product ? '<span style="font-size:10px;padding:2px 6px;background:var(--bg3);border-radius:3px">' + c.product + '</span>' : '-') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  el.innerHTML = header + alerta +
+    '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
+    '<table class="tbl" data-sortable="1"><thead style="position:sticky;top:0;background:var(--bg2);z-index:1"><tr>' +
+    '<th>Campanha</th><th class="text-right" data-sort="num">Spend</th><th class="text-right" data-sort="num">ROAS Meta</th><th class="text-right" data-sort="num">CPA</th><th class="text-right" data-sort="num">Compras</th><th>Produto</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<div class="hint" style="margin-top:6px;font-style:italic">MER por campanha individual não é possível sem UTMs no Bling. Integração Nuvemshop vai resolver isso.</div>';
+  setTimeout(makeTablesSortable, 50);
+}
+
+// ================================================================
+// v5.11: Correlações (Pearson) entre features e resultados
+// ================================================================
+function pearson(xArr, yArr){
+  var n = xArr.length;
+  if(n < 3) return 0;
+  var sumX=0, sumY=0, sumXY=0, sumX2=0, sumY2=0;
+  for(var i=0; i<n; i++){
+    var x = xArr[i], y = yArr[i];
+    sumX += x; sumY += y;
+    sumXY += x*y;
+    sumX2 += x*x; sumY2 += y*y;
+  }
+  var num = n*sumXY - sumX*sumY;
+  var den = Math.sqrt((n*sumX2 - sumX*sumX) * (n*sumY2 - sumY*sumY));
+  return den > 0 ? num/den : 0;
+}
+
+function renderCriativoCorrelations(items){
+  var el = document.getElementById('crv-correlations');
+  if(!el) return;
+
+  // Filtrar items com spend relevante
+  var pool = items.filter(function(i){ return i.spend >= 100 && i.impressions >= 1000; });
+  if(pool.length < 5){
+    el.innerHTML = '<div class="hint">Dados insuficientes (precisa ao menos 5 criativos com spend ≥R$100). Reduza filtros ou aguarde mais dados.</div>';
+    return;
+  }
+
+  var features = [
+    {key:'hookRate', label:'Hook rate (vídeo)'},
+    {key:'thruplayRate', label:'ThruPlay rate (vídeo)'},
+    {key:'ctr', label:'CTR'},
+    {key:'cpm', label:'CPM'},
+    {key:'spend', label:'Spend'},
+    {key:'impressions', label:'Impressões'},
+    {key:'retention50', label:'Retenção 50%'}
+  ];
+  var targets = [
+    {key:'roas', label:'ROAS Meta'},
+    {key:'cpa', label:'CPA (menor = melhor)'},
+    {key:'purchases', label:'Compras'}
+  ];
+
+  // Computar matriz
+  var rowsHtml = '';
+  features.forEach(function(f){
+    var cells = '<td class="strong">' + f.label + '</td>';
+    targets.forEach(function(t){
+      var xs = [], ys = [];
+      pool.forEach(function(i){
+        var x = i[f.key];
+        var y = i[t.key];
+        if(x === null || y === null || isNaN(x) || isNaN(y)) return;
+        xs.push(x); ys.push(y);
+      });
+      if(xs.length < 5){
+        cells += '<td class="num" style="color:var(--text3)">N/A</td>';
+      } else {
+        var r = pearson(xs, ys);
+        var absR = Math.abs(r);
+        var cor = absR < 0.2 ? '#8892a0' : (absR < 0.4 ? '#f0a500' : (r > 0 ? '#00a86b' : '#d64545'));
+        var label = absR < 0.1 ? 'sem' : (absR < 0.3 ? 'fraca' : (absR < 0.5 ? 'moderada' : 'forte'));
+        cells += '<td class="num" style="color:' + cor + ';font-weight:600" title="n=' + xs.length + ' · correlação ' + label + '">' + r.toFixed(2) + '</td>';
+      }
+    });
+    rowsHtml += '<tr>' + cells + '</tr>';
+  });
+
+  // Principais achados
+  var achados = [];
+  features.forEach(function(f){
+    targets.forEach(function(t){
+      var xs = [], ys = [];
+      pool.forEach(function(i){
+        var x = i[f.key], y = i[t.key];
+        if(x === null || y === null || isNaN(x) || isNaN(y)) return;
+        xs.push(x); ys.push(y);
+      });
+      if(xs.length >= 5){
+        var r = pearson(xs, ys);
+        if(Math.abs(r) >= 0.3){
+          achados.push({f:f.label, t:t.label, r:r});
+        }
+      }
+    });
+  });
+  achados.sort(function(a,b){ return Math.abs(b.r) - Math.abs(a.r); });
+
+  var achadosHtml = '';
+  if(achados.length > 0){
+    achadosHtml = '<div style="margin-top:14px"><div class="card-sub" style="margin-bottom:8px">💡 Principais achados</div>';
+    achados.slice(0, 5).forEach(function(a){
+      var sinal = a.r > 0 ? '↑' : '↓';
+      var cor = Math.abs(a.r) >= 0.5 ? '#00a86b' : '#f0a500';
+      var txt = a.r > 0
+        ? a.f + ' mais alto → ' + a.t + ' mais alto'
+        : a.f + ' mais alto → ' + a.t + ' mais baixo';
+      achadosHtml += '<div style="padding:8px 12px;border-left:3px solid ' + cor + ';background:var(--bg2);margin-bottom:6px;border-radius:4px">' +
+        '<span style="color:' + cor + ';font-weight:700">' + sinal + ' ' + a.r.toFixed(2) + '</span> · ' + txt + '</div>';
+    });
+    achadosHtml += '</div>';
+  } else {
+    achadosHtml = '<div class="hint" style="margin-top:10px">Nenhuma correlação forte (|r|≥0.3) encontrada. Isso é <strong>normal</strong> — indica que hook/ThruPlay isolados não prevêem ROAS. Combinações (creator + produto + horário) costumam ser mais preditivas (veja card abaixo).</div>';
+  }
+
+  el.innerHTML =
+    '<div style="overflow-x:auto"><table class="tbl" style="min-width:600px"><thead><tr>' +
+    '<th>Feature</th>' + targets.map(function(t){return '<th class="text-right">' + t.label + '</th>';}).join('') +
+    '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
+    '<div class="hint" style="margin-top:8px;font-style:italic">n = ' + pool.length + ' criativos · |r| < 0.2 = sem · 0.2–0.4 = fraca · 0.4–0.7 = moderada · ≥0.7 = forte</div>' +
+    achadosHtml;
+}
+
+// ================================================================
+// v5.11: Winning combinations — o que os top 20% têm em comum
+// ================================================================
+function renderCriativoWinningCombos(items){
+  var el = document.getElementById('crv-winning-combos');
+  if(!el) return;
+
+  var pool = items.filter(function(i){ return i.spend >= 100 && i.roas > 0; });
+  if(pool.length < 10){
+    el.innerHTML = '<div class="hint">Dados insuficientes (precisa ao menos 10 criativos).</div>';
+    return;
+  }
+
+  // Top 20% e bottom 20% por ROAS
+  var sorted = pool.slice().sort(function(a,b){ return b.roas - a.roas; });
+  var topN = Math.max(3, Math.floor(pool.length * 0.2));
+  var top = sorted.slice(0, topN);
+  var bottom = sorted.slice(-topN);
+
+  var topROAS = top.reduce(function(s,i){return s+i.roas;},0)/top.length;
+  var bottomROAS = bottom.reduce(function(s,i){return s+i.roas;},0)/bottom.length;
+
+  function distribution(arr, key){
+    var count = {};
+    arr.forEach(function(i){
+      var v = i[key] || '?';
+      count[v] = (count[v]||0) + 1;
+    });
+    return count;
+  }
+
+  var factors = [
+    {key:'product', label:'Produto'},
+    {key:'creator', label:'Creator'},
+    {key:'hasVideo', label:'Tipo', mapper:function(v){return v ? 'Vídeo' : 'Imagem';}}
+  ];
+
+  var factorsHtml = factors.map(function(f){
+    var topDist = {};
+    var botDist = {};
+    top.forEach(function(i){
+      var v = f.mapper ? f.mapper(i[f.key]) : (i[f.key] || '?');
+      topDist[v] = (topDist[v]||0) + 1;
+    });
+    bottom.forEach(function(i){
+      var v = f.mapper ? f.mapper(i[f.key]) : (i[f.key] || '?');
+      botDist[v] = (botDist[v]||0) + 1;
+    });
+
+    var keys = Object.keys(topDist);
+    keys.forEach(function(k){ if(!botDist[k]) botDist[k] = 0; });
+    Object.keys(botDist).forEach(function(k){ if(!topDist[k]) topDist[k] = 0; });
+
+    var allKeys = Object.keys(topDist);
+    var winRows = allKeys.map(function(k){
+      var topPct = topDist[k] / top.length * 100;
+      var botPct = botDist[k] / bottom.length * 100;
+      var delta = topPct - botPct;
+      return {k:k, topPct:topPct, botPct:botPct, delta:delta};
+    }).sort(function(a,b){ return b.delta - a.delta; });
+
+    var sub = winRows.filter(function(r){ return Math.abs(r.delta) > 10; }).slice(0, 5);
+    if(sub.length === 0) return '';
+
+    return '<div style="margin-bottom:14px"><div class="card-sub" style="margin-bottom:6px"><strong>' + f.label + '</strong></div>' +
+      '<table class="tbl" style="font-size:12px"><thead><tr><th>Valor</th><th class="text-right">% no Top</th><th class="text-right">% no Bottom</th><th class="text-right">Delta</th></tr></thead><tbody>' +
+      sub.map(function(r){
+        var cor = r.delta > 15 ? '#00a86b' : (r.delta < -15 ? '#d64545' : '#f0a500');
+        return '<tr><td>' + r.k + '</td>' +
+          '<td class="num">' + r.topPct.toFixed(0) + '%</td>' +
+          '<td class="num">' + r.botPct.toFixed(0) + '%</td>' +
+          '<td class="num" style="color:' + cor + ';font-weight:600">' + (r.delta > 0 ? '+' : '') + r.delta.toFixed(0) + 'pp</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }).filter(Boolean).join('');
+
+  if(!factorsHtml){
+    factorsHtml = '<div class="hint">Top e bottom têm distribuição parecida de produtos/creators/tipos. Diferença vem de fatores não categóricos (ex: cópia, thumbnail).</div>';
+  }
+
+  el.innerHTML =
+    '<div class="kpi-row cols2" style="margin-bottom:14px">' +
+    '<div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">TOP 20% (média ROAS)</div><div class="kpi-value mono">' + topROAS.toFixed(2) + 'x</div><div class="kpi-meta">' + top.length + ' criativos</div></div>' +
+    '<div class="kpi r"><div class="kpi-accent"></div><div class="kpi-label">BOTTOM 20% (média ROAS)</div><div class="kpi-value mono">' + bottomROAS.toFixed(2) + 'x</div><div class="kpi-meta">' + bottom.length + ' criativos</div></div>' +
+    '</div>' +
+    factorsHtml +
+    '<div class="hint" style="margin-top:8px;font-style:italic">Delta = diferença entre % no Top vs % no Bottom. Delta &gt;+15pp = fator positivo · Delta &lt;-15pp = fator negativo.</div>';
 }
 
 // ================================================================
@@ -5758,7 +6230,7 @@ function renderCriativoInsights(items){
   }
 
   // 4. Hook rate baixo identificado
-  var vidsLowHook = withVid.filter(function(i){ return i.hookRate < 15 && i.spend > 100; });
+  var vidsLowHook = withVid.filter(function(i){ return (i.hookRate !== null && i.hookRate < 15) && i.spend > 100; });
   if(vidsLowHook.length >= 2){
     insights.push({
       icon: '⚠️', type: 'warn',
@@ -5879,7 +6351,7 @@ function renderCriativoGrid(items){
     }
     html += '<div class="crv-ces-badge ' + cesClass + '">' + a.ces + '</div>';
     if(a.hasVideo){
-      html += '<div class="crv-video-pill">🎬 ' + (a.avgTimeSec > 0 ? a.avgTimeSec.toFixed(0) + 's' : 'Vídeo') + '</div>';
+      html += '<div class="crv-video-pill">🎬 ' + ((a.avgTimeSec && a.avgTimeSec > 0) ? a.avgTimeSec.toFixed(0) + 's' : 'Vídeo') + '</div>';
     }
     html += '</div>'; // thumb-wrap
 
@@ -6072,7 +6544,8 @@ function renderCriativoVideo(items){
           var colorByCES = v.ces >= 70 ? 'rgba(0,229,160,.6)' :
                            v.ces >= 50 ? 'rgba(61,154,255,.6)' :
                            v.ces >= 30 ? 'rgba(255,179,64,.6)' : 'rgba(255,69,96,.6)';
-          return { x: v.hookRate, y: v.thruplayRate, r: r, _ad: v, _color: colorByCES };
+          if(v.hookRate === null || v.thruplayRate === null) return null;
+            return { x: v.hookRate, y: v.thruplayRate, r: r, _ad: v, _color: colorByCES };
         }),
         backgroundColor: function(ctx){
           return ctx.raw._color;
@@ -6091,7 +6564,7 @@ function renderCriativoVideo(items){
               var a = ctx.raw._ad;
               return [
                 a.name.slice(0,50),
-                'Hook: ' + a.hookRate.toFixed(1) + '% · ThruPlay: ' + a.thruplayRate.toFixed(1) + '%',
+                'Hook: ' + a.hookRate.toFixed(1) + '% · ThruPlay: ' + fmtPct(a.thruplayRate),
                 'Spend: ' + R(a.spend) + ' · ROAS: ' + a.roas.toFixed(2) + 'x · CES ' + a.ces
               ];
             }
