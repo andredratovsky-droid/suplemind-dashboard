@@ -236,6 +236,8 @@ async function coletarInsights(accountId, level, days, breakdowns, useMinimalFie
       fields: fields,
       level: level,
       time_range: JSON.stringify({ since: j.since, until: j.until }),
+      // v2.7: alinhado ao default do Ads Manager pra ROAS bater
+      action_attribution_windows: JSON.stringify(['7d_click', '1d_view']),
       limit: '500'
     };
     if (breakdowns) {
@@ -565,7 +567,7 @@ function computeStats(accountInsights, campaignInsights, adInsights, campaignsMe
 // MAIN
 // ============================================================
 async function main() {
-  console.log('🚀 Suplemind Meta Ads Collector v2.6 (SLIM)');
+  console.log('🚀 Suplemind Meta Ads Collector v2.7 (SLIM)');
   console.log('   Modo: ' + MODE);
   console.log('   Timestamp: ' + new Date().toISOString());
   console.log('   Target: <15 MB em meta.json');
