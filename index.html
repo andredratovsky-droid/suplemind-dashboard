@@ -802,6 +802,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
     <!-- PRODUTOS -->
     <div class="module" id="mod-produtos">
+      <div id="produtos-skus-ui"></div>
       <div class="kpi-row cols3">
         <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">SKUs Ativos</div><div class="kpi-value mono" id="p-total">0</div></div>
         <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Preço Médio</div><div class="kpi-value" id="p-preco-medio">R$ 0</div></div>
@@ -812,6 +813,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
     <!-- CLIENTES -->
     <div class="module" id="mod-clientes">
+      <div id="clientes-socios-ui"></div>
       <div class="kpi-row cols4">
         <div class="kpi g"><div class="kpi-accent"></div><div class="kpi-label">Únicos</div><div class="kpi-value mono" id="c-unicos">0</div><div class="kpi-meta">clientes distintos</div></div>
         <div class="kpi b"><div class="kpi-accent"></div><div class="kpi-label">Novos</div><div class="kpi-value mono" id="c-novos">0</div><div class="kpi-meta" id="c-novos-m">no período</div></div>
@@ -1315,19 +1317,37 @@ var CHANNEL_MAP = {
   '205741642':  {group:'B2B/Direto', subname:'B2B/Direto'},
   '206009082':  {group:'Outros', subname:'Outros 1'},
   '205757515':  {group:'Outros', subname:'Outros 2'}
+  // v5.12: novos canais (Yampi, TikTok) vão ser detectados por nome via fallback
 };
-var CHANNEL_GROUP_ORDER = ['Nuvemshop','Mercado Livre','B2B/Direto','Outros','Sem canal'];
+var CHANNEL_GROUP_ORDER = ['Nuvemshop','Landing Pages','Mercado Livre','TikTok Shop','B2B/Direto','Centro Distribuição','Outros','Sem canal'];
 var CHANNEL_COLORS = {
   'Nuvemshop':'#00e5a0',
+  'Landing Pages':'#ec4899',
   'Mercado Livre':'#ffb340',
+  'TikTok Shop':'#06b6d4',
+  'Shopee':'#ef4444',
+  'Amazon':'#fbbf24',
   'B2B/Direto':'#a78bfa',
+  'Centro Distribuição':'#94a3b8',
   'Outros':'#3d9aff',
   'Sem canal':'#4a5a66'
 };
 
-function getChannelGroup(lojaId){
+function getChannelGroup(lojaId, lojaNome){
   var m = CHANNEL_MAP[String(lojaId)];
-  return m ? m.group : 'Outros';
+  if(m) return m.group;
+  // v5.12: fallback por nome quando ID novo aparece
+  if(lojaNome){
+    var n = lojaNome.toLowerCase();
+    if(n.indexOf('nuvemshop') >= 0) return 'Nuvemshop';
+    if(n.indexOf('mercado livre') >= 0 || n.indexOf('mercadolivre') >= 0) return 'Mercado Livre';
+    if(n.indexOf('yampi') >= 0 || n.indexOf('checkout yampi') >= 0) return 'Landing Pages';
+    if(n.indexOf('tiktok') >= 0) return 'TikTok Shop';
+    if(n.indexOf('shopee') >= 0) return 'Shopee';
+    if(n.indexOf('amazon') >= 0) return 'Amazon';
+    if(n.indexOf('centro') >= 0 || n.indexOf('filial') >= 0) return 'Centro Distribuição';
+  }
+  return 'Outros';
 }
 function getChannelSubname(lojaId){
   var m = CHANNEL_MAP[String(lojaId)];
@@ -1532,6 +1552,74 @@ function getCurrentPeriodEnd(){
 }
 
 // ================================================================
+// v5.12: SKUs excluídos (brindes, embalagens, insumos)
+// ================================================================
+// Lista de códigos hardcoded (insumos identificados visualmente nas notas)
+var SKU_EXCLUIR_COMERCIAL_HARDCODED = ['14F33C41','14F33C42','14F33C43','9C051FA6','27F2FC35'];
+
+// Padrões automáticos no nome (case-insensitive)
+var SKU_EXCLUIR_PATTERNS = ['lay flat', 'sache', 'metalizado', 'embalagem', 'amostra', 'brinde', 'caixa de papelão', 'fita adesiva', 'plástico bolha'];
+
+function carregarSkusExcluidosUser(){
+  try { return (localStorage.getItem('suplemind_skus_excluir')||'').split(',').map(function(s){return s.trim().toUpperCase();}).filter(Boolean); }
+  catch(e){ return []; }
+}
+function salvarSkusExcluidosUser(skus){
+  try { localStorage.setItem('suplemind_skus_excluir', skus.join(',')); } catch(e){}
+}
+
+// True = excluir do comercial (vendas, recorrência, produtos)
+function isSkuComercialExcluido(item){
+  if(!item) return false;
+  var codigo = (item.codigo||'').toUpperCase();
+  var nome = (item.descricao || item.nome || '').toLowerCase();
+
+  // 1) Hardcoded
+  if(SKU_EXCLUIR_COMERCIAL_HARDCODED.indexOf(codigo) >= 0) return true;
+
+  // 2) Lista do usuário (localStorage)
+  var userList = carregarSkusExcluidosUser();
+  if(userList.indexOf(codigo) >= 0) return true;
+
+  // 3) Padrões automáticos no nome
+  for(var i=0; i<SKU_EXCLUIR_PATTERNS.length; i++){
+    if(nome.indexOf(SKU_EXCLUIR_PATTERNS[i]) >= 0) return true;
+  }
+  return false;
+}
+
+// True = NFe inteira deve ser excluída do comercial (TODOS os itens são excluíveis)
+function isNfeApenasInsumos(nfe){
+  if(!nfe || !nfe.itens || nfe.itens.length === 0) return false;
+  for(var i=0; i<nfe.itens.length; i++){
+    if(!isSkuComercialExcluido(nfe.itens[i])) return false;
+  }
+  return true;  // todos os itens são insumos
+}
+
+// ================================================================
+// v5.12: Sócios/colaboradores excluídos das análises de cliente
+// ================================================================
+function carregarSociosExcluidos(){
+  try {
+    var raw = localStorage.getItem('suplemind_socios_excluir')||'';
+    return raw.split(',').map(function(s){
+      return s.replace(/[^0-9]/g,'');  // só dígitos
+    }).filter(function(s){ return s.length > 0; });
+  } catch(e){ return []; }
+}
+function salvarSociosExcluidos(docs){
+  try { localStorage.setItem('suplemind_socios_excluir', docs.join(',')); } catch(e){}
+}
+function isSocioExcluido(nfe){
+  if(!nfe || !nfe.contato) return false;
+  var doc = (nfe.contato.numeroDocumento||'').replace(/[^0-9]/g,'');
+  if(!doc) return false;
+  var lista = carregarSociosExcluidos();
+  return lista.indexOf(doc) >= 0;
+}
+
+// ================================================================
 // FILTROS: aplicar período + escopo em nfes válidas
 // ================================================================
 // v5.10: Toggle pra INCLUIR ou EXCLUIR NFes não-venda (remessa/devolução)
@@ -1628,7 +1716,7 @@ function aggregateChannels(nfes){
     if(!lojaId){
       group = n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal';
     } else {
-      group = getChannelGroup(lojaId);
+      group = getChannelGroup(lojaId, n.loja && n.loja.nome);
     }
     if(!groups[group]){ groups[group] = {n:0, v:0, sub:{}}; }
     groups[group].n += 1;
@@ -1871,10 +1959,55 @@ function renderAuditoriaFiscal(elId){
   var el = document.getElementById(elId);
   if(!el) return;
   var excluidas = naoVendaNfes();
-  if(excluidas.length === 0){ el.innerHTML = ''; return; }
+  // v5.12: ainda mostra o card mesmo com 0 excluídas pra permitir comparação manual com Bling
+  var hasExcluidas = excluidas.length > 0;
 
   // Calcular valor total excluído
   var valorExcluido = excluidas.reduce(function(s,n){ return s + (parseFloat(n.valorNota)||0); }, 0);
+
+  // v5.12: KPIs do mês corrente (pra comparar com Bling)
+  var hoje = new Date();
+  var mesAtual = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
+  var nfesMesAtual = (DATA.nfes || []).filter(function(n){
+    return n.temDetalhe && (n.dataEmissao||'').slice(0,7) === mesAtual;
+  });
+  var nfesMesVendas = nfesMesAtual.filter(isVendaClient);
+  var totalMesVendas = nfesMesVendas.reduce(function(s,n){ return s + (parseFloat(n.valorNota)||0); }, 0);
+  var nfesMesB2B = nfesMesVendas.filter(function(n){ return n.tipoPessoa === 'J'; });
+  var totalMesB2B = nfesMesB2B.reduce(function(s,n){ return s + (parseFloat(n.valorNota)||0); }, 0);
+  var totalMesDTC = totalMesVendas - totalMesB2B;
+
+  // Comparação com Bling (valor que o usuário digita)
+  var blingTotal = parseFloat(localStorage.getItem('suplemind_bling_total_atual')||'0') || 0;
+  var blingDTC = parseFloat(localStorage.getItem('suplemind_bling_dtc_atual')||'0') || 0;
+  var blingB2B = parseFloat(localStorage.getItem('suplemind_bling_b2b_atual')||'0') || 0;
+
+  var divergencia = '';
+  if(blingTotal > 0){
+    var diff = blingTotal - totalMesVendas;
+    var diffPct = blingTotal > 0 ? (diff/blingTotal * 100) : 0;
+    var corDiff = Math.abs(diffPct) < 2 ? 'var(--green)' : Math.abs(diffPct) < 10 ? 'var(--amber)' : 'var(--red)';
+    divergencia = '<div style="margin-top:12px;padding:12px;background:var(--bg2);border-radius:6px;border-left:3px solid '+corDiff+'">' +
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">📊 Cruzamento com Bling — Mês corrente ('+mesAtual+')</div>' +
+      '<table class="tbl" style="font-size:12px"><thead><tr><th></th><th class="text-right">BI</th><th class="text-right">Bling</th><th class="text-right">Diferença</th></tr></thead><tbody>' +
+      '<tr><td class="strong">Total</td><td class="num">'+R(totalMesVendas)+'</td><td class="num">'+R(blingTotal)+'</td><td class="num" style="color:'+corDiff+'">'+(diff > 0 ? '+' : '')+R(diff)+' ('+diffPct.toFixed(1)+'%)</td></tr>' +
+      (blingDTC > 0 ? '<tr><td>DTC</td><td class="num">'+R(totalMesDTC)+'</td><td class="num">'+R(blingDTC)+'</td><td class="num">'+R(blingDTC - totalMesDTC)+'</td></tr>' : '') +
+      (blingB2B > 0 ? '<tr><td>B2B</td><td class="num">'+R(totalMesB2B)+'</td><td class="num">'+R(blingB2B)+'</td><td class="num">'+R(blingB2B - totalMesB2B)+'</td></tr>' : '') +
+      '</tbody></table>' +
+      (Math.abs(diffPct) >= 5 ? '<div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6"><strong>Possíveis causas da diferença:</strong><ol style="margin:4px 0 0 18px;padding:0"><li>NFes ainda não enriquecidas (sem CFOP) sendo passadas como venda incorretamente</li><li>CSV exportado do Bling com filtros diferentes (status, série, data)</li><li>Lançamentos manuais no Bling sem NFe associada</li><li>NFes de filiais não mapeadas no coletor</li></ol></div>' : '<div style="margin-top:8px;font-size:11px;color:var(--green)">✅ Bate com Bling (diferença &lt;5%)</div>') +
+      '</div>';
+  } else {
+    divergencia = '<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--text2);font-size:12px;font-weight:600">🔍 Cruzar com painel do Bling (digite valores)</summary>' +
+      '<div style="margin-top:8px;padding:12px;background:var(--bg2);border-radius:6px">' +
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">Cole os valores que aparecem no painel do Bling pra mês corrente. Salvo no seu browser.</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
+      '<div><label style="font-size:10px;color:var(--text2)">Total mês</label><input type="number" step="0.01" id="bling-total" placeholder="0.00" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px;font-family:DM Mono,monospace;font-size:12px"></div>' +
+      '<div><label style="font-size:10px;color:var(--text2)">DTC</label><input type="number" step="0.01" id="bling-dtc" placeholder="0.00" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px;font-family:DM Mono,monospace;font-size:12px"></div>' +
+      '<div><label style="font-size:10px;color:var(--text2)">B2B</label><input type="number" step="0.01" id="bling-b2b" placeholder="0.00" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px;font-family:DM Mono,monospace;font-size:12px"></div>' +
+      '</div>' +
+      '<button onclick="salvarBlingComparacao()" style="margin-top:10px;background:var(--blue);color:#000;border:0;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;font-size:11px">Comparar</button>' +
+      '</div></details>';
+  }
 
   // Agrupar por CFOP
   var porCfop = {};
@@ -1897,20 +2030,51 @@ function renderAuditoriaFiscal(elId){
     ? 'Atualmente INCLUINDO essas NFes nos números (modo auditoria).'
     : 'Atualmente EXCLUINDO essas NFes dos números (modo correto).';
 
+  var subTitle = hasExcluidas
+    ? excluidas.length+' NFes identificadas como remessa/devolução/transferência (total '+R(valorExcluido)+'). '+statusTxt
+    : 'Nenhuma NFe excluída até agora. Cruzamento com Bling abaixo te ajuda a investigar divergências.';
+
+  var topCfopsHTML = hasExcluidas
+    ? '<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--text2);font-size:12px">📋 Top 5 CFOPs excluídos (clica pra ver)</summary>' +
+        '<table class="tbl" style="margin-top:8px;font-size:12px"><thead><tr><th>CFOP</th><th class="text-right">Qtd</th><th class="text-right">Valor</th><th>Natureza</th></tr></thead><tbody>'+cfopRows+'</tbody></table>' +
+      '</details>'
+    : '';
+
+  var toggleHTML = hasExcluidas
+    ? '<div class="scope-btns">' +
+        '<button class="sbtn '+(INCLUIR_NAO_VENDA?'':'active')+'" onclick="toggleNaoVenda(false,this)" title="Só vendas (recomendado)">Só Vendas</button>' +
+        '<button class="sbtn '+(INCLUIR_NAO_VENDA?'active':'')+'" onclick="toggleNaoVenda(true,this)" title="Mostrar tudo (auditoria)">Incluir tudo</button>' +
+      '</div>'
+    : '';
+
   el.innerHTML =
     '<div class="card" style="border-left:4px solid var(--amber)">' +
       '<div class="card-head">' +
-        '<div><div class="card-title">🔍 Auditoria Fiscal · NFes excluídas</div>' +
-        '<div class="card-sub">'+excluidas.length+' NFes identificadas como remessa/devolução/transferência (total '+R(valorExcluido)+'). '+statusTxt+'</div></div>' +
-        '<div class="scope-btns">' +
-          '<button class="sbtn '+(INCLUIR_NAO_VENDA?'':'active')+'" onclick="toggleNaoVenda(false,this)" title="Só vendas (recomendado)">Só Vendas</button>' +
-          '<button class="sbtn '+(INCLUIR_NAO_VENDA?'active':'')+'" onclick="toggleNaoVenda(true,this)" title="Mostrar tudo (auditoria)">Incluir tudo</button>' +
-        '</div>' +
+        '<div><div class="card-title">🔍 Auditoria Fiscal · Cruzamento com Bling</div>' +
+        '<div class="card-sub">'+subTitle+'</div></div>' +
+        toggleHTML +
       '</div>' +
-      '<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--text2);font-size:12px">📋 Top 5 CFOPs excluídos (clica pra ver)</summary>' +
-        '<table class="tbl" style="margin-top:8px;font-size:12px"><thead><tr><th>CFOP</th><th class="text-right">Qtd</th><th class="text-right">Valor</th><th>Natureza</th></tr></thead><tbody>'+cfopRows+'</tbody></table>' +
-      '</details>' +
+      topCfopsHTML +
+      divergencia +
     '</div>';
+}
+
+// v5.12: salvar valores de Bling pra comparação
+function salvarBlingComparacao(){
+  var t = parseFloat((document.getElementById('bling-total')||{}).value || '0') || 0;
+  var d = parseFloat((document.getElementById('bling-dtc')||{}).value || '0') || 0;
+  var b = parseFloat((document.getElementById('bling-b2b')||{}).value || '0') || 0;
+  if(!t){ alert('Digite ao menos o Total'); return; }
+  localStorage.setItem('suplemind_bling_total_atual', String(t));
+  localStorage.setItem('suplemind_bling_dtc_atual', String(d));
+  localStorage.setItem('suplemind_bling_b2b_atual', String(b));
+  render(ACTIVE);
+}
+function limparBlingComparacao(){
+  localStorage.removeItem('suplemind_bling_total_atual');
+  localStorage.removeItem('suplemind_bling_dtc_atual');
+  localStorage.removeItem('suplemind_bling_b2b_atual');
+  render(ACTIVE);
 }
 
 function renderHome(){
@@ -2265,17 +2429,40 @@ function renderVendasProdutos(nfes){
 }
 
 function renderVendasProdutosEvo(){
-  // Últimos 12 meses — evolução por produto usando stats.porSku (do Bling)
-  var porSku = gp(DATA,'stats.porSku',{});
-  if(Object.keys(porSku).length === 0){
-    dc('vProdsEvo');
-    return;
-  }
-  // Top 6 produtos por valor histórico
-  var arr = Object.keys(porSku).map(function(cod){
-    var s = porSku[cod];
-    return {codigo:cod, nome:s.descricao||cod, porData:s.porData||{}, valor:s.valor||0};
-  }).sort(function(a,b){ return b.valor - a.valor; }).slice(0,6);
+  // v5.12: Reescrita - usa NFes direto (mais confiável que stats.porSku)
+  // - Pula brindes/embalagens
+  // - Agrega por código de SKU
+  var nfesAll = filterByScope(validNfes());
+  if(nfesAll.length === 0){ dc('vProdsEvo'); return; }
+
+  var porProdFull = {};
+  nfesAll.forEach(function(n){
+    if(!n.itens || n.itens.length === 0) return;
+    var mes = (n.dataEmissao||'').slice(0,7);
+    if(!mes) return;
+    n.itens.forEach(function(it){
+      if(isSkuComercialExcluido(it)) return;  // v5.12
+      var cod = it.codigo || '?';
+      if(!porProdFull[cod]){
+        porProdFull[cod] = {
+          codigo: cod,
+          nome: it.descricao || cod,
+          porMes: {},
+          valor: 0
+        };
+      }
+      var qtd = parseFloat(it.quantidade) || 0;
+      var v = qtd * (parseFloat(it.valorUnitario) || 0);
+      porProdFull[cod].valor += v;
+      if(!porProdFull[cod].porMes[mes]) porProdFull[cod].porMes[mes] = {qtd:0, valor:0};
+      porProdFull[cod].porMes[mes].qtd += qtd;
+      porProdFull[cod].porMes[mes].valor += v;
+    });
+  });
+
+  // Top 6 por valor histórico
+  var arr = Object.values(porProdFull).sort(function(a,b){ return b.valor - a.valor; }).slice(0,6);
+  if(arr.length === 0){ dc('vProdsEvo'); return; }
 
   // Agrega por mês nos últimos 12
   var meses = [];
@@ -2287,17 +2474,10 @@ function renderVendasProdutosEvo(){
 
   var palette = ['#00e5a0','#3d9aff','#ffb340','#a78bfa','#ff4560','#00b87a'];
   var datasets = arr.map(function(p, idx){
-    var byMes = {};
-    meses.forEach(function(m){ byMes[m] = 0; });
-    Object.keys(p.porData).forEach(function(d){
-      var m = d.slice(0,7);
-      if(byMes[m] !== undefined){
-        byMes[m] += (p.porData[d].qtd||0);
-      }
-    });
+    var data = meses.map(function(m){ return p.porMes[m] ? p.porMes[m].qtd : 0; });
     return {
       label: formatProductName({nome:p.nome, codigo:p.codigo}).slice(0,25),
-      data: meses.map(function(m){ return byMes[m]; }),
+      data: data,
       borderColor: palette[idx], backgroundColor: palette[idx]+'22',
       tension: 0.3, borderWidth: 2, pointRadius: 2, fill: false
     };
@@ -2440,7 +2620,7 @@ function renderCanaisEvo(){
     var m = (n.dataEmissao||'').slice(0,7);
     if(meses.indexOf(m) === -1) return;
     var lojaId = n.loja && n.loja.id ? String(n.loja.id) : null;
-    var chan = !lojaId ? (n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal') : getChannelGroup(lojaId);
+    var chan = !lojaId ? (n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal') : getChannelGroup(lojaId, n.loja && n.loja.nome);
     if(!byChanMes[chan]) byChanMes[chan] = {};
     if(!byChanMes[chan][m]) byChanMes[chan][m] = 0;
     byChanMes[chan][m] += parseFloat(n.valorNota)||0;
@@ -2481,7 +2661,7 @@ function renderCanaisRep(){
     var m = (n.dataEmissao||'').slice(0,7);
     if(meses.indexOf(m) === -1) return;
     var lojaId = n.loja && n.loja.id ? String(n.loja.id) : null;
-    var chan = !lojaId ? (n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal') : getChannelGroup(lojaId);
+    var chan = !lojaId ? (n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal') : getChannelGroup(lojaId, n.loja && n.loja.nome);
     if(!byChanMes[chan]) byChanMes[chan] = {};
     if(!byChanMes[chan][m]) byChanMes[chan][m] = 0;
     byChanMes[chan][m] += parseFloat(n.valorNota)||0;
@@ -2524,7 +2704,14 @@ function renderCanaisRep(){
 // PRODUTOS
 // ================================================================
 function renderProdutos(){
-  var prods = DATA.produtos || [];
+  // v5.12: separar produtos comerciais de insumos/embalagens
+  var prodsAll = DATA.produtos || [];
+  var prods = prodsAll.filter(function(p){ return !isSkuComercialExcluido(p); });
+  var prodsExcluidos = prodsAll.filter(function(p){ return isSkuComercialExcluido(p); });
+
+  // UI gerenciar lista de excluídos
+  renderSkusExcluidosUI(prodsAll, prodsExcluidos);
+
   document.getElementById('p-total').textContent = N(prods.length);
   var precos = prods.map(function(p){ return parseFloat(p.preco)||0; }).filter(function(p){ return p>0; });
   var avg = precos.length>0 ? precos.reduce(function(a,b){return a+b;},0)/precos.length : 0;
@@ -2548,6 +2735,134 @@ function renderProdutos(){
 
 <script>
 // ================================================================
+// v5.12: UI pra gerenciar lista de SKUs excluídos
+// ================================================================
+function renderSkusExcluidosUI(prodsAll, prodsExcluidos){
+  var el = document.getElementById('produtos-skus-ui');
+  if(!el) return;
+  var userList = carregarSkusExcluidosUser();
+
+  // Lista atual de excluídos com motivo
+  var excluidosHTML = '';
+  if(prodsExcluidos.length > 0){
+    excluidosHTML = '<details style="margin-top:10px"><summary style="cursor:pointer;font-size:11px;color:var(--text2);font-weight:600">▸ Ver ' + prodsExcluidos.length + ' produtos atualmente excluídos do comercial</summary>' +
+      '<div style="max-height:200px;overflow-y:auto;margin-top:8px;border:1px solid var(--border);border-radius:4px;padding:6px">' +
+      prodsExcluidos.map(function(p){
+        var cod = (p.codigo||'').toUpperCase();
+        var motivo = '';
+        if(SKU_EXCLUIR_COMERCIAL_HARDCODED.indexOf(cod) >= 0) motivo = 'hardcoded';
+        else if(userList.indexOf(cod) >= 0) motivo = 'lista user';
+        else motivo = 'padrão nome';
+        return '<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 6px;border-bottom:1px solid var(--border)">' +
+          '<span><strong>'+(p.codigo||'?')+'</strong> · '+(p.nome||'?').slice(0,60)+'</span>' +
+          '<span style="font-family:DM Mono,monospace;color:var(--text3)">'+motivo+'</span></div>';
+      }).join('') +
+      '</div></details>';
+  }
+
+  // Lista do user
+  var userHTML = userList.length > 0
+    ? '<div style="margin-top:8px"><strong style="font-size:11px;color:var(--text2)">Adicionados manualmente (' + userList.length + '):</strong> ' +
+      userList.map(function(cod){
+        return '<span style="display:inline-block;background:var(--bg3);padding:2px 8px;border-radius:4px;margin:2px 4px 2px 0;font-family:DM Mono,monospace;font-size:10px">'+cod+' <a href="#" onclick="removerSkuExcluido(\''+cod+'\');return false" style="color:var(--red);text-decoration:none;margin-left:4px">×</a></span>';
+      }).join('') + '</div>'
+    : '';
+
+  el.innerHTML = '<div class="card" style="border-left:3px solid var(--amber);margin-bottom:14px">' +
+    '<div class="card-head"><div><div class="card-title">📦 SKUs excluídos das análises comerciais</div>' +
+    '<div class="card-sub">Brindes, embalagens e amostras NÃO contam em vendas/recorrência/produtos top, mas <strong>continuam aparecendo em Estoque</strong>. Detecção automática por padrões + lista manual.</div></div></div>' +
+    '<div style="display:flex;gap:8px;align-items:center">' +
+      '<input type="text" id="sku-input" placeholder="Cole código SKU (ex: 14F33C41)" ' +
+      'style="flex:1;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-family:DM Mono,monospace;font-size:12px" />' +
+      '<button onclick="adicionarSkuExcluido()" style="background:var(--amber);color:#000;border:0;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600;font-size:12px">+ Adicionar</button>' +
+    '</div>' + userHTML + excluidosHTML +
+    '</div>';
+}
+
+function adicionarSkuExcluido(){
+  var inp = document.getElementById('sku-input');
+  if(!inp) return;
+  var cod = (inp.value||'').trim().toUpperCase();
+  if(!cod){ alert('Digite um código de SKU'); return; }
+  var lista = carregarSkusExcluidosUser();
+  if(lista.indexOf(cod) >= 0){ alert('Já está na lista'); return; }
+  lista.push(cod);
+  salvarSkusExcluidosUser(lista);
+  inp.value = '';
+  render(ACTIVE);
+}
+function removerSkuExcluido(cod){
+  var lista = carregarSkusExcluidosUser();
+  var idx = lista.indexOf(cod);
+  if(idx >= 0){
+    lista.splice(idx, 1);
+    salvarSkusExcluidosUser(lista);
+    render(ACTIVE);
+  }
+}
+
+// ================================================================
+// v5.12: UI pra gerenciar lista de sócios excluídos
+// ================================================================
+function renderSociosExcluidosUI(){
+  var el = document.getElementById('clientes-socios-ui');
+  if(!el) return;
+  var lista = carregarSociosExcluidos();
+  var ladoB = lista.length > 0
+    ? '<div style="margin-top:8px"><strong style="font-size:11px;color:var(--text2)">Excluídos atualmente (' + lista.length + '):</strong> ' +
+      lista.map(function(d){
+        // Formatar pra exibir
+        var fmt = d.length === 11
+          ? d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9)
+          : d.length === 14
+            ? d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8,12)+'-'+d.slice(12)
+            : d;
+        return '<span style="display:inline-block;background:var(--bg3);padding:2px 8px;border-radius:4px;margin:2px 4px 2px 0;font-family:DM Mono,monospace;font-size:10px">'+fmt+' <a href="#" onclick="removerSocioExcluido(\''+d+'\');return false" style="color:var(--red);text-decoration:none;margin-left:4px">×</a></span>';
+      }).join('') + '</div>'
+    : '<div class="hint" style="margin-top:8px">Nenhum sócio/colaborador excluído. Adicione CPFs/CNPJs pra que <strong>NÃO</strong> apareçam nas análises de top clientes, novos vs recorrentes, etc.</div>';
+
+  el.innerHTML = '<div class="card" style="border-left:3px solid var(--purple);margin-bottom:14px">' +
+    '<div class="card-head"><div><div class="card-title">🔒 Sócios e colaboradores excluídos das análises</div>' +
+    '<div class="card-sub">CPFs/CNPJs aqui são removidos de TODAS as análises de cliente. Lista privada (localStorage no seu browser).</div></div></div>' +
+    '<div style="display:flex;gap:8px;align-items:center">' +
+      '<input type="text" id="socio-input" placeholder="Cole CPF ou CNPJ (com ou sem máscara)" ' +
+      'style="flex:1;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-family:DM Mono,monospace;font-size:12px" />' +
+      '<button onclick="adicionarSocioExcluido()" style="background:var(--purple);color:#000;border:0;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600;font-size:12px">+ Adicionar</button>' +
+    '</div>' + ladoB +
+    '</div>';
+}
+
+function adicionarSocioExcluido(){
+  var inp = document.getElementById('socio-input');
+  if(!inp) return;
+  var raw = inp.value || '';
+  var doc = raw.replace(/[^0-9]/g, '');
+  if(doc.length !== 11 && doc.length !== 14){
+    alert('Digite um CPF (11 dígitos) ou CNPJ (14 dígitos)');
+    return;
+  }
+  var lista = carregarSociosExcluidos();
+  if(lista.indexOf(doc) >= 0){
+    alert('Já está na lista');
+    return;
+  }
+  lista.push(doc);
+  salvarSociosExcluidos(lista);
+  inp.value = '';
+  render(ACTIVE);  // re-render
+}
+
+function removerSocioExcluido(doc){
+  var lista = carregarSociosExcluidos();
+  var idx = lista.indexOf(doc);
+  if(idx >= 0){
+    lista.splice(idx, 1);
+    salvarSociosExcluidos(lista);
+    render(ACTIVE);
+  }
+}
+
+// ================================================================
 // CLIENTES
 // ================================================================
 function renderClientes(){
@@ -2557,8 +2872,12 @@ function renderClientes(){
   // 3. Filtra por período pra saber quem comprou no período
   // 4. NOVO no período = primeira compra (histórica) ocorreu DENTRO do período
   // 5. RECORRENTE no período = comprou no período E tem ≥1 compra antes do início do período
+  // v5.12: Sócios são EXCLUÍDOS (configurável em localStorage)
   // ========================================
-  var allDTC = validNfes().filter(function(n){ return n.tipoPessoa === 'F'; });
+  renderSociosExcluidosUI();  // v5.12: UI pra gerenciar lista
+  var allDTC = validNfes().filter(function(n){
+    return n.tipoPessoa === 'F' && !isSocioExcluido(n);  // v5.12: pula sócios
+  });
 
   // Agrega histórico completo por documento
   var historicoCompleto = {};
@@ -2756,7 +3075,8 @@ function renderClientes(){
 // RECORRÊNCIA
 // ================================================================
 function renderRecorrencia(){
-  var nfesDTC = validNfes().filter(function(n){ return n.tipoPessoa === 'F'; });
+  // v5.12: pula sócios excluídos
+  var nfesDTC = validNfes().filter(function(n){ return n.tipoPessoa === 'F' && !isSocioExcluido(n); });
   var byDoc = {};
   nfesDTC.forEach(function(n){
     if(!n.contato) return;
@@ -2885,7 +3205,8 @@ function renderRecorrenciaPorProduto(nfesDTC) {
     if(!n.contato || !n.itens || n.itens.length === 0) return;
     var doc = n.contato.numeroDocumento || ('id_'+(n.contato.id||''));
     if(!byDoc[doc]) byDoc[doc] = [];
-    byDoc[doc].push({d: n.dataEmissao, itens: n.itens.map(function(i){ return i.codigo; })});
+    // v5.12: passa item completo pra checar exclusão depois
+    byDoc[doc].push({d: n.dataEmissao, itens: n.itens.filter(function(i){ return !isSkuComercialExcluido(i); }).map(function(i){ return i.codigo; })});
   });
 
   // Pra cada produto, conta:
@@ -2906,6 +3227,8 @@ function renderRecorrenciaPorProduto(nfesDTC) {
 
     primeira.itens.forEach(function(cod){
       if(!cod) return;
+      // v5.12: pular brindes/embalagens
+      if(isSkuComercialExcluido({codigo: cod, descricao: ''})) return;
       if(!statsRec[cod]) statsRec[cod] = {primeira:0, voltou:0};
       statsRec[cod].primeira += 1;
       if(voltou) statsRec[cod].voltou += 1;
@@ -5380,7 +5703,7 @@ function renderDailyCanais() {
     if (!lojaId) {
       group = n.tipoPessoa === 'J' ? 'B2B/Direto' : 'Sem canal';
     } else {
-      group = getChannelGroup(lojaId);
+      group = getChannelGroup(lojaId, n.loja && n.loja.nome);
     }
     if (!groups[group]) groups[group] = {n:0, v:0};
     groups[group].n += 1;
@@ -5429,7 +5752,7 @@ function renderDailyFeed() {
     var hora = (n.dataEmissao||'').slice(11,16);
     var cliente = (n.contato && n.contato.nome ? n.contato.nome : '-').slice(0,35);
     var lojaId = n.loja && n.loja.id ? String(n.loja.id) : null;
-    var canal = lojaId ? getChannelGroup(lojaId) : (n.tipoPessoa === 'J' ? 'B2B' : '-');
+    var canal = lojaId ? getChannelGroup(lojaId, n.loja && n.loja.nome) : (n.tipoPessoa === 'J' ? 'B2B' : '-');
     var tipo = n.tipoPessoa === 'J' ? '<span class="badge p" style="font-size:9px">CNPJ</span>' : '<span class="badge b" style="font-size:9px">CPF</span>';
 
     return '<tr>' +
@@ -5928,9 +6251,17 @@ function renderCriativoRoasVsMer(items){
     '</div>';
 
   var alerta = '';
-  if(inflacao > 50){
-    alerta = '<div class="banner warn" style="margin-bottom:10px"><div class="banner-icon">⚠️</div><div><div class="banner-title">Pixel Meta provavelmente duplicado</div><div class="banner-body">ROAS Meta está ' + inflacao.toFixed(0) + '% acima do MER real. Confirme no Events Manager se há pixels duplicados disparando Purchase.</div></div></div>';
+  if(inflacao > 100){
+    alerta = '<div class="banner err" style="margin-bottom:10px"><div class="banner-icon">🚨</div><div><div class="banner-title">ROAS Meta MUITO acima do MER real (' + inflacao.toFixed(0) + '%)</div><div class="banner-body">Causas mais prováveis: (a) pixel duplicado disparando Purchase 2x, (b) atribuição contando vendas que vieram de outros canais (orgânico, ML, B2B). <strong>MER é a métrica confiável</strong> — use-a pra avaliar a saúde real da mídia paga.</div></div></div>';
+  } else if(inflacao > 50){
+    alerta = '<div class="banner warn" style="margin-bottom:10px"><div class="banner-icon">⚠️</div><div><div class="banner-title">Pixel Meta provavelmente duplicado (' + inflacao.toFixed(0) + '% inflado)</div><div class="banner-body">ROAS Meta está ' + inflacao.toFixed(0) + '% acima do MER real. Confirme no Events Manager se há pixels duplicados disparando Purchase.</div></div></div>';
   }
+  // v5.12: nota explicativa sobre por que ROAS Meta tipicamente reflete só uma fração do MER
+  alerta += '<div class="hint" style="margin-bottom:10px;padding:10px;background:var(--bg2);border-radius:4px;font-size:11px;line-height:1.6">' +
+    '<strong>📖 Como interpretar:</strong> O <strong>ROAS Meta</strong> é o que o pixel/CAPI da Meta atribui aos anúncios — ele NÃO inclui vendas que vieram de outros canais (Mercado Livre, B2B, Yampi, orgânico). ' +
+    'O <strong>MER (real)</strong> divide TODO faturamento DTC pelo gasto Meta — útil pra saber se a mídia paga vale a pena no consolidado. ' +
+    'Se ROAS Meta &gt; MER em &gt;100%, há provavelmente pixel duplicado ou erro de configuração.' +
+    '</div>';
 
   var rows = arr.map(function(c){
     var rCls = c.roasMeta >= 5 ? 'g' : c.roasMeta >= 2 ? 'a' : 'r';
